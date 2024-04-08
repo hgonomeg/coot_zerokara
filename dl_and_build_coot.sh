@@ -699,8 +699,9 @@ build_dependencies() {
   # Also builds libjeg
   build_gdk_pixbuf
   build_librsvg
-  # Rebuild after librsvg
+  build_tiff
   build_poppler
+  # Rebuild after librsvg
   build_cairo
   # After librsvg
   build_gdk_pixbuf
