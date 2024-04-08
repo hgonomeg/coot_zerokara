@@ -449,6 +449,13 @@ build_poppler() {
 
 build_tiff() {
   setup_build_env
+  rm -rf $BUILD_DIR/libtiff
+  cp -av $DEPS_DIR/libtiff-v${LIBTIFF_VER}/ $BUILD_DIR/libtiff
+  cd $BUILD_DIR/libtiff
+  ./autogen.sh --prefix=$PREFIX
+  ./configure --prefix=$PREFIX
+  make -j `nproc --all` && make install
+  cd ..
 }
 
 build_cairo() {
