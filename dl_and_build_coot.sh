@@ -128,6 +128,7 @@ HARFBUZZ_VER=8.4.0
 FREETYPE_VER=2.13.2
 FONTCONFIG_VER=2.14.2
 PIXMAN_VER=0.43.4
+LIBTIFF_VER=4.6.0
 POPPLER_VER=24.03.0
 # POPPLER_VER=23.11.0
 CAIRO_VER=1.18.0
@@ -207,6 +208,9 @@ download_dependencies() {
   #Pixman
   do_wget https://www.cairographics.org/releases/pixman-${PIXMAN_VER}.tar.gz &&\
   tar -xf pixman-${PIXMAN_VER}.tar.gz
+
+  do_wget https://gitlab.com/libtiff/libtiff/-/archive/v${LIBTIFF_VER}/libtiff-v${LIBTIFF_VER}.tar.gz &&\
+  tar -xf libtiffv${LIBTIFF_VER}.tar.gz
 
   #Poppler
   do_wget https://poppler.freedesktop.org/poppler-${POPPLER_VER}.tar.xz &&\
@@ -441,6 +445,10 @@ build_poppler() {
   -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=release
   cmake --build . && cmake --install .
   cd ..
+}
+
+build_tiff() {
+  setup_build_env
 }
 
 build_cairo() {
