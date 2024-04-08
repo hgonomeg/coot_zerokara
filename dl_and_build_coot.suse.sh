@@ -8,7 +8,7 @@ install_dependencies_with_distro_package_manager() {
   zypper update -y
   zypper install -y \
       git wget gcc13 gcc13-c++ gcc13-fortran pkg-config gettext-runtime gettext-tools bison flex make automake gperf vim xmlto libtool gzip bzip2 \
-      python3-xattr dbus-1-devel libmount-devel libexpat-devel libffi-devel libelf-devel libxml2-devel libxml2-tools readline-devel \
+      dbus-1-devel libmount-devel libexpat-devel libffi-devel libelf-devel libxml2-devel libxml2-tools readline-devel \
       libopenssl-devel libcurl-devel ncurses-devel sqlite3-devel lzo-devel libbz2-devel libpng16-devel libbrotli-devel libtiff-devel \
       libxcb-devel \
       Mesa-libEGL-devel \

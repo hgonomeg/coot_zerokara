@@ -9,7 +9,7 @@ install_dependencies_with_distro_package_manager() {
   apt update
   apt install -y \
       git wget gcc-10 g++-10 gfortran-10 gettext pkg-config bison flex make automake gperf vim xmlto libtool-bin \
-      xattr libdbus-1-dev libmount-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
+      libdbus-1-dev libmount-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
       libssl-dev libcurl4-openssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev libtiff-dev \
       libxcb-glx0-dev \
       libegl1-mesa-dev \

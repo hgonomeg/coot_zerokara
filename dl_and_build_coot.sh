@@ -56,7 +56,7 @@ initial_setup() {
   ln -s $PREFIX/bin/python3 $PREFIX/bin/python
 
   setup_build_env
-  python3 -m pip install meson setuptools numpy packaging requests
+  python3 -m pip install meson setuptools numpy packaging requests xattr
   # python3 -m pip install meson numpy
 
   # Newer CMake
