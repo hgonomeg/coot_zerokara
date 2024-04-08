@@ -1,0 +1,2 @@
+FROM ufo-focal3
+RUN bin/bash -c 'source /dl_and_build_coot.sh && download_coot'
