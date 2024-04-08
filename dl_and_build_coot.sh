@@ -156,6 +156,7 @@ LIBSSM_VER=1.4
 LIBCLIPPER_VER=2.1.20180802
 
 #TODO:
+# * JPEG for poppler (and tiff)
 # * curl, libbackward
 # * Additional deps: libeigen, coordgen
 
