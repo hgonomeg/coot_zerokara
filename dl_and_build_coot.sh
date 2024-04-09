@@ -367,7 +367,7 @@ build_harfbuzz() {
   cd $BUILD_DIR/harfbuzz &&\
   rm -rf *
   pushd $DEPS_DIR/harfbuzz-${HARFBUZZ_VER}
-  meson setup --prefix=$PREFIX $BUILD_DIR/harfbuzz
+  meson setup --prefix=$PREFIX -Dtests=disabled $BUILD_DIR/harfbuzz
   popd
   meson compile && meson install
   cd ..
