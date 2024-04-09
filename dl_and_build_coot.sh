@@ -19,7 +19,7 @@ export COOT_DOWNLOAD_DIR=$PREFIX
 export COOT_BUILD_DIR=$COOT_DOWNLOAD_DIR/coot
 
 # Load the Docker-image-specific variables and functions
-source dl_and_build_coot.image-specific.sh
+source /dl_and_build_coot.image-specific.sh
 
 
 build_python() {
