@@ -211,7 +211,7 @@ download_dependencies() {
   tar -xf pixman-${PIXMAN_VER}.tar.gz
 
   do_wget https://gitlab.com/libtiff/libtiff/-/archive/v${LIBTIFF_VER}/libtiff-v${LIBTIFF_VER}.tar.gz &&\
-  tar -xf libtiffv${LIBTIFF_VER}.tar.gz
+  tar -xf libtiff-v${LIBTIFF_VER}.tar.gz
 
   #Poppler
   do_wget https://poppler.freedesktop.org/poppler-${POPPLER_VER}.tar.xz &&\
