@@ -102,9 +102,8 @@ setup_build_env() {
   # GCC_COMPILER_VERSION is defined in image-specific configuration, sourced above
   export CC=gcc-${GCC_COMPILER_VERSION}
   export CXX=g++-${GCC_COMPILER_VERSION}
-  #export FC=gfortran-${GCC_COMPILER_VERSION}
-  # Fortran is a special case
-  export FC=gfortran-10
+  export FC=gfortran-${GCC_COMPILER_VERSION}
+  #export FC=gfortran-10
 }
 
 additional_build_env_setup() {
