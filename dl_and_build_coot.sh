@@ -679,11 +679,11 @@ build_libclipper() {
 
 build_fftw() {  
   setup_build_env
-  mkdir -p $BUILD_DIR/fftw
-  cd $BUILD_DIR/fftw &&\
-  rm -rf *
+  rm -rf $BUILD_DIR/fftw
+  cp -av $DEPS_DIR/fftw-${FFTW_VER} $BUILD_DIR/fftw
+  cd $BUILD_DIR/fftw
   # --enable-mpi \
-  $DEPS_DIR/fftw-${FFTW_VER}/configure F77=gfortran --prefix=$PREFIX \
+  ./configure F77=gfortran --prefix=$PREFIX \
   --enable-shared --disable-static \
   --enable-openmp  \
   --enable-threads \
