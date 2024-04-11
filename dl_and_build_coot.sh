@@ -683,12 +683,13 @@ build_fftw() {
   cp -av $DEPS_DIR/fftw-${FFTW_VER} $BUILD_DIR/fftw
   cd $BUILD_DIR/fftw
   # --enable-mpi \
+  #--enable-type-prefix \
+  #--enable-float
   ./configure F77=gfortran --prefix=$PREFIX \
   --enable-shared --disable-static \
   --enable-openmp  \
   --enable-threads \
-  --with-gcc --with-gcc-ld \
-  --enable-type-prefix
+  --with-gcc --with-gcc-ld 
   make -j `nproc --all` && make install
   cd ..
 }
