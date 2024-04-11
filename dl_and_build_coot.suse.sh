@@ -18,4 +18,6 @@ install_dependencies_with_distro_package_manager() {
       libopenblas_pthreads-devel gmp-devel gc-devel libunistring-devel pcre2-devel libdrm-devel glm-devel \
       libglfw-devel \
       bc
+     # SUSE puts png.h in the wrong place
+     cp -av /usr/include/libpng16/* /usr/include/
 }
