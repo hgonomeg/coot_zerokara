@@ -103,6 +103,7 @@ setup_build_env() {
   export CC=gcc-${GCC_COMPILER_VERSION}
   export CXX=g++-${GCC_COMPILER_VERSION}
   export FC=gfortran-${GCC_COMPILER_VERSION}
+  #export F77=$FC
   #export FC=gfortran-10
 }
 
@@ -131,7 +132,6 @@ FONTCONFIG_VER=2.14.2
 PIXMAN_VER=0.43.4
 LIBTIFF_VER=4.6.0
 POPPLER_VER=24.03.0
-# POPPLER_VER=23.11.0
 CAIRO_VER=1.18.0
 PANGO_VER_MM=1.52
 PANGO_VER=${PANGO_VER_MM}.2
@@ -154,7 +154,10 @@ GSL_VER=2.7.1
 GEMMI_VER=0.6.3
 LIBCCP4_VER=6.5.1
 LIBSSM_VER=1.4
-LIBCLIPPER_VER=2.1.20180802
+LIBCLIPPER_VER_PRE=2.1
+LIBCLIPPER_VER_PATCH=20180802
+LIBCLIPPER_VER=${LIBCLIPPER_VER_PRE}.${LIBCLIPPER_VER_PATCH}
+FFTW_VER=2.1.5
 
 #TODO:
 # * JPEG for poppler (and tiff)
@@ -288,6 +291,9 @@ download_dependencies() {
   #Libclipper
   do_wget https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/dependencies/clipper-${LIBCLIPPER_VER}.tar.gz -O libclipper-${LIBCLIPPER_VER}.tar.gz &&\
   tar -xf libclipper-${LIBCLIPPER_VER}.tar.gz
+
+  do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz &&\
+  tar -xf fftw-${FFTW_VER}.tar.gz 
 }
 
 build_glib() {
@@ -662,12 +668,27 @@ build_libclipper() {
   mkdir -p $BUILD_DIR/libclipper
   cd $BUILD_DIR/libclipper &&\
   rm -rf *
-  # Todo: Fix this (version not being used)
-  $DEPS_DIR/clipper-2.1/configure --prefix=$PREFIX \
+  $DEPS_DIR/clipper-${LIBCLIPPER_VER_PRE}/configure --prefix=$PREFIX \
   --enable-shared --disable-static \
   --enable-contrib --enable-ccp4 \
   --enable-cif --enable-mmdb --enable-minimol \
   --enable-cns --enable-phs --enable-fortran
+  make -j `nproc --all` && make install
+  cd ..
+}
+
+build_fftw() {  
+  setup_build_env
+  mkdir -p $BUILD_DIR/fftw
+  cd $BUILD_DIR/fftw &&\
+  rm -rf *
+  # --enable-mpi \
+  $DEPS_DIR/fftw-${FFTW_VER}/configure F77=gfortran --prefix=$PREFIX \
+  --enable-shared --disable-static \
+  --enable-openmp  \
+  --enable-threads \
+  --with-gcc --with-gcc-ld \
+  --enable-type-prefix
   make -j `nproc --all` && make install
   cd ..
 }
@@ -711,6 +732,7 @@ build_dependencies() {
   build_wayland
   build_gtk
   build_pygobject
+  build_fftw
   build_rdkit
   build_mmdb2
   build_gsl
