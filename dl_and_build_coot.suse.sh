@@ -16,6 +16,6 @@ install_dependencies_with_distro_package_manager() {
       libXdamage-devel libXinerama-devel \
       libxkbcommon-devel libxkbcommon-x11-devel xcb-util-devel xcb-proto-devel libX11-devel  \
       libopenblas_pthreads-devel gmp-devel gc-devel libunistring-devel pcre2-devel libdrm-devel glm-devel \
-      fftw3-devel fftw3-threads-devel libglfw-devel \
+      libglfw-devel \
       bc
 }

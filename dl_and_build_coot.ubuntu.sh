@@ -17,7 +17,7 @@ install_dependencies_with_distro_package_manager() {
       libxdamage-dev libxinerama-dev \
       libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
       libopenblas-dev libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
-      fftw-dev sfftw-dev libglfw3-dev \
+       libglfw3-dev \
       bc
 
 }
