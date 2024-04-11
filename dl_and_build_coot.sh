@@ -677,19 +677,26 @@ build_libclipper() {
   cd ..
 }
 
+
+  # --enable-mpi \
+  #--enable-type-prefix \
+  #--enable-float
+FFTW_CONFIGURE="./configure F77=gfortran --prefix=$PREFIX   --enable-shared --disable-static  --enable-openmp --enable-threads --with-gcc --with-gcc-ld"
+
+
 build_fftw() {  
   setup_build_env
   rm -rf $BUILD_DIR/fftw
   cp -av $DEPS_DIR/fftw-${FFTW_VER} $BUILD_DIR/fftw
   cd $BUILD_DIR/fftw
-  # --enable-mpi \
-  #--enable-type-prefix \
-  #--enable-float
-  ./configure F77=gfortran --prefix=$PREFIX \
-  --enable-shared --disable-static \
-  --enable-openmp  \
-  --enable-threads \
-  --with-gcc --with-gcc-ld 
+  ${FFTW_CONFIGURE}
+  make -j `nproc --all` && make install
+  cd ..
+  
+  rm -rf $BUILD_DIR/sfftw
+  cp -av $DEPS_DIR/fftw-${FFTW_VER} $BUILD_DIR/sfftw
+  cd $BUILD_DIR/sfftw
+  ${FFTW_CONFIGURE} --enable-type-prefix --enable-float
   make -j `nproc --all` && make install
   cd ..
 }
