@@ -1,3 +1,3 @@
 FROM ufo-focal2
-#COPY dl_and_build_coot.sh /
+COPY dl_and_build_coot.sh /
 RUN bin/bash -c 'source /dl_and_build_coot.sh && build_dependencies | tee /build.log'
