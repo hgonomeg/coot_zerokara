@@ -21,4 +21,6 @@ install_dependencies_with_distro_package_manager() {
      # SUSE puts png.h in the wrong place but I can't just copy it
      # because it breaks things, very annoyingly
      #cp -av /usr/include/libpng16/* /usr/include/
+     # But I can copy this
+     cp /usr/lib64/pkgconfig/libpng16.pc /usr/lib64/pkgconfig/libpng.pc
 }

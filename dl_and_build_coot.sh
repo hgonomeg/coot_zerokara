@@ -472,7 +472,7 @@ build_cairo() {
   cd $BUILD_DIR/cairo &&\
   rm -rf *
   pushd $DEPS_DIR/cairo-${CAIRO_VER}
-  meson setup --prefix=$PREFIX -Dtests=false $BUILD_DIR/cairo
+  meson setup --wrap-mode=nodownload --prefix=$PREFIX -Dtests=disabled $BUILD_DIR/cairo
   popd
   meson compile && meson install
   cd ..
