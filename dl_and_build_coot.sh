@@ -308,6 +308,7 @@ build_libjpeg() {
   rm -rf *
   cmake -S $DEPS_DIR/libjpeg-turbo-${LIBJPEG_VER} \
   -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_LIBDIR=$PREFIX/lib \
   -DENABLE_STATIC=OFF \
   -DWITH_JAVA=OFF 
   
@@ -482,7 +483,8 @@ build_tiff() {
   cp -av $DEPS_DIR/libtiff-v${LIBTIFF_VER}/ $BUILD_DIR/libtiff
   cd $BUILD_DIR/libtiff
   ./autogen.sh --prefix=$PREFIX
-  ./configure --prefix=$PREFIX
+  ./configure --prefix=$PREFIX --enable-cxx \
+  --with-jpeg-lib-dir=$PREFIX/lib --with-jpeg-include-dir=$PREFIX/include
   make -j `nproc --all` && make install
   cd ..
 }
