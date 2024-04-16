@@ -117,6 +117,7 @@ additional_build_env_setup() {
   unset IFS
 }
 
+LIBJPEG_VER=3.0.2
 GLIB_VER=2.80.0
 GOBJECT_INTROSPECTION_VER_MM=1.80
 GOBJECT_INTROSPECTION_VER=${GOBJECT_INTROSPECTION_VER_MM}.1
@@ -167,6 +168,10 @@ FFTW_VER=2.1.5
 download_dependencies() {
   setup_build_env
   cd $DEPS_DIR
+
+  #Libjpeg
+  do_wget https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${LIBJPEG_VER}.tar.gz -o libjpeg-turbo-${LIBJPEG_VER}.tar.gz &&\
+  tar -xf libjpeg-turbo-${LIBJPEG_vER}.tar.gz
   
   #Glib
   do_wget https://gitlab.gnome.org/GNOME/glib/-/archive/${GLIB_VER}/glib-${GLIB_VER}.tar.gz &&\
@@ -295,6 +300,22 @@ download_dependencies() {
   do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz &&\
   tar -xf fftw-${FFTW_VER}.tar.gz 
 }
+
+build_libjpeg() {
+  setup_build_env
+  mkdir -p $BUILD_DIR/libjpeg-turbo
+  cd $BUILD_DIR/libjpeg-turbo &&\
+  rm -rf *
+  cmake -S $DEPS_DIR/libjpeg-turbo-${LIBJPEG_VER} \
+  -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_STATIC=OFF \
+  -DWITH_JAVA=OFF 
+  
+
+  cmake --build . && cmake --install .
+  cd ..
+}
+
 
 build_glib() {
   setup_build_env
@@ -702,6 +723,7 @@ build_fftw() {
 }
 
 build_dependencies() {
+  build_libjpeg
   build_glib
   build_gobject_introspection
   build_guile
@@ -727,7 +749,6 @@ build_dependencies() {
   # Also builds fribidi
   build_pango
   build_smi
-  # Also builds libjeg
   build_gdk_pixbuf
   build_librsvg
   build_tiff
