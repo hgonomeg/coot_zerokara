@@ -725,7 +725,6 @@ build_fftw() {
 }
 
 build_dependencies() {
-  build_libjpeg
   build_glib
   build_gobject_introspection
   build_guile
@@ -742,6 +741,7 @@ build_dependencies() {
   build_harfbuzz
   build_freetype
   build_fontconfig
+  build_libjpeg
   build_pixman
   build_cairo
   # Rebuild after building cairo
