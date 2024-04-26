@@ -170,7 +170,7 @@ download_dependencies() {
   cd $DEPS_DIR
 
   #Libjpeg
-  do_wget https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${LIBJPEG_VER}.tar.gz -o libjpeg-turbo-${LIBJPEG_VER}.tar.gz &&\
+  do_wget https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${LIBJPEG_VER}.tar.gz -O libjpeg-turbo-${LIBJPEG_VER}.tar.gz &&\
   tar -xf libjpeg-turbo-${LIBJPEG_vER}.tar.gz
   
   #Glib
