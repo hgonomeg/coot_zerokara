@@ -580,7 +580,7 @@ build_gtk() {
   rm -rf *
   pushd $DEPS_DIR/gtk-${GTK_VER}
   meson setup --prefix=$PREFIX $BUILD_DIR/gtk -Dbroadway-backend=true -Dwin32-backend=false -Dmacos-backend=false \
-      -Dmedia-gstreamer=disabled  -Dintrospection=enabled -Dvulkan=disabled -Dbuild-tests=false
+      -Dmedia-gstreamer=disabled  -Dintrospection=enabled -Dvulkan=disabled -Dbuild-tests=false -Dprint-cups=disabled
   popd
   meson compile && meson install
   cd ..
