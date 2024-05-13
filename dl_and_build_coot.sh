@@ -1,9 +1,8 @@
 #!/usr/bin/bash
 # This script is meant to run on docker image
 # together with the adequate distro-specific configuration (sourced_below)
-
-CMAKE_VER=3.29.1
-NINJA_VER=1.11.1
+CMAKE_VER=3.29.3
+NINJA_VER=1.12.1
 PYTHON_VER_MAJOR=3
 # Todo: bring back Python 3.12 when Coot drops usage of the `imp` module
 #PYTHON_VER_MINOR=12
@@ -118,7 +117,7 @@ additional_build_env_setup() {
 }
 
 LIBJPEG_VER=3.0.2
-GLIB_VER=2.80.0
+GLIB_VER=2.80.2
 GOBJECT_INTROSPECTION_VER_MM=1.80
 GOBJECT_INTROSPECTION_VER=${GOBJECT_INTROSPECTION_VER_MM}.1
 GUILE_VER=3.0.9
@@ -132,7 +131,7 @@ FREETYPE_VER=2.13.2
 FONTCONFIG_VER=2.14.2
 PIXMAN_VER=0.43.4
 LIBTIFF_VER=4.6.0
-POPPLER_VER=24.03.0
+POPPLER_VER=24.05.0
 CAIRO_VER=1.18.0
 PANGO_VER_MM=1.52
 PANGO_VER=${PANGO_VER_MM}.2
