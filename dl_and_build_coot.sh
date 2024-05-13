@@ -160,7 +160,6 @@ LIBCLIPPER_VER=${LIBCLIPPER_VER_PRE}.${LIBCLIPPER_VER_PATCH}
 FFTW_VER=2.1.5
 
 #TODO:
-# * JPEG for poppler (and tiff)
 # * curl, libbackward
 # * Additional deps: libeigen, coordgen
 
@@ -170,7 +169,7 @@ download_dependencies() {
 
   #Libjpeg
   do_wget https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${LIBJPEG_VER}.tar.gz -O libjpeg-turbo-${LIBJPEG_VER}.tar.gz &&\
-  tar -xf libjpeg-turbo-${LIBJPEG_vER}.tar.gz
+  tar -xf libjpeg-turbo-${LIBJPEG_VER}.tar.gz
   
   #Glib
   do_wget https://gitlab.gnome.org/GNOME/glib/-/archive/${GLIB_VER}/glib-${GLIB_VER}.tar.gz &&\
