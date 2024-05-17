@@ -27,7 +27,7 @@ build_python() {
   cd $BUILD_DIR/python &&\
   rm -rf *
   $DEPS_DIR/Python-${PYTHON_VER}/configure --prefix=$PREFIX --enable-optimizations --with-system-expat=true --with-lto=full \
-  --without-static-libpython --enable-shared
+  --with-readline --enable-shared
   make -j `nproc --all` && make install
   cd ..
 }
