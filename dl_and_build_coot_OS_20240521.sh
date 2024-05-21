@@ -78,6 +78,7 @@ case `echo "$os" | tr '[A-Z]' '[a-z]'` in
              || error
       ;;
     rocky*)
+        $sudo dnf config-manager --set-enabled crb
         $sudo yum -y install \
             gcc \
             gcc-c++ \
@@ -101,6 +102,7 @@ case `echo "$os" | tr '[A-Z]' '[a-z]'` in
             libXdamage-devel \
             libXinerama-devel \
             libdrm-devel \
+            blas-devel \
             || error
       ;;
     debian*|ubuntu*)
