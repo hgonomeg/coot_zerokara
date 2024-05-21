@@ -344,6 +344,7 @@ build_tiff() {
     ./configure --prefix=$PREFIX \
                 --enable-cxx \
                 --with-jpeg-lib-dir=$PREFIX/lib \
+                --disable-lerc \
                 --with-jpeg-include-dir=$PREFIX/include > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `pwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
@@ -899,7 +900,7 @@ package_coot () {
   __dirs="lib libexec share"
   [ -d lib64 ] && __dirs="$__dirs lib64"
   printf "\n packaging Coot as $out ... "
-  tar -czf $out bin/coot* bin/layla bin/pyrogen bin/find* bin/mmrrcc $__dirs > my_tar.log 2>&1 || error "see `pwd`/my_tar.log"
+  tar -czf $out bin/coot* bin/layla bin/pyrogen bin/find* bin/mmrrcc bin/python3* $__dirs > my_tar.log 2>&1 || error "see `pwd`/my_tar.log"
   echo "done"
   printf "\n"
   ls -l $out
