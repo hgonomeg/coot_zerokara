@@ -896,8 +896,10 @@ package_coot () {
     return
   fi
   out=coot_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`.tar.gz
+  __dirs="lib libexec share"
+  [ -d lib64 ] && __dirs="$__dirs lib64"
   printf "\n packaging Coot as $out ... "
-  tar -czf $out bin/coot* bin/layla bin/pyrogen bin/find* bin/mmrrcc lib lib64 libexec share > my_tar.log 2>&1 || error "see `pwd`/my_tar.log"
+  tar -czf $out bin/coot* bin/layla bin/pyrogen bin/find* bin/mmrrcc $__dirs > my_tar.log 2>&1 || error "see `pwd`/my_tar.log"
   echo "done"
   printf "\n"
   ls -l $out
