@@ -1,0 +1,28 @@
+name: Build Coot
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'GPhL_script/dl_and_build_coot_cv-20260319.sh'
+      - '.github/workflows/build-coot.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    #timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Coot
+        run: |
+          mkdir -p ${{ github.workspace }}/coot-build
+          cd ${{ github.workspace }}/coot-build
+          bash ${{ github.workspace }}/GPhL_script/dl_and_build_coot_cv-20260319.sh -distro
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: coot-linux-x86_64
+          path: ${{ github.workspace }}/coot-build/coot-*.tar.gz
+          if-no-files-found: error
