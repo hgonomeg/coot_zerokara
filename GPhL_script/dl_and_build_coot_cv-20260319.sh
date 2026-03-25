@@ -635,7 +635,7 @@ e
 
 # -------------------------------------------------------------------------------------
 # figure out usable compiler version (in order of preference):
-for __v in 13 12 11 14
+for __v in 15 14 13 12 11 
 do
   type g++-${__v} >/dev/null 2>&1
   if [ $? -eq 0 ]; then
