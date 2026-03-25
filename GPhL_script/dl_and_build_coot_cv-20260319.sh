@@ -499,7 +499,7 @@ case $COOT_VER in
        #BOOST_VER=1.84.0
        BOOST_VER=1.87.0
        #PYGOBJECT_VER=3.46.0
-       PYGOBJECT_VER=3.52.3
+       PYGOBJECT_VER=3.54.5
        FREEGLUT_VER=3.4.0
        #RDKIT_VER=2024_03_2
        #RDKIT_VER=2024_09_5
