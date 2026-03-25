@@ -485,8 +485,8 @@ fi
 # -------------------------------------------------------------------------------------
 
 # versions of all external packages/dependencies:
-CMAKE_VER=3.31.10
-NINJA_VER=1.11.1
+CMAKE_VER=4.3.0
+NINJA_VER=1.13.2
 
 case $COOT_VER in
   1) PYTHON_VER_MAJOR=3
