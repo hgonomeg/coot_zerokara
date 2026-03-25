@@ -504,7 +504,7 @@ case $COOT_VER in
        #RDKIT_VER=2024_03_2
        #RDKIT_VER=2024_09_5
        RDKIT_VER=2025_09_6
-       NUMPY_VER=1.26.0
+       NUMPY_VER=2.4.3
 
        ;;
   0.9) PYTHON_VER_MAJOR=2
