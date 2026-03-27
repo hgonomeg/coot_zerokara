@@ -20,6 +20,20 @@ jobs:
           cd ${{ github.workspace }}/coot-build
           bash ${{ github.workspace }}/GPhL_script/dl_and_build_coot_cv-20260319.sh -distro
 
+      - name: Collect build logs on failure
+        if: failure()
+        run: |
+          cd ${{ github.workspace }}/coot-build
+          tar --zstd -cf build-logs.tar.zst build/*/*.log
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: ${{ github.workspace }}/coot-build/build-logs.tar.zst
+          if-no-files-found: warn
+
       - name: Upload tarball
         uses: actions/upload-artifact@v4
         with:
