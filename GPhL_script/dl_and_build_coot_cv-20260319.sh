@@ -323,7 +323,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             openblas gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            bc || error
+            inetutils bc || error
       ;;
     *) error "unsupported OS!";;
   esac
