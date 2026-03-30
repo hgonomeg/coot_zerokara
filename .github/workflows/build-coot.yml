@@ -32,16 +32,16 @@ jobs:
       image: ${{ matrix.container }}
 
     steps:
-      - name: Install git
+      - name: Install git, tar, zstd
         run: |
           if command -v apt-get >/dev/null 2>&1; then
-            apt-get update && apt-get install -y git
+            apt-get update && apt-get install -y git tar zstd
           elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y git
+            dnf install -y git tar zstd
           elif command -v zypper >/dev/null 2>&1; then
-            zypper install -y git
+            zypper install -y git tar zstd
           elif command -v pacman >/dev/null 2>&1; then
-            pacman -Sy --noconfirm git
+            pacman -Sy --noconfirm --needed git tar zstd
           fi
 
       - uses: actions/checkout@v4
