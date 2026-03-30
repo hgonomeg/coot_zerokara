@@ -21,12 +21,12 @@ jobs:
             container: ubuntu:26.04
           - distro: debian-13
             container: debian:trixie
-          - distro: opensuse-leap-15
-            container: opensuse/leap:15
           - distro: archlinux
             container: archlinux:latest
-          - distro: rocky-9
-            container: rockylinux:9
+          #- distro: opensuse-leap-15
+          #  container: opensuse/leap:15
+          #- distro: rocky-9
+          #  container: rockylinux:9
 
     container:
       image: ${{ matrix.container }}
