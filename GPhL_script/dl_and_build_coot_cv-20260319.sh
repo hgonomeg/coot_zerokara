@@ -314,7 +314,8 @@ if [ $do_os -eq 1 ]; then
                 libbz2-dev \
                 || error
         # probably not all needed (and requires deb-src settings):
-        $sudo apt-get -y build-dep \
+        # commented-out: build-dep
+        $sudo apt-get -y \
                 python3 \
                 libgtk-4-dev \
                 libglib2.0-dev \
