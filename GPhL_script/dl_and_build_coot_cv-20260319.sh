@@ -313,6 +313,8 @@ if [ $do_os -eq 1 ]; then
                 python3-openssl \
                 git \
                 gettext \
+                automake \
+                libtool \
                 flex \
                 bison \
                 gperf \
