@@ -21,8 +21,8 @@ jobs:
             container: ubuntu:26.04
           - distro: debian-13
             container: debian:trixie
-          - distro: archlinux
-            container: archlinux:latest
+          #- distro: archlinux
+          #  container: archlinux:latest
           #- distro: opensuse-leap-15
           #  container: opensuse/leap:15
           #- distro: rocky-9
