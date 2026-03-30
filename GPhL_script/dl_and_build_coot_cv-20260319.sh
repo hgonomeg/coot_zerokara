@@ -1474,7 +1474,7 @@ setup_build_env () {
 }
 
 additional_build_env_setup () {
-  export FFLAGS="-fallow-argument-mismatch"
+  export FFLAGS="-std=legacy -fallow-argument-mismatch"
   export CFLAGS="-I${PREFIX}/include"
   export CXXFLAGS="-I${PREFIX}/include"
   IFS=":"
