@@ -149,6 +149,7 @@ if [ $do_os -eq 1 ]; then
     printf "\n\n"
     printf "#### Attempting to install OS packages as root..."
     printf "\n\n"
+    export DEBIAN_FRONTEND=noninteractive
   fi
 
   case `echo "$os" | tr '[A-Z]' '[a-z]'` in
@@ -289,57 +290,19 @@ if [ $do_os -eq 1 ]; then
         esac
       ;;
     debian*|ubuntu*)
-        # Hey, we really shouldn't change user's apt settings!!!
-        case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-          debian-11)
-            printf "#### FIXME: THIS SCRIPT SHOULD NOT AFFECT USER'S APT SOURCES ON DEBIAN 11 BUT IT DOES"
-            # adjust APT information
-            [ -f /etc/apt/sources.list ] && $sudo sed -i "s%deb.debian.org/debian bullseye-backports%archive.debian.org/debian bullseye-backports%g" /etc/apt/sources.list
-            [ -f /etc/apt/sources.list ] && $sudo sed -i "s%# deb http://archive%deb http://archive%g" /etc/apt/sources.list
-            ;;
-        esac
-        #case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-        #  debian*)
-        #    # adjust APT information (to use build-dep)
-        #    [ -f /etc/apt/sources.list ] && $sudo sed -i "s%# deb-src%deb-src%g" /etc/apt/sources.list
-        #    ;;
-        #esac
         $sudo apt-get update || error
         $sudo apt-get -y install \
-                build-essential \
-                gfortran \
-                wget \
-                libssl-dev \
-                python3-openssl \
-                git \
-                gettext \
-                automake \
-                libtool \
-                flex \
-                bison \
-                gperf \
-                libblas-dev \
-                libx11-dev \
-                libx11-xcb-dev \
-                x11proto-dev \
-                libegl-dev \
-                libxkbcommon-x11-dev \
-                libdrm-dev \
-                libbz2-dev \
-                libexpat1-dev \
-                libmount-dev \
-                libffi-dev \
-                libelf-dev \
-                libxml2-dev \
-                libdbus-1-dev \
-                libxml2-utils \
-                libreadline-dev \
-                libncurses-dev \
-                libsqlite3-dev \
-                liblzo2-dev \
-                libpng-dev \
-                libbrotli-dev \
-                || error
+          git wget gcc-10 g++-10 gfortran-10 gfortran gettext pkg-config bison flex make automake gperf vim xmlto libtool-bin \
+          libdbus-1-dev libmount-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
+          libssl-dev libcurl4-openssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
+          libxcb-glx0-dev \
+          libegl1-mesa-dev \
+          libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
+          libxdamage-dev libxinerama-dev \
+          libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
+          libopenblas-dev libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
+          libglfw3-dev \
+          bc || error
         # probably not all needed (and requires deb-src settings):
         # $sudo apt-get -y build-dep \
         #        python3 \
