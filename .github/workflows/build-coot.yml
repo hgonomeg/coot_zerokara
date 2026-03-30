@@ -9,34 +9,66 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     #timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu-24.04
+            container: ubuntu:24.04
+          - distro: ubuntu-26.04
+            container: ubuntu:26.04
+          - distro: debian-13
+            container: debian:trixie
+          - distro: opensuse-leap-15
+            container: opensuse/leap:15
+          - distro: archlinux
+            container: archlinux:latest
+          - distro: rocky-9
+            container: rockylinux:9
+
+    container:
+      image: ${{ matrix.container }}
 
     steps:
+      - name: Install git
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update && apt-get install -y git
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y git
+          elif command -v zypper >/dev/null 2>&1; then
+            zypper install -y git
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Sy --noconfirm git
+          fi
+
       - uses: actions/checkout@v4
+
       - name: Build Coot
         run: |
-          mkdir -p ${{ github.workspace }}/coot-build
-          cd ${{ github.workspace }}/coot-build
-          bash ${{ github.workspace }}/GPhL_script/dl_and_build_coot_cv-20260319.sh -os -distro -noninteractive
+          mkdir -p $GITHUB_WORKSPACE/coot-build
+          cd $GITHUB_WORKSPACE/coot-build
+          bash $GITHUB_WORKSPACE/GPhL_script/dl_and_build_coot_cv-20260319.sh -os -distro -noninteractive
 
       - name: Collect build logs on failure
         if: failure()
         run: |
-          cd ${{ github.workspace }}/coot-build
-          tar --zstd -cf build-logs.tar.zst build/*/*.log
+          cd $GITHUB_WORKSPACE/coot-build
+          tar --zstd -cf build-logs.tar.zst build/*/*.log deps/*/*.log
 
       - name: Upload build logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs
+          name: build-logs-${{ matrix.distro }}
           path: ${{ github.workspace }}/coot-build/build-logs.tar.zst
           if-no-files-found: warn
 
       - name: Upload tarball
         uses: actions/upload-artifact@v4
         with:
-          name: coot-linux-x86_64
+          name: coot-${{ matrix.distro }}-x86_64
           path: ${{ github.workspace }}/coot-build/coot-*.tar.gz
           if-no-files-found: error
