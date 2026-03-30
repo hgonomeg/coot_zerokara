@@ -319,6 +319,7 @@ if [ $do_os -eq 1 ]; then
                 libx11-dev \
                 libx11-xcb-dev \
                 x11proto-dev \
+                libegl-dev \
                 libxkbcommon-x11-dev \
                 libdrm-dev \
                 libbz2-dev \
