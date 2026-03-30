@@ -1536,7 +1536,7 @@ download_dependencies () {
   do_wget https://archives.boost.io/release/${BOOST_VER}/source/boost_${BOOST_VER_}.tar.bz2
 
   # Freetype2
-  do_wget https://deac-ams.dl.sourceforge.net/project/freetype/freetype2/${FREETYPE_VER}/freetype-${FREETYPE_VER}.tar.xz
+  do_wget https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VER}.tar.xz
   
   # Fontconfig
   #do_wget https://www.freedesktop.org/software/fontconfig/release/fontconfig-${FONTCONFIG_VER}.tar.xz
