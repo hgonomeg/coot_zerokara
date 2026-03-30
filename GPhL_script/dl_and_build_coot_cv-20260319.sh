@@ -41,6 +41,7 @@ usage () {
   printf "\n  -distro                : build binaries for distribution (default is to tune for local machine/CPU)\n"
   printf "\n  -depplus               : try and build more external dependencies (that are usually provided by OS at runtime)\n"
   printf "\n  -os                    : also install OS-provided packages deemed necessary (if possible)\n"
+  printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
   printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
   printf "\n  -branch <branch>       : Coot branch (default = \"$COOT_BRANCH\")\n"
   printf "\n  -patch <file>          : Coot patch file\n"
@@ -71,6 +72,7 @@ iverb=0
 nthreads=`nproc --all`
 do_minimaltar=1
 do_distro=0
+do_noninteractive=0
 do_depplus=0
 do_os=0
 tag=""
@@ -93,6 +95,7 @@ do
     -clean*) do_clean=1;;
     -depplus*) do_depplus=1;;
     -[oO][sS]) do_os=1;;
+    -noninteractive) do_noninteractive=1;;
     -tag) tag=$2;outtag=${tag#Release-};shift;;
     -branch) branch=$2;outtag=$branch;shift;;
     -debug) btype="debug";;
@@ -135,12 +138,18 @@ if [ $do_os -eq 1 ]; then
     *) sudo=sudo;;
   esac
 
-  printf "\n\n"
-  printf " ################################################################################################\n"
-  printf " #### WARNING: we will now install some OS packages as root (or sudo user) - continue ... y/[N] ? "
-  read __answer
-  [ "X$__answer" != "Xy" ] && printf " ... exiting ...\n" && exit 0
-  printf "\n\n"
+  if [ $do_noninteractive -eq 0 ]; then
+    printf "\n\n"
+    printf " ################################################################################################\n"
+    printf " #### WARNING: we will now install some OS packages as root (or sudo user) - continue ... y/[N] ? "
+    read __answer
+    [ "X$__answer" != "Xy" ] && printf " ... exiting ...\n" && exit 0
+    printf "\n\n"
+  else
+    printf "\n\n"
+    printf "#### Attempting to install OS packages as root..."
+    printf "\n\n"
+  fi
 
   case `echo "$os" | tr '[A-Z]' '[a-z]'` in
     opensuse*)
