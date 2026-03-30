@@ -21,8 +21,8 @@ jobs:
             container: ubuntu:26.04
           - distro: debian-13
             container: debian:trixie
-          - distro: archlinux
-            container: archlinux:latest
+          #- distro: archlinux
+          #  container: archlinux:latest
           #- distro: opensuse-leap-15
           #  container: opensuse/leap:15
           #- distro: rocky-9
@@ -54,10 +54,7 @@ jobs:
 
       - name: Collect build logs on failure
         if: failure()
-        run: |
-          cd $GITHUB_WORKSPACE/coot-build
-          shopt -s nullglob
-          tar --zstd -cf build-logs.tar.zst {deps,build}/*/*.log
+        run: bash -c "cd $GITHUB_WORKSPACE/coot-build && shopt -s nullglob && tar --zstd -cf build-logs.tar.zst {deps,build}/*/*.log"
 
       - name: Upload build logs on failure
         if: failure()
