@@ -56,7 +56,8 @@ jobs:
         if: failure()
         run: |
           cd $GITHUB_WORKSPACE/coot-build
-          tar --zstd -cf build-logs.tar.zst build/*/*.log deps/*/*.log
+          shopt -s nullglob
+          tar --zstd -cf build-logs.tar.zst {deps,build}/*/*.log
 
       - name: Upload build logs on failure
         if: failure()
