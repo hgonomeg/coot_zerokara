@@ -293,12 +293,12 @@ if [ $do_os -eq 1 ]; then
             [ -f /etc/apt/sources.list ] && $sudo sed -i "s%# deb http://archive%deb http://archive%g" /etc/apt/sources.list
             ;;
         esac
-        case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-          debian*)
-            # adjust APT information (to use build-dep)
-            [ -f /etc/apt/sources.list ] && $sudo sed -i "s%# deb-src%deb-src%g" /etc/apt/sources.list
-            ;;
-        esac
+        #case `echo "$os" | tr '[A-Z]' '[a-z]'` in
+        #  debian*)
+        #    # adjust APT information (to use build-dep)
+        #    [ -f /etc/apt/sources.list ] && $sudo sed -i "s%# deb-src%deb-src%g" /etc/apt/sources.list
+        #    ;;
+        #esac
         # probably not all needed:
         $sudo apt-get update || error
         $sudo apt-get -y install \
@@ -314,12 +314,12 @@ if [ $do_os -eq 1 ]; then
                 libbz2-dev \
                 || error
         # probably not all needed (and requires deb-src settings):
-        $sudo apt-get -y build-dep \
-                python3 \
-                libgtk-4-dev \
-                libglib2.0-dev \
-                pymol \
-                || error
+        # $sudo apt-get -y build-dep \
+        #        python3 \
+        #        libgtk-4-dev \
+        #        libglib2.0-dev \
+        #        pymol \
+        #        || error
       ;;
     arch*)
       # highly experimental ... Arch Linux is a bit of an unknown
