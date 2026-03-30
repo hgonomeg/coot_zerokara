@@ -312,23 +312,18 @@ if [ $do_os -eq 1 ]; then
         #        || error
       ;;
     arch*)
-      # highly experimental ... Arch Linux is a bit of an unknown
-      # quantity and rather unusual end-user distro
-      $sudo pacman -S --noconfirm \
-            wget \
-            gcc \
-            cmake \
-            gcc-fortran \
-            flex \
-            bison \
-            tar \
-            git \
-            gperf \
-            autoconf \
-            automake \
-            libtool \
-            inetutils \
-            || error
+      $sudo pacman -S --needed --noconfirm \
+            base-devel git wget gcc-fortran gperf vim xmlto cmake \
+            dbus util-linux-libs expat libffi elfutils libxml2 readline \
+            openssl curl ncurses sqlite lzo bzip2 libpng brotli \
+            libxcb \
+            mesa \
+            libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
+            libxdamage libxinerama \
+            libxkbcommon xcb-util libx11 \
+            openblas gmp gc libunistring pcre2 libdrm glm \
+            glfw \
+            bc || error
       ;;
     *) error "unsupported OS!";;
   esac
