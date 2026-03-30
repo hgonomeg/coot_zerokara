@@ -56,7 +56,7 @@ jobs:
         if: failure()
         run: |
           cd ${{ github.workspace }}/coot-build
-          tar --zstd -cf build-logs.tar.zst build/*/*.log
+          tar --zstd -cf build-logs.tar.zst build/*/*.log deps/*/*.log
 
       - name: Upload build logs on failure
         if: failure()
