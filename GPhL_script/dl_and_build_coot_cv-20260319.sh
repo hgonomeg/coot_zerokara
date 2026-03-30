@@ -312,6 +312,7 @@ if [ $do_os -eq 1 ]; then
                 libssl-dev \
                 python3-openssl \
                 git \
+                gettext \
                 flex \
                 bison \
                 gperf \
