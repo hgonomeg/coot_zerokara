@@ -159,6 +159,7 @@ if [ $do_os -eq 1 ]; then
       # probably not all needed:
       $sudo zypper install -y \
              openssl-devel \
+             wget \
              gcc13 \
              gcc13-fortran \
              gcc13-c++ \
@@ -202,6 +203,7 @@ if [ $do_os -eq 1 ]; then
         esac
         $sudo yum -y install \
             gcc \
+            wget \
             gcc-c++ \
             gcc-gfortran \
             make \
@@ -250,6 +252,7 @@ if [ $do_os -eq 1 ]; then
         esac
         $sudo $yum \
               gcc \
+              wget \
               gcc-c++ \
               gcc-gfortran \
               bzip2-devel \
@@ -304,6 +307,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get -y install \
                 build-essential \
                 gfortran \
+                wget \
                 libssl-dev \
                 python3-openssl \
                 git \
