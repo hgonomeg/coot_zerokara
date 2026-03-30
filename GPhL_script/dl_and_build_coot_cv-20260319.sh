@@ -304,7 +304,6 @@ if [ $do_os -eq 1 ]; then
         #    [ -f /etc/apt/sources.list ] && $sudo sed -i "s%# deb-src%deb-src%g" /etc/apt/sources.list
         #    ;;
         #esac
-        # probably not all needed:
         $sudo apt-get update || error
         $sudo apt-get -y install \
                 build-essential \
@@ -323,6 +322,19 @@ if [ $do_os -eq 1 ]; then
                 libxkbcommon-x11-dev \
                 libdrm-dev \
                 libbz2-dev \
+                libexpat1-dev \
+                libmount-dev \
+                libffi-dev \
+                libelf-dev \
+                libxml2-dev \
+                libdbus-1-dev \
+                libxml2-utils \
+                libreadline-dev \
+                libncurses-dev \
+                libsqlite3-dev \
+                liblzo2-dev \
+                libpng-dev \
+                libbrotli-dev \
                 || error
         # probably not all needed (and requires deb-src settings):
         # $sudo apt-get -y build-dep \
