@@ -292,7 +292,7 @@ if [ $do_os -eq 1 ]; then
     debian*|ubuntu*)
         $sudo apt-get update || error
         $sudo apt-get -y install \
-          git wget gcc-10 g++-10 gfortran-10 gfortran gettext pkg-config bison flex make automake gperf vim xmlto libtool-bin \
+          git wget build-essential gfortran gettext pkg-config bison flex make automake gperf vim xmlto libtool-bin \
           libdbus-1-dev libmount-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
           libssl-dev libcurl4-openssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
           libxcb-glx0-dev \
