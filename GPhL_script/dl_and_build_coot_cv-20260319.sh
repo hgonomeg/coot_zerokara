@@ -289,8 +289,10 @@ if [ $do_os -eq 1 ]; then
         esac
       ;;
     debian*|ubuntu*)
+        # Hey, we really shouldn't change user's apt settings!!!
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
           debian-11)
+            printf "#### FIXME: THIS SCRIPT SHOULD NOT AFFECT USER'S APT SOURCES ON DEBIAN 11 BUT IT DOES"
             # adjust APT information
             [ -f /etc/apt/sources.list ] && $sudo sed -i "s%deb.debian.org/debian bullseye-backports%archive.debian.org/debian bullseye-backports%g" /etc/apt/sources.list
             [ -f /etc/apt/sources.list ] && $sudo sed -i "s%# deb http://archive%deb http://archive%g" /etc/apt/sources.list
@@ -315,6 +317,11 @@ if [ $do_os -eq 1 ]; then
                 bison \
                 gperf \
                 libblas-dev \
+                libx11-dev \
+                libx11-xcb-dev \
+                x11proto-dev \
+                libxkbcommon-x11-dev \
+                libdrm-dev \
                 libbz2-dev \
                 || error
         # probably not all needed (and requires deb-src settings):
