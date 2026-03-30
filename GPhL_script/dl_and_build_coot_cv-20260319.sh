@@ -636,7 +636,7 @@ e
 
 # -------------------------------------------------------------------------------------
 # figure out usable compiler version (in order of preference):
-for __v in 15 14 13 12 11 
+for __v in 16 15 14 13 12 11 
 do
   type g++-${__v} >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -675,21 +675,21 @@ do
     break
   fi
 done
-[ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working (?) gcc/g++ version 13/12/11/14 found?"
+[ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working (?) gcc/g++ version 13/12/11/14/15 found?"
 printf "\n ### Compiler version found/used = $GCC_COMPILER_VERSION\n\n"
-if [ $GCC_COMPILER_VERSION -lt 14 ]; then
+if [ $GCC_COMPILER_VERSION -lt 15 ]; then
   if [ $GCC_COMPILER_VERSION -lt 11 ]; then
-    printf "\n ### WARNING: compiler version below the preferred version 14\n"
+    printf "\n ### WARNING: compiler version below the preferred minimum version 11\n"
   else
-    printf "\n ### NOTE: compiler version below the preferred version 14\n"
+    printf "\n ### NOTE: compiler version below the preferred version 15\n"
   fi
   type scl >/dev/null 2>&1
   if [ $? -eq 0 ]; then
     printf "\n ### NOTE: you might be able to switch to a preferred compiler version via\n\n"
     printf "    scl enable gcc-toolset-14 bash\n\n"
   fi
-elif [ $GCC_COMPILER_VERSION -gt 14 ]; then
-  printf "\n ### WARNING: compiler version above the preferred version 14\n"
+elif [ $GCC_COMPILER_VERSION -gt 15 ]; then
+  printf "\n ### WARNING: compiler version above the preferred version 15\n"
 fi
 
 # -------------------------------------------------------------------------------------
