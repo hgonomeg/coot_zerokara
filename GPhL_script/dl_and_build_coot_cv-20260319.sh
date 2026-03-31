@@ -1054,7 +1054,7 @@ build_cairo2 () {
 }
 
 build_pango () {
-  build_with_meson pango ${PANGO_VER}
+  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled
 }
 
 build_smi () {
