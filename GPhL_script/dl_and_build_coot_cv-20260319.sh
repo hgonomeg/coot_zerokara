@@ -189,6 +189,28 @@ if [ $do_os -eq 1 ]; then
              libXcursor-devel \
              libXinerama-devel \
              libXdamage-devel \
+             libexpat-devel \
+             dbus-1-devel \
+             libmount-devel \
+             libffi-devel \
+             libelf-devel \
+             readline-devel \
+             ncurses-devel \
+             lzo-devel \
+             libbz2-devel \
+             libpng16-devel \
+             libbrotli-devel \
+             libxcb-devel \
+             xcb-util-devel \
+             libX11-devel \
+             libXrender-devel \
+             libXext-devel \
+             libxkbcommon-devel \
+             gmp-devel \
+             glfw-devel \
+             bc \
+             gperf \
+             gettext-tools \
              || error
       ;;
     rocky*|alma*|centos*)
@@ -237,6 +259,25 @@ if [ $do_os -eq 1 ]; then
             git \
             flex \
             gperftools-devel \
+            expat-devel \
+            dbus-devel \
+            libmount-devel \
+            elfutils-libelf-devel \
+            readline-devel \
+            ncurses-devel \
+            sqlite-devel \
+            lzo-devel \
+            libpng-devel \
+            brotli-devel \
+            libxcb-devel \
+            xcb-util-devel \
+            gmp-devel \
+            glfw-devel \
+            bc \
+            gettext \
+            gperf \
+            xmlto \
+            pkgconf-pkg-config \
             || error
       ;;
     fedora*)
@@ -285,7 +326,25 @@ if [ $do_os -eq 1 ]; then
               gperf \
               gperftools-devel \
               $__toolsets \
-              blas-devel
+              blas-devel \
+              dbus-devel \
+              libmount-devel \
+              elfutils-libelf-devel \
+              readline-devel \
+              ncurses-devel \
+              sqlite-devel \
+              lzo-devel \
+              libpng-devel \
+              brotli-devel \
+              libxcb-devel \
+              xcb-util-devel \
+              gmp-devel \
+              glfw-devel \
+              bc \
+              gettext \
+              make \
+              xmlto \
+              pkgconf-pkg-config
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
           fedora-4[2-9]) dnf builddep -y python3-gobject-devel;;
         esac
