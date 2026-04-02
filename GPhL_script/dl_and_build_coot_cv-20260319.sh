@@ -171,7 +171,6 @@ if [ $do_os -eq 1 ]; then
              autoconf \
              automake \
              blas-devel \
-             curl-devel \
              fdupes \
              fftw-devel \
              glm-devel \
@@ -247,7 +246,6 @@ if [ $do_os -eq 1 ]; then
             libglvnd-devel \
             libffi-devel \
             freetype-devel \
-            libcurl-devel \
             libxkbcommon-devel \
             libXrender-devel \
             libXext-devel \
@@ -318,7 +316,6 @@ if [ $do_os -eq 1 ]; then
               libglvnd-devel \
               libffi-devel \
               freetype-devel \
-              libcurl-devel \
               libxkbcommon-devel \
               libXrender-devel \
               libXext-devel \
@@ -371,7 +368,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake gperf vim xmlto libtool-bin \
           libdbus-1-dev libmount-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
-          libssl-dev libcurl4-openssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
+          libssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -387,7 +384,7 @@ if [ $do_os -eq 1 ]; then
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
             dbus util-linux-libs expat libffi elfutils libxml2 readline \
-            openssl curl ncurses sqlite lzo xz bzip2 libpng brotli \
+            openssl ncurses sqlite lzo xz bzip2 libpng brotli \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
@@ -551,7 +548,7 @@ fi
 # -------------------------------------------------------------------------------------
 
 # versions of all external packages/dependencies:
-CMAKE_VER=4.3.0
+CMAKE_VER=3.31.11
 NINJA_VER=1.13.2
 
 case $COOT_VER in
