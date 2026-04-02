@@ -171,9 +171,9 @@ if [ $do_os -eq 1 ]; then
              vim \
              gzip \
              hostname \
-             gcc13 \
-             gcc13-fortran \
-             gcc13-c++ \
+             gcc14 \
+             gcc14-fortran \
+             gcc14-c++ \
              autoconf \
              automake \
              blas-devel \
