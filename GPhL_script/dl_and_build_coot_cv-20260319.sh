@@ -164,6 +164,7 @@ if [ $do_os -eq 1 ]; then
              git \
              vim \
              gzip \
+             hostname \
              gcc13 \
              gcc13-fortran \
              gcc13-c++ \
@@ -309,6 +310,7 @@ if [ $do_os -eq 1 ]; then
               gcc \
               wget \
               vim \
+              hostname \
               gcc-c++ \
               gcc-gfortran \
               bzip2-devel \
