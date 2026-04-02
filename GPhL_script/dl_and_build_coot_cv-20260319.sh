@@ -278,6 +278,7 @@ if [ $do_os -eq 1 ]; then
             gperf \
             xmlto \
             pkgconf-pkg-config \
+            xz \
             || error
       ;;
     fedora*)
@@ -362,6 +363,7 @@ if [ $do_os -eq 1 ]; then
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
           libopenblas-dev libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
           libglfw3-dev \
+          xz-utils \
           bc || error
         # probably not all needed (and requires deb-src settings):
         # $sudo apt-get -y build-dep \
