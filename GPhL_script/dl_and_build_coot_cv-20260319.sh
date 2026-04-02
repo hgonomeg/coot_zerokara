@@ -376,7 +376,7 @@ if [ $do_os -eq 1 ]; then
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
             libxdamage libxinerama \
             libxkbcommon xcb-util libx11 \
-            openblas gmp gc libunistring pcre2 libdrm glm \
+            openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
             inetutils bc || error
       ;;
