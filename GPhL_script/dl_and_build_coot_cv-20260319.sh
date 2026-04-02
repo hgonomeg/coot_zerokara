@@ -753,9 +753,8 @@ build_with_meson () {
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
     build_save_mylogs_and_rm
-    cd $DEPS_DIR/${__p}-${__v} || error
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
-    meson setup --prefix=$PREFIX --buildtype=release $@ $BUILD_DIR/${__p} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
+    meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
     echo "done"
     cd $BUILD_DIR/$__p || error
     printf "  meson compile (see `mypwd`/my_meson_compile.log${MY_DONE_EXT}) ... "
