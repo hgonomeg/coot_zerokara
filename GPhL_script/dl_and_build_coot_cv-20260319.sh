@@ -274,6 +274,7 @@ if [ $do_os -eq 1 ]; then
               libXdamage-devel \
               libXinerama-devel \
               libdrm-devel \
+              expat-devel \
               libxml2-devel \
               bzip2 \
               autoconf \
