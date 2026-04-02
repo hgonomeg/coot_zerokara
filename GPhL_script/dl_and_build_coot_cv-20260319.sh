@@ -50,9 +50,9 @@ usage () {
   printf "   AlmaLinux 8.10 and 9.5 (todo: test again)\n"
   printf "   Arch Linux (20260402)\n"
   printf "   Debian 13\n"
-  printf "   Fedora Linux 43\n"
+  printf "   Fedora Linux 43 and 44\n"
   printf "   openSUSE Leap 15 (todo: test again)\n"
-  printf "   Rocky Linux 8.10 and 9.5 (todo: test again)\n"
+  printf "   Rocky Linux 9.7\n"
   printf "   Ubuntu 24.04 and 26.04\n"
 }
 
