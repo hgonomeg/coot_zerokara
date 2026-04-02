@@ -1315,8 +1315,8 @@ do_wget () {
   if [ $# -ge 1 ]; then
     __ntry=$1;shift
   else
-    # try twice as default:
-    __ntry=2
+    # try three-times as default:
+    __ntry=3
   fi
   
   __p=`basename $__out | sed "s/[_.0-9]/ /g" | sed "s/- //g" | awk '{print $1}'`
@@ -1327,26 +1327,29 @@ do_wget () {
       *) __wget="wget";;
     esac
     isuccess=0
+    __common_wget_flags="--retry-connrefused --retry-on-host-error --retry-on-http-error=503,429 --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
     printf "\n getting $__out ... "
     # first try to get it from $url_contrib
     __url_from="${url_contrib}/`basename $__url`"
-    $__wget --retry-connrefused --waitretry=1 --read-timeout=10 --timeout=10 -t 15 -O "$__out" ${url_contrib}/$__out > my_get_${__p}.log 2>&1
-    if [ $? -ne 0 ] || [ ! -f $__out ]; then
-      $__wget --retry-connrefused --waitretry=1 --read-timeout=10 --timeout=10 -t 15 -O "$__out" ${url_contrib}/`basename $__url` >> my_get_${__p}.log 2>&1
-      if [ $? -ne 0 ] || [ ! -f $__out ]; then
+    $__wget $__common_wget_flags -O "$__out" ${url_contrib}/$__out > my_get_${__p}.log 2>&1
+    if [ $? -ne 0 ] || [ ! -s $__out ]; then
+      rm -fv "$__out" >> my_get_${__p}.log 2>&1
+      $__wget $__common_wget_flags -O "$__out" ${url_contrib}/`basename $__url` >> my_get_${__p}.log 2>&1
+      if [ $? -ne 0 ] || [ ! -s $__out ]; then
+        rm -fv "$__out" >> my_get_${__p}.log 2>&1
         for __itry in `seq 1 $__ntry`
         do
           __url_from="$__url"
-          $__wget --retry-connrefused --waitretry=1 --read-timeout=10 --timeout=10 -t 15 -O "$__out" "$__url" >> my_get_${__p}.log 2>&1
-          if [ $? -ne 0 ]; then
-            if [ $__itry -eq $__ntry ]; then
-              error "see `mypwd`/my_get_${__p}.log"
-            fi
-            sleep 5
-          else
+          $__wget $__common_wget_flags -O "$__out" "$__url" >> my_get_${__p}.log 2>&1
+          if [ $? -eq 0 ] && [ -s "$__out" ]; then
             isuccess=1
             break
           fi
+          rm -fv "$__out" >> my_get_${__p}.log 2>&1
+          if [ $__itry -eq $__ntry ]; then
+            error "see `mypwd`/my_get_${__p}.log"
+          fi
+          sleep `expr $__itry \* 5`
         done
       else
         isuccess=1
@@ -1599,7 +1602,8 @@ download_dependencies () {
   do_wget https://archives.boost.io/release/${BOOST_VER}/source/boost_${BOOST_VER_}.tar.bz2
 
   # Freetype2
-  do_wget https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VER}.tar.xz
+  #   This one is a special snowflake which really likes to fail...
+  do_wget https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VER}.tar.xz 8
   
   # Fontconfig
   #do_wget https://www.freedesktop.org/software/fontconfig/release/fontconfig-${FONTCONFIG_VER}.tar.xz
