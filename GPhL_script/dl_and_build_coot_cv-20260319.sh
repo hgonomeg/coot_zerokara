@@ -1322,7 +1322,11 @@ do_wget () {
       *) __wget="wget";;
     esac
     isuccess=0
-    __common_wget_flags="--retry-connrefused --retry-on-host-error --retry-on-http-error=503,429 --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
+    case `echo "$os" | tr '[A-Z]' '[a-z]'` in
+      fedora-43*) __wget_http_retry="";;
+      *) __wget_http_retry="--retry-on-http-error=503,429";;
+    esac
+    __common_wget_flags="--retry-connrefused --retry-on-host-error $__wget_http_retry --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
     printf "\n getting $__out ... "
     # first try to get it from $url_contrib
     __url_from="${url_contrib}/`basename $__url`"
