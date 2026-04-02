@@ -223,7 +223,7 @@ if [ $do_os -eq 1 ]; then
         $sudo dnf update -y
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
           centos-10*|almalinux-10*) __toolsets="";;
-          *) __toolsets="gcc-toolset-13 gcc-toolset-12";;
+          *) __toolsets="gcc-toolset-15 gcc-toolset-14";;
         esac
         $sudo yum -y install \
             gcc \
@@ -741,7 +741,7 @@ if [ $GCC_COMPILER_VERSION -lt 15 ]; then
   type scl >/dev/null 2>&1
   if [ $? -eq 0 ]; then
     printf "\n ### NOTE: you might be able to switch to a preferred compiler version via\n\n"
-    printf "    scl enable gcc-toolset-14 bash\n\n"
+    printf "    scl enable gcc-toolset-15 bash\n\n"
   fi
 elif [ $GCC_COMPILER_VERSION -gt 15 ]; then
   printf "\n ### WARNING: compiler version above the preferred version 15\n"
