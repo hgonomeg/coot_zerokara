@@ -47,13 +47,13 @@ usage () {
   printf "\n  -patch <file>          : Coot patch file\n"
 
   printf "\n Tested on:\n"
-  printf "   AlmaLinux 8.10 and 9.5\n"
-  printf "   Arch Linux (20241128)\n"
-  printf "   Debian 11 and 12\n"
-  printf "   Fedora Linux 40 and 41\n"
-  printf "   openSUSE Leap 15\n"
-  printf "   Rocky Linux 8.10 and 9.5\n"
-  printf "   Ubuntu 22.04 and 24.04\n"
+  printf "   AlmaLinux 8.10 and 9.5 (todo: test again)\n"
+  printf "   Arch Linux (20260402)\n"
+  printf "   Debian 13\n"
+  printf "   Fedora Linux 43\n"
+  printf "   openSUSE Leap 15 (todo: test again)\n"
+  printf "   Rocky Linux 8.10 and 9.5 (todo: test again)\n"
+  printf "   Ubuntu 24.04 and 26.04\n"
 }
 
 case `uname` in
