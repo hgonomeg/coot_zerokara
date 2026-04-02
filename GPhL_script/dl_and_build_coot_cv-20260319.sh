@@ -312,7 +312,7 @@ if [ $do_os -eq 1 ]; then
         #        || error
       ;;
     arch*)
-      $sudo pacman -S --needed --noconfirm \
+      $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto cmake \
             dbus util-linux-libs expat libffi elfutils libxml2 readline \
             openssl curl ncurses sqlite lzo bzip2 libpng brotli \
