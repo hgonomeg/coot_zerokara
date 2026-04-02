@@ -118,13 +118,19 @@ if [ -f /etc/os-release ]; then
 elif [ -f /etc/lsb-release ]; then
   os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
 elif [ -f /etc/SUSE-brand ]; then
+  warning "OpenSUSE version could not be determined"
   os=openSUSE
 elif [ -f /etc/rocky-release ]; then
+  warning "Rocky version could not be determined"
   os=Rocky
 elif [ -f /etc/debian_version ]; then
+  warning "Debian version obtained from /etc/debian_version"
   os="Debian-`head -n 1 /etc/debian_version | cut -f1 -d'/'`"
 elif [ -f /etc/centos-release ]; then
+  warning "CentOS version could not be determined"
   os=CentOS
+else
+  warning "Could not determine operating system distro/version!"
 fi
 
 ## -------------------------------------------------------------------------------
@@ -171,7 +177,6 @@ if [ $do_os -eq 1 ]; then
              autoconf \
              automake \
              blas-devel \
-             fdupes \
              fftw-devel \
              glm-devel \
              gsl-devel \
@@ -294,14 +299,14 @@ if [ $do_os -eq 1 ]; then
       ;;
     fedora*)
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-          fedora-4[4-9]) printf "\n ############### WARNING - untested Fedora version !!!!\n\n";;
+          fedora-4[5-9]) printf "\n ############### WARNING - untested Fedora version !!!!\n\n";;
         esac
         $sudo dnf update -y
         $sudo dnf install -y dnf-plugins-core
         #$sudo dnf install -y epel-release
         $sudo dnf update -y
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-          fedora-4[4-9]) __toolsets="gcc15 gcc15-gfortran gcc15-c++";yum="dnf install --skip-unavailable -y";; # probably won't work
+          fedora-4[5-9]) __toolsets="gcc15 gcc15-gfortran gcc15-c++";yum="dnf install --skip-unavailable -y";; # probably won't work
           *) __toolsets="gcc14 gcc14-gfortran gcc14-c++";yum="yum install -y";;
         esac
         $sudo $yum \
@@ -465,6 +470,8 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            libunistring
            gc
            glm
+           # This is needed before Python and should be obtained as a system-level dependency.
+           # Todo: remove it here
            libffi
            $BUILD_DEPENDENCIES_PLUS
            guile
@@ -515,6 +522,8 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            libart
            libgnomecanvas
            goocanvas
+           # This is needed before Python and should be obtained as a system-level dependency.
+           # Todo: remove it from here
            readline
            pygobject
            pygtk
@@ -664,6 +673,7 @@ cat <<e
   date ................................. `date`
   directory ............................ `pwd`
   user ................................. `id -nu`
+  os.................................... $os
 
   COOT_GIT ............................. $COOT_GIT
   COOT_VER ............................. $COOT_VER
