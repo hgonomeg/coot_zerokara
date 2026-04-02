@@ -373,7 +373,7 @@ if [ $do_os -eq 1 ]; then
       ;;
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
-            base-devel git wget gcc-fortran gperf vim xmlto docbook-xml cmake \
+            base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
             dbus util-linux-libs expat libffi elfutils libxml2 readline \
             openssl curl ncurses sqlite lzo bzip2 libpng brotli \
             libxcb \
