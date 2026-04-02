@@ -1114,7 +1114,7 @@ build_gemmi () {
 
 build_libccp4 () {
   additional_build_env_setup
-  CFLAGS="$CFLAGS -Wno-incompatible-pointer-types" \
+  CFLAGS="$CFLAGS -Wno-incompatible-pointer-types -std=gnu17" \
   build_with_configure libccp4 ${LIBCCP4_VER} \
     --enable-shared --disable-static \
     --datadir=$PREFIX/share/ccp4
