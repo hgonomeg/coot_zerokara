@@ -283,15 +283,15 @@ if [ $do_os -eq 1 ]; then
       ;;
     fedora*)
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-          fedora-4[2-9]) printf "\n ############### WARNING - untested Fedora version !!!!\n\n";;
+          fedora-4[4-9]) printf "\n ############### WARNING - untested Fedora version !!!!\n\n";;
         esac
         $sudo dnf update -y
         $sudo dnf install -y dnf-plugins-core
         #$sudo dnf install -y epel-release
         $sudo dnf update -y
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-          fedora-4[2-9]) __toolsets="gcc14 gcc14-gfortran gcc14-c++ wayland-protocols-devel python3-gobject-devel";yum="dnf install --skip-unavailable -y";; # probably won't work
-          *) __toolsets="gcc13 gcc13-gfortran gcc13-c++";yum="yum install -y";;
+          fedora-4[4-9]) __toolsets="gcc15 gcc15-gfortran gcc15-c++";yum="dnf install --skip-unavailable -y";; # probably won't work
+          *) __toolsets="gcc14 gcc14-gfortran gcc14-c++";yum="yum install -y";;
         esac
         $sudo $yum \
               gcc \
@@ -365,19 +365,12 @@ if [ $do_os -eq 1 ]; then
           libglfw3-dev \
           xz-utils \
           bc || error
-        # probably not all needed (and requires deb-src settings):
-        # $sudo apt-get -y build-dep \
-        #        python3 \
-        #        libgtk-4-dev \
-        #        libglib2.0-dev \
-        #        pymol \
-        #        || error
       ;;
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
             dbus util-linux-libs expat libffi elfutils libxml2 readline \
-            openssl curl ncurses sqlite lzo bzip2 libpng brotli \
+            openssl curl ncurses sqlite lzo xz bzip2 libpng brotli \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
