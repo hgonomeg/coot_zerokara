@@ -211,6 +211,7 @@ if [ $do_os -eq 1 ]; then
              bc \
              gperf \
              gettext-tools \
+             libpsl-devel \
              || error
       ;;
     rocky*|alma*|centos*)
@@ -280,6 +281,7 @@ if [ $do_os -eq 1 ]; then
             pkgconf-pkg-config \
             xz \
             glibc-langpack-en \
+            libpsl-devel \
             || error
       ;;
     fedora*)
@@ -346,7 +348,8 @@ if [ $do_os -eq 1 ]; then
               gettext \
               make \
               xmlto \
-              pkgconf-pkg-config
+              pkgconf-pkg-config \
+              libpsl-devel
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
           fedora-4[2-9]) dnf builddep -y python3-gobject-devel;;
         esac
@@ -364,6 +367,7 @@ if [ $do_os -eq 1 ]; then
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
           libopenblas-dev libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
           libglfw3-dev \
+          libpsl-dev \
           xz-utils \
           bc || error
       ;;
@@ -379,7 +383,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils bc || error
+            inetutils libpsl bc || error
       ;;
     *) error "unsupported OS!";;
   esac
