@@ -281,6 +281,7 @@ if [ $do_os -eq 1 ]; then
             pkgconf-pkg-config \
             xz \
             glibc-langpack-en \
+            glibc-gconv-extra \
             libpsl-devel \
             || error
       ;;
