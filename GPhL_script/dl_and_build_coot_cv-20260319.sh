@@ -421,14 +421,7 @@ else
     COOT_DIR=`echo coot | sed "s/ /_/g" | sed "s%/%-%g"`
   fi
 fi
-cat <<e
 
-  Coot ................................. $COOT_GIT
-    Tag ................................ $COOT_TAG
-    Branch ............................. $COOT_BRANCH
-    Dir ................................ $COOT_DIR
-
-e
 export COOT_DIR
 
 # is that reliable?
@@ -672,6 +665,7 @@ cat <<e
   directory ............................ `pwd`
   user ................................. `id -nu`
 
+  COOT_GIT ............................. $COOT_GIT
   COOT_VER ............................. $COOT_VER
   COOT_TAG ............................. $COOT_TAG
   COOT_BRANCH .......................... $COOT_BRANCH
