@@ -207,7 +207,7 @@ if [ $do_os -eq 1 ]; then
              libXext-devel \
              libxkbcommon-devel \
              gmp-devel \
-             glfw-devel \
+             libglfw-devel \
              bc \
              gperf \
              gettext-tools \
