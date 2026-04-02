@@ -161,6 +161,9 @@ if [ $do_os -eq 1 ]; then
       $sudo zypper install -y \
              openssl-devel \
              wget \
+             git \
+             vim \
+             gzip \
              gcc13 \
              gcc13-fortran \
              gcc13-c++ \
@@ -202,12 +205,16 @@ if [ $do_os -eq 1 ]; then
              libbrotli-devel \
              libxcb-devel \
              xcb-util-devel \
+             xcb-util-renderutil-devel \
              libX11-devel \
              libXrender-devel \
              libXext-devel \
              libxkbcommon-devel \
              gmp-devel \
              libglfw-devel \
+             xmlto \
+             docbook_4 \
+             docbook-xsl-stylesheets \
              bc \
              gperf \
              gettext-tools \
@@ -228,6 +235,7 @@ if [ $do_os -eq 1 ]; then
         $sudo yum -y install \
             gcc \
             wget \
+            vim \
             gcc-c++ \
             gcc-gfortran \
             make \
@@ -300,6 +308,7 @@ if [ $do_os -eq 1 ]; then
         $sudo $yum \
               gcc \
               wget \
+              vim \
               gcc-c++ \
               gcc-gfortran \
               bzip2-devel \
