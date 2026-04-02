@@ -661,7 +661,6 @@ XCBPROTO_VER=1.17.0
 MESA_VER=26.0.3
 MESAGLU_VER=9.0.3
 LIBVDPAU_VER=1.5
-LAPACK_VER=3.12.1
 LIBXEXT_VER=1.3.7
 XPROTO_VER=7.0.31
 XF86VIDMODEPROTO_VER=2.3.1
@@ -877,10 +876,6 @@ build_with_cmake () {
 
 # -------------------------------------------------------------------------------------
 # specific build functions
-
-build_lapack () {
-  build_with_cmake lapack ${LAPACK_VER} -DBUILD_SHARED_LIBS=true
-}
 
 build_python () {
   build_with_configure python ${PYTHON_VER} --libdir=$PREFIX/lib --enable-optimizations --with-system-expat=true --with-lto=full \
@@ -1416,9 +1411,6 @@ initial_setup () {
 #  install_dependencies_with_distro_package_manager
   
   cd $DEPS_DIR || error
-
-  # Lapack
-  do_wget https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v${LAPACK_VER}.tar.gz lapack-${LAPACK_VER}.tar.gz
 
   # Some distros ship ancient python. We need a fairly new version of pip and python.
   do_wget https://www.python.org/ftp/python/${PYTHON_VER}/Python-${PYTHON_VER}.tar.xz
