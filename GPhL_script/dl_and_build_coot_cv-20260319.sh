@@ -279,6 +279,7 @@ if [ $do_os -eq 1 ]; then
             xmlto \
             pkgconf-pkg-config \
             xz \
+            glibc-langpack-en \
             || error
       ;;
     fedora*)
