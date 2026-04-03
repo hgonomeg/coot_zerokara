@@ -544,14 +544,7 @@ fi
 # -------------------------------------------------------------------------------------
 
 # versions of all external packages/dependencies:
-case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-  opensuse*)
-    CMAKE_VER=3.31.11
-  ;;
-  *)
-    CMAKE_VER=4.3.1
-  ;;
-esac
+CMAKE_VER=4.3.1
 NINJA_VER=1.13.2
 
 case $COOT_VER in
