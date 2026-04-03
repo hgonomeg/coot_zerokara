@@ -165,7 +165,7 @@ if [ $do_os -eq 1 ]; then
             -t pattern devel_basis || error
       # probably not all needed:
       $sudo zypper install -y \
-             openssl-devel \
+             libopenssl-3-devel \
              wget \
              git \
              vim \
