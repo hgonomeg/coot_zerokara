@@ -222,6 +222,7 @@ if [ $do_os -eq 1 ]; then
              gperf \
              gettext-tools \
              libpsl-devel \
+             glibc-locale \
              || error
       ;;
     rocky*|alma*|centos*)
