@@ -305,7 +305,7 @@ if [ $do_os -eq 1 ]; then
         #$sudo dnf install -y epel-release
         $sudo dnf update -y
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-          fedora-4[5-9]) __toolsets="gcc15 gcc15-gfortran gcc15-c++";yum="dnf install --skip-unavailable -y";; # probably won't work
+          fedora-4[2-9]) __toolsets="gcc15 gcc15-gfortran gcc15-c++";yum="dnf install --skip-unavailable -y";; # probably won't work
           *) __toolsets="gcc14 gcc14-gfortran gcc14-c++";yum="yum install -y";;
         esac
         $sudo $yum \
@@ -363,9 +363,6 @@ if [ $do_os -eq 1 ]; then
               xmlto \
               pkgconf-pkg-config \
               libpsl-devel
-        case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-          fedora-4[2-9]) dnf builddep -y python3-gobject-devel;;
-        esac
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
