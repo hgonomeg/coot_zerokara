@@ -169,7 +169,7 @@ if [ $do_os -eq 1 ]; then
              wget \
              git \
              vim \
-             gzip \
+             gzip bzip2 lzo-devel libbz2-devel \
              hostname \
              gcc14 \
              gcc14-fortran \
@@ -204,8 +204,6 @@ if [ $do_os -eq 1 ]; then
              libelf-devel \
              readline-devel \
              ncurses-devel \
-             lzo-devel \
-             libbz2-devel \
              libpng16-devel \
              libbrotli-devel \
              libxcb-devel \
