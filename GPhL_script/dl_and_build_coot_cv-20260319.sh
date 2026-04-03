@@ -461,6 +461,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
              freeglut
              "
          # order matters - and some have to be done multiple times it seems
+         # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
          BUILD_DEPENDENCIES="
            pcre2
            glib
@@ -468,8 +469,6 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            libunistring
            gc
            glm
-           # This is needed before Python and should be obtained as a system-level dependency.
-           # Todo: remove it here
            libffi
            $BUILD_DEPENDENCIES_PLUS
            guile
@@ -509,6 +508,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            ;;
     0.9) [ $do_depplus -eq 1 ] && BUILD_DEPENDENCIES_PLUS=""
          # order matters - and some have to be done multiple times it seems
+         # todo: readline is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
          BUILD_DEPENDENCIES="
            libccp4
            mmdb2
@@ -520,8 +520,6 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            libart
            libgnomecanvas
            goocanvas
-           # This is needed before Python and should be obtained as a system-level dependency.
-           # Todo: remove it from here
            readline
            pygobject
            pygtk
