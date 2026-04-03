@@ -620,8 +620,8 @@ LIBRSVG_VER_MM=2.58
 LIBRSVG_VER=${LIBRSVG_VER_MM}.0
 GDK_PIXBUF_VER_MM=2.44
 GDK_PIXBUF_VER=${GDK_PIXBUF_VER_MM}.4
-ATK_VER_MM=2.58
-ATK_VER=${ATK_VER_MM}.4
+ATK_VER_MM=2.38
+ATK_VER=${ATK_VER_MM}.1
 GTK_VER_Major=4
 GTK_VER_Minor=20
 GTK_VER_Patch=3
@@ -1329,7 +1329,7 @@ do_wget () {
     esac
     isuccess=0
     case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-      fedora-43*|fedora-44*) __wget_retry_on_host_error="";;
+      fedora-4[0-9]*) __wget_retry_on_host_error="";;
       *) __wget_retry_on_host_error="--retry-on-host-error";;
     esac
     __common_wget_flags="--retry-connrefused --retry-on-http-error=503,429  $__wget_retry_on_host_error --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
@@ -1642,8 +1642,9 @@ download_dependencies () {
   # GDK-Pixbuf
   do_wget https://download.gnome.org/sources/gdk-pixbuf/${GDK_PIXBUF_VER_MM}/gdk-pixbuf-${GDK_PIXBUF_VER}.tar.xz
 
-  # Atk
+  # Atk / at-spi2-core
   do_wget https://download.gnome.org/sources/atk/${ATK_VER_MM}/atk-${ATK_VER}.tar.xz
+  # do_wget https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/${ATK_VER}/at-spi2-core-${ATK_VER}.tar.bz2 
 
   # xkbcommon
   do_wget https://github.com/xkbcommon/libxkbcommon/archive/refs/tags/xkbcommon-${XKBCOMMON_VER}.tar.gz
