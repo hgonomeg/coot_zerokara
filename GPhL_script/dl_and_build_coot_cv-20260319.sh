@@ -1329,7 +1329,7 @@ do_wget () {
     esac
     isuccess=0
     case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-      fedora-43*) __wget_retry_on_host_error="";;
+      fedora-43*|fedora-44*) __wget_retry_on_host_error="";;
       *) __wget_retry_on_host_error="--retry-on-host-error";;
     esac
     __common_wget_flags="--retry-connrefused --retry-on-http-error=503,429  $__wget_retry_on_host_error --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
