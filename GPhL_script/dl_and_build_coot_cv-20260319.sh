@@ -362,7 +362,8 @@ if [ $do_os -eq 1 ]; then
               make \
               xmlto \
               pkgconf-pkg-config \
-              libpsl-devel
+              libpsl-devel \
+              glibc-gconv-extra
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
