@@ -245,7 +245,7 @@ if [ $do_os -eq 1 ]; then
             make \
             $__toolsets \
             bzip2-devel \
-            gperf \
+            gperf file \
             libX11-devel \
             libglvnd-devel \
             libffi-devel \
