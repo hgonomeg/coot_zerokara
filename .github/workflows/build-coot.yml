@@ -29,8 +29,8 @@ jobs:
             container: rockylinux:9
           - distro: fedora-44
             container: fedora:44
-          #- distro: opensuse-leap-15
-          #  container: opensuse/leap:15
+          - distro: opensuse-leap-15
+            container: opensuse/leap:15
           # todo: almalinux
 
     container:
