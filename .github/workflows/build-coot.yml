@@ -59,7 +59,7 @@ jobs:
 
       - name: Collect build logs on failure
         if: failure()
-        run: bash -c "cd $GITHUB_WORKSPACE/coot-build && shopt -s nullglob && tar --zstd -cf build-logs.tar.zst {deps,build}/*/*.log {build,deps}/*.log"
+        run: bash -c "cd $GITHUB_WORKSPACE/coot-build && shopt -s nullglob && tar --zstd -cf build-logs.tar.zst {deps,build}/*/*.log* {build,deps}/*.log*"
 
       - name: Upload build logs on failure
         if: failure()
