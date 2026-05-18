@@ -13,7 +13,7 @@ pipeline {
         }
         stage('Check tooling') {
             steps {
-                sh 'dnf install -y which'
+                sh 'sudo dnf install -y which'
                 sh 'which git || echo "git not found"'
                 sh 'gcc --version || echo "gcc not found"'
             }
