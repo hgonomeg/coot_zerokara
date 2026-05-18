@@ -6,7 +6,6 @@ pipeline {
         stage('Show environment') {
             steps {
                 sh 'cat /etc/os-release'
-                sh 'whoami'
                 sh 'pwd'
                 sh 'ls -la'
             }
