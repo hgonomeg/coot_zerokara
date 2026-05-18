@@ -5,6 +5,7 @@ pipeline {
     stages {
         stage('Show environment') {
             steps {
+                sh 'echo hello world'
                 sh 'cat /etc/os-release'
                 sh 'pwd'
                 sh 'ls -la'
