@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        docker { image 'rockylinux:9.5' }
+        docker { image 'rockylinux:9.3' }
     }
     stages {
         stage('Show environment') {
