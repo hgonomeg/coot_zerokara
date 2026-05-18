@@ -26,7 +26,7 @@ pipeline {
                 
                sh 'echo verify where we are; ls -alh'
                sh 'mkdir -p ./coot-build'
-               sh 'cd ./coot-build; echo now, the real build...; ls -alh; ls -alh ..; bash ../GPhL_script/dl_and_build_coot_cv-20260319.sh -os -distro -noninteractive'
+               sh 'source /opt/rh/gcc-toolset-15/enable; cd ./coot-build; echo now, the real build...; ls -alh; ls -alh ..; bash ../GPhL_script/dl_and_build_coot_cv-20260319.sh -os -distro -noninteractive'
             }
         }
     }
