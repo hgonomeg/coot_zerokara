@@ -1471,11 +1471,14 @@ additional_build_env_setup () {
   export CFLAGS="-I${PREFIX}/include"
   export CXXFLAGS="-I${PREFIX}/include"
   IFS=":"
-  for i in $PKG_CONFIG_LIBDIR
+  # IFS is ":" so PKG_CONFIG_LIBDIR is split on colons into individual directories
+  for pkgconfig_dir in $PKG_CONFIG_LIBDIR
   do
-    # ensure we only add non-standard directories and do this only once
-    case $i in
-      ${PREFIX}/*) [ `echo " $LDFLAGS " | grep -c " -L${i} "` -eq 0 ] && export LDFLAGS="-L${i} ${LDFLAGS}";;
+    case $pkgconfig_dir in
+      # Only add directories that live under our prefix (skip standard system paths)
+      ${PREFIX}/*)
+        # grep -c returns 0 if the flag is absent; surrounding spaces prevent partial matches (e.g. -L/foo matching -L/foobar)
+        [ `echo " $LDFLAGS " | grep -c " -L${pkgconfig_dir} "` -eq 0 ] && export LDFLAGS="-L${pkgconfig_dir} ${LDFLAGS}";;
     esac
   done
   unset IFS
