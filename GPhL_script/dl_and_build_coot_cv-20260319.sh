@@ -1702,20 +1702,20 @@ download_coot () {
 }
 
 build_coot () {
-  case `uname` in
-    Linux)
-      ls /usr/lib*/liblas.so >/dev/null 2>&1
-      if [ $? -ne 0 ]; then
-        if [ ! -f $PREFIX/lib/libblas.so ]; then
-          if [ -f /usr/lib64/libblas.so.3 ]; then
-            ln -s /usr/lib64/libblas.so.3 $PREFIX/lib/libblas.so
-          elif [ -f /usr/lib/libblas.so.3 ]; then
-            ln -s /usr/lib/libblas.so.3 $PREFIX/lib/libblas.so
-          fi
+    # todo: inspect those blas shenanigans
+    ls /usr/lib*/libblas.so >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      if [ ! -f $PREFIX/lib/libblas.so ]; then
+        warning "BLAS library not found in $PREFIX/lib - trying to link it against in /usr/lib or /usr/lib64"
+        if [ -f /usr/lib64/libblas.so.3 ]; then
+          ln -s /usr/lib64/libblas.so.3 $PREFIX/lib/libblas.so
+        elif [ -f /usr/lib/libblas.so.3 ]; then
+          ln -s /usr/lib/libblas.so.3 $PREFIX/lib/libblas.so
+        else
+          warning "BLAS library not found at /usr/lib, nor at /usr/lib64 - Coot may fail to build or run without it"
         fi
       fi
-      ;;
-  esac
+    fi
   cd $COOT_BUILD_DIR
   additional_build_env_setup
 
