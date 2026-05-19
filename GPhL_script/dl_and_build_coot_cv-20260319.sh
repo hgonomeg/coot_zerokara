@@ -9,7 +9,15 @@ url_contrib="https://cloud.globalphasing.org/public.php/dav/files/jC8RHNBfzmoxfL
 # and installation is done in current directory
 
 mypwd () {
-  [ "X$PREFIX" != "X" ] && [ -d "$PREFIX" ] && pwd | sed "s%^${PREFIX%/}/%%g" || pwd
+  # Print cwd relative to $PREFIX when possible; fall back to absolute path
+  # "X$PREFIX" != "X" is a POSIX-portable non-empty check (avoids issues with empty or flag-like values)
+  if [ "X$PREFIX" != "X" ] && [ -d "$PREFIX" ]; then
+    # ${PREFIX%/} strips a trailing slash so the pattern always has exactly one "/" separator
+    # % is used as the sed delimiter instead of / to avoid escaping path separators in the pattern
+    pwd | sed "s%^${PREFIX%/}/%%"
+  else
+    pwd
+  fi
 }
 
 error () {
