@@ -612,7 +612,7 @@ GLM_VER=1.0.3
 PCRE2_VER=10.47
 LIBFFI_VER=3.5.2
 BOOST_VER_=`echo $BOOST_VER | tr . _`
-# WAYLAND_VER=1.24.0
+WAYLAND_VER=1.24.0
 WAYLANDPROTOCOLS_VER=1.47
 # EXPAT_VER=2.7.5
 MAEPARSER_VER=1.3.3
@@ -863,9 +863,9 @@ build_freeglut () {
 # build_libdrm () {
 #   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
 # }
-# build_wayland () {
-#   build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false
-# }
+build_wayland () {
+  build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false
+}
 build_waylandprotocols () {
   build_with_meson wayland-protocols ${WAYLANDPROTOCOLS_VER}
 }
@@ -1650,13 +1650,9 @@ download_dependencies () {
 
   # Shared-mime-info
   do_wget https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/${SMI_VER}/shared-mime-info-${SMI_VER}.tar.gz
-
-  # for __p in libvdpau wayland
-  # do
-  #   __puc=`echo $__p | tr '[a-z]' '[A-Z]'`
-  #   eval "__v=\"\$${__puc}_VER\""  
-  #   do_wget https://gitlab.freedesktop.org/${__p#lib}/${__p}/-/archive/${__v}/${__p}-${__v}.tar.gz
-  # done
+  
+  # Wayland
+  do_wget https://gitlab.freedesktop.org/wayland/wayland/-/archive/${WAYLAND_VER}/wayland-${WAYLAND_VER}.tar.gz
 
   do_wget https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/${WAYLANDPROTOCOLS_VER}/downloads/wayland-protocols-${WAYLANDPROTOCOLS_VER}.tar.xz
 
