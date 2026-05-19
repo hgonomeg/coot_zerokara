@@ -33,6 +33,7 @@ pipeline {
                 }
                 always {
                     archiveArtifacts artifacts: 'coot-build/**/*.log*', fingerprint: true
+                    cleanWs()
                 }
             }
         }
