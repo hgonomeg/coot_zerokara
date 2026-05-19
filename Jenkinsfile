@@ -12,7 +12,7 @@ pipeline {
             steps {
                 script {
                     // fix stupid error "fatal: detected dubious ownership in repository at /var/jenkins_home/workspace/coot_zerokara"
-                    sh 'git config --global --add safe.directory /var/jenkins_home/workspace/coot_zerokara'
+                    sh 'git config --global --add safe.directory "*"'
                     def commit = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     def msg = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
                     def branch = env.GIT_BRANCH?.replaceFirst('^origin/', '') ?: 'unknown'
