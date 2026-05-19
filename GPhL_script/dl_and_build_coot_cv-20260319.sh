@@ -1662,19 +1662,23 @@ download_dependencies () {
 
 build_dependencies () {
   # order matters - and some have to be done multiple times it seems
-  for __p in $BUILD_DEPENDENCIES
+  for dep in $BUILD_DEPENDENCIES
   do
-    __pp=`echo $__p | sed "s/-//g"`
-    eval "__n=\$__n_${__pp}"
-    [ "X$__n" = "X" ] && __n=0
-    __n=`expr $__n + 1`
-    case $__n in
-      1) __t="";;
-      *) __t=" again (#$__n)";export MY_DONE_EXT=$__n;;
+    # Variable names can't contain hyphens; strip them to form a valid shell identifier
+    dep_varname=`echo $dep | sed "s/-//g"`
+    # Retrieve how many times this dependency has been built so far (0 if first time)
+    eval "build_count=\$build_count_${dep_varname}"
+    [ "X$build_count" = "X" ] && build_count=0
+    build_count=`expr $build_count + 1`
+    case $build_count in
+      1) retry_suffix="";;
+      *) retry_suffix=" again (#$build_count)";export MY_DONE_EXT=$build_count;;
     esac
-    [ ! -f $BUILD_DIR/$__p/.my_done${MY_DONE_EXT} ] && [ $iverb -gt 0 ] && printf "\n >>> building $__p${__t}\n"
-    eval "build_${__p}${__n#1}" || error
-    eval "__n_${__pp}=\$__n"
+    [ ! -f $BUILD_DIR/$dep/.my_done${MY_DONE_EXT} ] && [ $iverb -gt 0 ] && printf "\n >>> building $dep${retry_suffix}\n"
+    # First build calls build_<dep>; subsequent builds call build_<dep>2, build_<dep>3, etc.
+    # (${build_count#1} strips the leading "1", yielding "" for 1, "2" for 2, etc.)
+    eval "build_${dep}${build_count#1}" || error
+    eval "build_count_${dep_varname}=\$build_count"
     unset MY_DONE_EXT
   done
 }
