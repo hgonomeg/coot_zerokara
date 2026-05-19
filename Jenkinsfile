@@ -11,6 +11,7 @@ pipeline {
         stage('Set build info') {
             steps {
                 script {
+                    sh 'git config --global --add safe.directory /var/jenkins_home/workspace/coot_zerokara'
                     def commit = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     def msg = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
                     def branch = env.GIT_BRANCH?.replaceFirst('^origin/', '') ?: 'unknown'
