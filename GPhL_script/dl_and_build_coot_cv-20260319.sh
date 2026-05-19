@@ -33,13 +33,13 @@ warning () {
   [ $# -eq 0 ] && printf "\n WARNING: see above\n\n" || printf "\n WARNING: $@\n\n"
 }
 usage () {
-  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distro] [-depplus]\n"
+  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distro]\n"
   printf "\n  -h                     : this help message\n"
   printf "\n  -v                     : increase verbosity\n"
   printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
   printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs etc)\n"
   printf "\n  -distro                : build binaries for distribution (default is to tune for local machine/CPU)\n"
-  printf "\n  -os                    : also install OS-provided packages deemed necessary (if possible)\n"
+  printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
   printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
   printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
   printf "\n  -branch <branch>       : Coot branch (default = \"$COOT_BRANCH\")\n"
@@ -473,6 +473,8 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            gtk
            pygobject 
            fftw
+           maeparser
+           coordgen
            rdkit
            mmdb2
            gsl
@@ -613,6 +615,8 @@ BOOST_VER_=`echo $BOOST_VER | tr . _`
 # WAYLAND_VER=1.24.0
 WAYLANDPROTOCOLS_VER=1.47
 # EXPAT_VER=2.7.5
+MAEPARSER_VER=1.3.3
+COORDGEN_VER=3.0.2
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -1063,12 +1067,25 @@ build_pygobject () {
   build_with_meson pygobject ${PYGOBJECT_VER}
 }
 
+build_maeparser () {
+  build_with_cmake maeparser ${MAEPARSER_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
+  -DMAEPARSER_BUILD_TESTS=OFF
+}
+
+build_coordgen() {
+  build_with_cmake coordgen ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
+  -DCOORDGEN_BUILD_TESTS=OFF \
+  -DCOORDGEN_BUILD_EXAMPLE=OFF \
+  -DCOORDGEN_USE_MAEPARSER=ON \
+  -DCOORDGEN_RIGOROUS_BUILD=OFF 
+}
  
 build_rdkit () {
   build_with_cmake rdkit ${RDKIT_VER} -DRDK_BUILD_CAIRO_SUPPORT=ON \
-  -DRDK_BUILD_INCHI_SUPPORT=OFF \
+  -DRDK_BUILD_INCHI_SUPPORT=ON \
   -DRDK_INSTALL_COMIC_FONTS=OFF \
-  -DRDK_INSTALL_INTREE=OFF
+  -DRDK_INSTALL_INTREE=OFF \
+  -DRDK_USE_BOOST_SERIALIZATION=ON -DRDK_USE_BOOST_STACKTRACE=ON
 }
 
 build_mmdb2 () {
@@ -1473,7 +1490,6 @@ additional_build_env_setup () {
 #TODO:
 # * JPEG for poppler (and tiff)
 # * curl, libbackward
-# * Additional deps: libeigen, coordgen
 
 download_dependencies () {
   cd $DEPS_DIR || error
@@ -1643,6 +1659,12 @@ download_dependencies () {
   # done
 
   do_wget https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/${WAYLANDPROTOCOLS_VER}/downloads/wayland-protocols-${WAYLANDPROTOCOLS_VER}.tar.xz
+
+  # Maeparser
+  do_wget https://github.com/schrodinger/maeparser/archive/refs/tags/v${MAEPARSER_VER}.tar.gz maeparser-${MAEPARSER_VER}.tar.gz
+
+  # Coordgen
+  do_wget https://github.com/schrodinger/coordgen/archive/refs/tags/v${COORDGEN_VER}.tar.gz coordgen-${COORDGEN_VER}.tar.gz
 }
 
 build_dependencies () {
