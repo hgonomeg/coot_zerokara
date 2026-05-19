@@ -39,7 +39,6 @@ usage () {
   printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
   printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs etc)\n"
   printf "\n  -distro                : build binaries for distribution (default is to tune for local machine/CPU)\n"
-  printf "\n  -depplus               : try and build more external dependencies (that are usually provided by OS at runtime)\n"
   printf "\n  -os                    : also install OS-provided packages deemed necessary (if possible)\n"
   printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
   printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
@@ -73,7 +72,6 @@ nthreads=`nproc --all`
 do_minimaltar=1
 do_distro=0
 do_noninteractive=0
-do_depplus=0
 do_os=0
 tag=""
 branch=""
@@ -93,7 +91,6 @@ do
     -fulltar)do_minimaltar=0;;
     -distr*)do_distro=1;;
     -clean*) do_clean=1;;
-    -depplus*) do_depplus=1;;
     -[oO][sS]) do_os=1;;
     -noninteractive) do_noninteractive=1;;
     -tag) tag=$2;outtag=${tag#Release-};shift;;
@@ -438,27 +435,7 @@ fi
 
 if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
   case $COOT_VER in
-    1) [ $do_depplus -eq 1 ] && BUILD_DEPENDENCIES_PLUS="
-             expat
-             libvdpau
-             libdrm
-             wayland
-             xkbcommon
-             xcbproto
-             xproto
-             xf86vidmodeproto
-             xextproto
-             libxcb
-             libxshmfence
-             libxxf86vm
-             libxext
-             glproto
-             dri2proto
-             elfutils
-             mesaglu
-             mesa
-             freeglut
-             "
+    1)
          # order matters - and some have to be done multiple times it seems
          # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
          BUILD_DEPENDENCIES="
@@ -469,7 +446,6 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            gc
            glm
            libffi
-           $BUILD_DEPENDENCIES_PLUS
            guile
            swig
            libepoxy
@@ -505,7 +481,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            libssm
            libclipper"
            ;;
-    0.9) [ $do_depplus -eq 1 ] && BUILD_DEPENDENCIES_PLUS=""
+    0.9)
          # order matters - and some have to be done multiple times it seems
          # todo: readline is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
          BUILD_DEPENDENCIES="
@@ -634,25 +610,9 @@ GLM_VER=1.0.3
 PCRE2_VER=10.47
 LIBFFI_VER=3.5.2
 BOOST_VER_=`echo $BOOST_VER | tr . _`
-LIBDRM_VER=2.4.131
-WAYLAND_VER=1.24.0
+# WAYLAND_VER=1.24.0
 WAYLANDPROTOCOLS_VER=1.47
-LIBXCB_VER=1.17.0
-LIBXSHMFENCE_VER=1.3.2
-LIBXXF86VM_VER=1.1.5
-XCBPROTO_VER=1.17.0
-MESA_VER=26.0.3
-MESAGLU_VER=9.0.3
-LIBVDPAU_VER=1.5
-LIBXEXT_VER=1.3.7
-XPROTO_VER=7.0.31
-XF86VIDMODEPROTO_VER=2.3.1
-XEXTPROTO_VER=7.3.0
-EXPAT_VER=2.7.5
-GLPROTO_VER=1.4.17
-DRI2PROTO_VER=2.8
-ELFUTILS_VER=0.194
-XKBCOMMON_VER=1.13.1
+# EXPAT_VER=2.7.5
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -896,61 +856,25 @@ build_libffi () {
 build_freeglut () {
   build_with_cmake freeglut ${FREEGLUT_VER} -DFREEGLUT_BUILD_DEMOS=OFF -DFREEGLUT_BUILD_STATIC_LIBS=OFF
 }
-build_libdrm () {
-  build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
-}
-build_wayland () {
-  build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false
-}
+# build_libdrm () {
+#   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
+# }
+# build_wayland () {
+#   build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false
+# }
 build_waylandprotocols () {
   build_with_meson wayland-protocols ${WAYLANDPROTOCOLS_VER}
 }
-build_xcbproto () {
-  PYTHON=python3 build_with_configure xcb-proto ${XCBPROTO_VER}
-}
-build_xproto () {
-  build_with_configure xproto ${XPROTO_VER}
-}
-build_xf86vidmodeproto () {
-  build_with_configure xf86vidmodeproto ${XF86VIDMODEPROTO_VER}
-}
-build_xextproto () {
-  build_with_configure xextproto ${XEXTPROTO_VER}
-}
-build_libxext () {
-  build_with_configure libXext ${LIBXEXT_VER}
-}
-build_glproto () {
-  build_with_configure glproto ${GLPROTO_VER}
-}
-build_dri2proto () {
-  build_with_configure dri2proto ${DRI2PROTO_VER}
-}
-build_elfutils () {
-  build_with_configure elfutils ${ELFUTILS_VER} --disable-debuginfod
-}
+# build_elfutils () {
+#   build_with_configure elfutils ${ELFUTILS_VER} --disable-debuginfod
+# }
 
-build_libxshmfence () {
-  build_with_configure libxshmfence ${LIBXSHMFENCE_VER} --without-doxygen
-}
-build_libxxf86vm () {
-  build_with_configure libXxf86vm ${LIBXXF86VM_VER} --without-doxygen
-}
-build_libxcb () {
-  build_with_configure libxcb ${LIBXCB_VER} --without-doxygen
-}
-build_mesa () {
-  build_with_meson mesa ${MESA_VER} -Dplatforms=x11,wayland -Dgallium-drivers=auto -Dvulkan-drivers="" -Dvalgrind=disabled -Dlibunwind=disabled -Dllvm=disabled
-}
-build_mesaglu () {
-  build_with_meson glu ${MESAGLU_VER} -Dgl_provider=gl
-}
-build_libvdpau () {
-  build_with_meson libvdpau ${LIBVDPAU_VER}
-}
-build_expat () {
- build_with_configure expat ${EXPAT_VER} --disable-static
-}
+# build_libvdpau () {
+#   build_with_meson libvdpau ${LIBVDPAU_VER}
+# }
+# build_expat () {
+#  build_with_configure expat ${EXPAT_VER} --disable-static
+# }
 
 # see https://docs.gtk.org/glib/building.html
 build_glib () {
@@ -1126,9 +1050,6 @@ build_gdk_pixbuf2 () {
 
 build_atk () {
   build_with_meson atk ${ATK_VER}
-}
-build_xkbcommon () {
-  build_with_meson libxkbcommon-xkbcommon ${XKBCOMMON_VER} -Denable-docs=false -Dbash-completion-path=${PREFIX}/share
 }
 
 build_gtk () {
@@ -1635,9 +1556,6 @@ download_dependencies () {
   # Atk / at-spi2-core
   do_wget https://download.gnome.org/sources/atk/${ATK_VER_MM}/atk-${ATK_VER}.tar.xz
   # do_wget https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/${ATK_VER}/at-spi2-core-${ATK_VER}.tar.bz2 
-
-  # xkbcommon
-  do_wget https://github.com/xkbcommon/libxkbcommon/archive/refs/tags/xkbcommon-${XKBCOMMON_VER}.tar.gz
   
   # Gtk
   do_wget https://download.gnome.org/sources/gtk/${GTK_VER_Major}.${GTK_VER_Minor}/gtk-${GTK_VER}.tar.xz
@@ -1684,7 +1602,7 @@ download_dependencies () {
   do_wget https://www.hboehm.info/gc/gc_source/gc-${GC_VER}.tar.gz
 
   # expat
-  do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER}| sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.gz
+  # do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER}| sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.gz
   
   #### github
 
@@ -1710,44 +1628,19 @@ download_dependencies () {
     do_wget https://github.com/${__p}/${__p}/releases/download/v${__v}/${__p}-${__v}.tar.gz
   done
 
-  # elfutils
-  do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
-  
-  # libdrm
-  do_wget https://dri.freedesktop.org/libdrm/libdrm-${LIBDRM_VER}.tar.xz
+  # # elfutils
+  # do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
 
-  ### xorg.freedesktop.org/archive/individual/proto
-  for __p in xcb-proto xproto xf86vidmodeproto xextproto glproto dri2proto
-  do
-    __puc=`echo $__p | sed "s/-//g" | tr '[a-z]' '[A-Z]'`
-    eval "__v=\"\$${__puc}_VER\""  
-    do_wget https://xorg.freedesktop.org/archive/individual/proto/${__p}-${__v}.tar.gz
-  done
-
-  ### xorg.freedesktop.org/archive/individual/lib
-  for __p in libxcb libxshmfence libXxf86vm libXext
-  do
-    __puc=`echo $__p | tr '[a-z]' '[A-Z]'`
-    eval "__v=\"\$${__puc}_VER\""  
-    do_wget https://xorg.freedesktop.org/archive/individual/lib/${__p}-${__v}.tar.gz
-  done
-
-  # Mesa
-  do_wget https://archive.mesa3d.org/mesa-${MESA_VER}.tar.xz
-  # glu
-  do_wget https://archive.mesa3d.org/glu/glu-${MESAGLU_VER}.tar.xz
-
-  #### gitlab.freedesktop.org
 
   # Shared-mime-info
   do_wget https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/${SMI_VER}/shared-mime-info-${SMI_VER}.tar.gz
 
-  for __p in libvdpau wayland
-  do
-    __puc=`echo $__p | tr '[a-z]' '[A-Z]'`
-    eval "__v=\"\$${__puc}_VER\""  
-    do_wget https://gitlab.freedesktop.org/${__p#lib}/${__p}/-/archive/${__v}/${__p}-${__v}.tar.gz
-  done
+  # for __p in libvdpau wayland
+  # do
+  #   __puc=`echo $__p | tr '[a-z]' '[A-Z]'`
+  #   eval "__v=\"\$${__puc}_VER\""  
+  #   do_wget https://gitlab.freedesktop.org/${__p#lib}/${__p}/-/archive/${__v}/${__p}-${__v}.tar.gz
+  # done
 
   do_wget https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/${WAYLANDPROTOCOLS_VER}/downloads/wayland-protocols-${WAYLANDPROTOCOLS_VER}.tar.xz
 }
