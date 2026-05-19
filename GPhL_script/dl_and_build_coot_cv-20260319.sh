@@ -1490,6 +1490,7 @@ additional_build_env_setup () {
 #TODO:
 # * JPEG for poppler (and tiff)
 # * curl, libbackward
+# * nanobind for gemmi and chapi
 
 download_dependencies () {
   cd $DEPS_DIR || error
