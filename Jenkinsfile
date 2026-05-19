@@ -6,19 +6,16 @@ pipeline {
           args '-u root'
         }
     }
+    // todo: change this to a matrix, going over multiple distros
     stages {
-        // stage('Show environment') {
-        //     steps {
-        //         sh 'cat /etc/os-release'
-        //         sh 'pwd'
-        //         sh 'ls -la'
-        //     }
-        // }
-        stage('Check tooling') {
+        stage('Set build info') {
             steps {
-                sh 'dnf install -y which || echo "oh wow, probably no dnf, wtf"'
-                sh 'which git && git --version || echo "git not found"'
-                sh 'gcc --version || echo "gcc not found"'
+                script {
+                    def commit = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    def msg = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} ${commit}"
+                    currentBuild.description = "${env.GIT_BRANCH}: ${msg}"
+                }
             }
         }
         stage('Run script') {
