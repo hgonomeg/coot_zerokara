@@ -1354,7 +1354,7 @@ initial_setup () {
 
   if [ ! -f $PREFIX/.my_pip_install_done ]; then
     printf "\n pip installing meson et al (see `mypwd`/my_pip_install.log) ... "
-    python3 -m pip install meson setuptools numpy==${NUMPY_VER} packaging requests xattr mako > my_pip_install.log 2>&1 || error "see `mypwd`/my_pip_install.log"
+    python3 -m pip install meson setuptools numpy==${NUMPY_VER} packaging nanobind requests xattr mako > my_pip_install.log 2>&1 || error "see `mypwd`/my_pip_install.log"
     echo "done"
     touch $PREFIX/.my_pip_install_done
   fi
@@ -1490,7 +1490,6 @@ additional_build_env_setup () {
 #TODO:
 # * JPEG for poppler (and tiff)
 # * curl, libbackward
-# * nanobind for gemmi and chapi
 
 download_dependencies () {
   cd $DEPS_DIR || error
