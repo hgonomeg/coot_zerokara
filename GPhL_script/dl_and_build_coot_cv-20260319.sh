@@ -79,7 +79,6 @@ COOT_TAG="main"
 COOT_BRANCH=""
 patch_file=""
 btype="opt"
-do_wgotten=0
 do_clean=0
 while [ $# -gt 0 ]
 do
@@ -96,7 +95,6 @@ do
     -tag) tag=$2;outtag=${tag#Release-};shift;;
     -branch) branch=$2;outtag=$branch;shift;;
     -debug) btype="debug";;
-    -wgotten)do_wgotten=1;;
     -patch)
       [ ! -f "$2" ] && error "file for -patch command not found = \"$2\""
       case "$2" in
@@ -1315,7 +1313,6 @@ do_wget () {
         fi
         ;;
     esac
-    [ $do_wgotten -gt 0 ] && echo "`mypwd`/$__out" >> /tmp/`basename ${0%.sh}`.wgotten
   else
     if [ $isuccess -eq 0 ]; then
       # make sure to remove any (partial) files ...
