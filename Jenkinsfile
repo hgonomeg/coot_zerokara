@@ -13,7 +13,8 @@ pipeline {
                 script {
                     def commit = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     def msg = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
-                    currentBuild.displayName = "#${env.BUILD_NUMBER} ${commit}"
+                    def branch = env.GIT_BRANCH?.replaceFirst('^origin/', '') ?: 'unknown'
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} [${branch}] ${commit}"
                     currentBuild.description = "${env.GIT_BRANCH}: ${msg}"
                 }
             }
