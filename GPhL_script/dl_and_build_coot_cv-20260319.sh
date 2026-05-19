@@ -915,7 +915,7 @@ build_boost () {
     cd $BUILD_DIR/boost || error
 
     printf "   bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
-    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,system,atomic,container,context,fiber,coroutine,json,python,random > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
+    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python,random > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
     echo "done"
 
     if [ "X${GCC_COMMAND_EXT}" != "X" ]; then
