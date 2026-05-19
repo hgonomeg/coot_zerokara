@@ -531,10 +531,10 @@ case $COOT_VER in
        PYTHON_VER_MINOR=14
        PYTHON_VER_PATCH=3
 
-       BOOST_VER=1.89.0
+       BOOST_VER=1.91.0
        PYGOBJECT_VER=3.54.5
        FREEGLUT_VER=3.8.0
-       RDKIT_VER=2025_09_6
+       RDKIT_VER=2026_03_2
        NUMPY_VER=2.4.3
 
        ;;
