@@ -32,7 +32,10 @@ pipeline {
                     echo "Build failed"
                 }
                 always {
-                    archiveArtifacts artifacts: 'coot-build/**/*.log*', fingerprint: true
+                    archiveArtifacts artifacts: 'coot-build/build/*.log*', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'coot-build/deps/*.log*', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'coot-build/build/*/*.log*', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'coot-build/deps/*/*.log*', fingerprint: true, allowEmptyArchive: true
                     cleanWs()
                 }
             }
