@@ -454,6 +454,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            libffi
            guile
            swig
+           eigen
            libepoxy
            boost
            glib
@@ -537,7 +538,7 @@ case $COOT_VER in
        PYTHON_VER_MINOR=14
        PYTHON_VER_PATCH=5
 
-       BOOST_VER=1.89.0
+       BOOST_VER=1.91.0
        PYGOBJECT_VER=3.54.5
        FREEGLUT_VER=3.8.0
        RDKIT_VER=2026_03_2
@@ -623,6 +624,7 @@ WAYLANDPROTOCOLS_VER=1.47
 # EXPAT_VER=2.7.5
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
+EIGEN_VER=5.0.1
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -759,14 +761,14 @@ build_with_meson () {
     build_save_mylogs_and_rm
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
     meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done meson setup"
     cd $BUILD_DIR/$__p || error
     printf "  meson compile (see `mypwd`/my_meson_compile.log${MY_DONE_EXT}) ... "
     meson compile > my_meson_compile.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_compile.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done meson compile"
     printf "  meson install (see `mypwd`/my_meson_install.log${MY_DONE_EXT}) ... "
     meson install > my_meson_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_install.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done meson install"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -816,11 +818,11 @@ build_with_configure () {
     if [ $__do_autogen -eq 1 ]; then
       printf "  autogen.sh (see `mypwd`/my_autogen.log${MY_DONE_EXT}) ... "
       $DEPS_DIR/${__p}-${__v}/autogen.sh --prefix=$PREFIX > my_autogen.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_autogen.log${MY_DONE_EXT}"
-      echo "done"
+      echo "done autogen.sh"
     fi
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done configure"
 
     # make sure that we don't have -g as a flag
     case $btype in
@@ -831,10 +833,10 @@ build_with_configure () {
 
     printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
     make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done make"
     printf "  make install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
     make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done make install"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -852,13 +854,13 @@ build_with_cmake () {
     printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
     cmake $DEPS_DIR/${__p}-${__v} \
           -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=release $@ > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done configuring project"
     printf "  cmake --build (see `mypwd`/my_cmake_build.log${MY_DONE_EXT}) ... "
     cmake --build . -j ${nthreads} > my_cmake_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_build.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done building project"
     printf "  cmake --install (see `mypwd`/my_cmake_install.log${MY_DONE_EXT}) ... "
     cmake --install .  > my_cmake_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_install.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done installing project"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -956,8 +958,8 @@ build_boost () {
     cp -a $DEPS_DIR/boost_${BOOST_VER_} $BUILD_DIR/boost || error
     cd $BUILD_DIR/boost || error
 
-    printf "   bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
-    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,system,atomic,container,context,fiber,coroutine,json,python,random > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
+    printf " ### bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
+    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python,random > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
     echo "done"
 
     if [ "X${GCC_COMMAND_EXT}" != "X" ]; then
@@ -965,7 +967,7 @@ build_boost () {
       sed -i "s/gcc${GCC_COMMAND_EXT}/gcc/g" project-config.jam || error
     fi
 
-    printf "   building boost (see `mypwd`/my_build.log${MY_DONE_EXT}) ... "
+    printf " ### building boost (see `mypwd`/my_build.log${MY_DONE_EXT}) ... "
     BOOST_BUILD_PATH=. ./b2 link=shared variant=release threading=multi runtime-link=shared install --prefix=${PREFIX} > my_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_build.log${MY_DONE_EXT}"
     echo "done"
 
@@ -1115,11 +1117,16 @@ build_maeparser () {
 }
 
 build_coordgen() {
-  build_with_cmake coordgenlibs ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
+  build_with_cmake coordgen ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
   -DCOORDGEN_BUILD_TESTS=OFF \
   -DCOORDGEN_BUILD_EXAMPLE=OFF \
   -DCOORDGEN_USE_MAEPARSER=ON \
   -DCOORDGEN_RIGOROUS_BUILD=OFF 
+}
+
+build_eigen () {
+  build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
+          -DEIGEN_BUILD_TESTING=OFF
 }
  
 build_rdkit () {
@@ -1730,6 +1737,13 @@ download_dependencies () {
 
   # Coordgen
   do_wget https://github.com/schrodinger/coordgenlibs/archive/refs/tags/v${COORDGEN_VER}.tar.gz coordgenlibs-${COORDGEN_VER}.tar.gz
+  if [ -d coordgenlibs-${COORDGEN_VER} ] && [ ! -d coordgen-${COORDGEN_VER} ]; then
+    mv coordgenlibs-${COORDGEN_VER} coordgen-${COORDGEN_VER} && \
+    ln -s coordgen-${COORDGEN_VER} coordgenlibs-${COORDGEN_VER} || error
+  fi
+
+  # Eigen
+  do_wget https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VER}/eigen-${EIGEN_VER}.tar.gz
 }
 
 build_dependencies () {
@@ -1806,7 +1820,7 @@ build_coot () {
   if [ ! -f .my_autogen_done ]; then
     printf " ### Coot: autogen.sh (see `mypwd`/my_autogen.log) ... "
     ./autogen.sh > my_autogen.log 2>&1 || error "see `mypwd`/my_autogen.log"
-    echo "done"
+    echo "done autogen.sh"
     touch .my_autogen_done
     rm -f .my_configure_done
   fi
@@ -1853,7 +1867,7 @@ EOF
                 --with-boost-thread=boost_thread \
                 --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}" \
                 > my_configure.log 2>&1 || error "see `mypwd`/my_configure.log"
-    echo "done"
+    echo "done configure"
     touch .my_configure_done
     rm -f .my_make_done
   fi
@@ -1904,10 +1918,10 @@ EOF
   if [ ! -f .my_make_done ]; then
     printf " ### Coot: make (see `mypwd`/my_make.log) ... "
     make -j ${nthreads} > my_make.log 2>&1 || error "see `mypwd`/my_make.log"
-    echo "done"
+    echo "done make"
     printf " ### Coot: install (see `mypwd`/my_make_install.log) ... "
     make install > my_make_install.log 2>&1 || error "see `mypwd`/my_make_install.log"
-    echo "done"
+    echo "done make install"
 
     touch .my_make_done
   fi
