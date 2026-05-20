@@ -1691,7 +1691,7 @@ download_dependencies () {
   do_wget https://github.com/schrodinger/maeparser/archive/refs/tags/v${MAEPARSER_VER}.tar.gz maeparser-${MAEPARSER_VER}.tar.gz
 
   # Coordgen
-  do_wget https://github.com/schrodinger/coordgenlibs/archive/refs/tags/v${COORDGEN_VER}.tar.gz coordgen-${COORDGEN_VER}.tar.gz
+  do_wget https://github.com/schrodinger/coordgenlibs/archive/refs/tags/v${COORDGEN_VER}.tar.gz coordgenlibs-${COORDGEN_VER}.tar.gz
 }
 
 build_dependencies () {
