@@ -1563,7 +1563,7 @@ download_dependencies () {
 
   # Freetype2
   #   This one is a special snowflake which really likes to fail...
-  do_wget https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VER}.tar.xz freetype-${FREETYPE_VER}.tar.xz 8
+  do_wget https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VER}.tar.xz freetype-${FREETYPE_VER}.tar.xz 15
   
   # Fontconfig
   #do_wget https://www.freedesktop.org/software/fontconfig/release/fontconfig-${FONTCONFIG_VER}.tar.xz
