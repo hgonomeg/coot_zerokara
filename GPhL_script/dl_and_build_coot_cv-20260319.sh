@@ -1082,7 +1082,7 @@ build_maeparser () {
 }
 
 build_coordgen() {
-  build_with_cmake coordgen ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
+  build_with_cmake coordgenlibs ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
   -DCOORDGEN_BUILD_TESTS=OFF \
   -DCOORDGEN_BUILD_EXAMPLE=OFF \
   -DCOORDGEN_USE_MAEPARSER=ON \
