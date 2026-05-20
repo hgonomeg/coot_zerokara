@@ -454,6 +454,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            libffi
            guile
            swig
+           eigen
            libepoxy
            boost
            glib
@@ -1122,6 +1123,11 @@ build_coordgen() {
   -DCOORDGEN_USE_MAEPARSER=ON \
   -DCOORDGEN_RIGOROUS_BUILD=OFF 
 }
+
+build_eigen () {
+  build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
+          -DEIGEN_BUILD_TESTING=OFF
+}
  
 build_rdkit () {
   build_with_cmake rdkit ${RDKIT_VER} -DRDK_BUILD_CAIRO_SUPPORT=ON \
@@ -1731,6 +1737,9 @@ download_dependencies () {
 
   # Coordgen
   do_wget https://github.com/schrodinger/coordgenlibs/archive/refs/tags/v${COORDGEN_VER}.tar.gz coordgenlibs-${COORDGEN_VER}.tar.gz
+
+  # Eigen
+  do_wget https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VER}/eigen-${EIGEN_VER}.tar.gz
 }
 
 build_dependencies () {
