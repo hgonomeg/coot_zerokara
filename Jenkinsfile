@@ -36,6 +36,7 @@ pipeline {
                     archiveArtifacts artifacts: 'coot-build/deps/*.log*', fingerprint: true, allowEmptyArchive: true
                     archiveArtifacts artifacts: 'coot-build/build/*/*.log*', fingerprint: true, allowEmptyArchive: true
                     archiveArtifacts artifacts: 'coot-build/deps/*/*.log*', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'coot-build/coot*/*.log*', fingerprint: true, allowEmptyArchive: true
                     // Fix Jenkins permissions issue
                     sh 'chown -R 1000:1000 .'
                     cleanWs()
