@@ -1283,13 +1283,14 @@ do_wget () {
 
     # --- Three-tier download strategy ---
     # Tier 1: contrib mirror at the full relative path (fastest, avoids hammering upstream)
-    __actual_source_url="${url_contrib}/`basename $__url`"
+    __actual_source_url="${url_contrib}/$__output_file"
     $__wget_cmd $__wget_common_flags -O "$__output_file" ${url_contrib}/$__output_file > my_get_${__pkg_name}.log 2>&1
     if [ $? -ne 0 ] || [ ! -s $__output_file ]; then
       # ! -s: file missing or zero-length (i.e. partial/empty download)
       rm -fv "$__output_file" >> my_get_${__pkg_name}.log 2>&1
 
       # Tier 2: contrib mirror using only the URL's basename (handles path mismatches)
+      __actual_source_url="${url_contrib}/`basename $__url`"
       $__wget_cmd $__wget_common_flags -O "$__output_file" ${url_contrib}/`basename $__url` >> my_get_${__pkg_name}.log 2>&1
       if [ $? -ne 0 ] || [ ! -s $__output_file ]; then
         rm -fv "$__output_file" >> my_get_${__pkg_name}.log 2>&1
