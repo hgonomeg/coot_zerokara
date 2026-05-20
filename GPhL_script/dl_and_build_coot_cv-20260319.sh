@@ -9,7 +9,15 @@ url_contrib="https://cloud.globalphasing.org/public.php/dav/files/jC8RHNBfzmoxfL
 # and installation is done in current directory
 
 mypwd () {
-  [ "X$PREFIX" != "X" ] && [ -d "$PREFIX" ] && pwd | sed "s%^${PREFIX%/}/%%g" || pwd
+  # Print cwd relative to $PREFIX when possible; fall back to absolute path
+  # "X$PREFIX" != "X" is a POSIX-portable non-empty check (avoids issues with empty or flag-like values)
+  if [ "X$PREFIX" != "X" ] && [ -d "$PREFIX" ]; then
+    # ${PREFIX%/} strips a trailing slash so the pattern always has exactly one "/" separator
+    # % is used as the sed delimiter instead of / to avoid escaping path separators in the pattern
+    pwd | sed "s%^${PREFIX%/}/%%"
+  else
+    pwd
+  fi
 }
 
 error () {
@@ -79,7 +87,6 @@ COOT_TAG="main"
 COOT_BRANCH=""
 patch_file=""
 btype="opt"
-do_wgotten=0
 do_clean=0
 while [ $# -gt 0 ]
 do
@@ -96,7 +103,6 @@ do
     -tag) tag=$2;outtag=${tag#Release-};shift;;
     -branch) branch=$2;outtag=$branch;shift;;
     -debug) btype="debug";;
-    -wgotten)do_wgotten=1;;
     -patch)
       [ ! -f "$2" ] && error "file for -patch command not found = \"$2\""
       case "$2" in
@@ -650,61 +656,94 @@ cat <<e
 e
 
 # -------------------------------------------------------------------------------------
-# figure out usable compiler version (in order of preference):
-for __v in 16 15 14 13 12 11 
+# Figure out the best available GCC version (highest preferred).
+# Three possible outcomes per iteration:
+#   * full versioned triple (g++-N, gcc-N, gfortran-N) found → set CC/CXX/FC explicitly
+#   * unversioned g++ IS this version (symlink points here) → use unversioned names
+#   * only g++-N found (siblings missing) → record version, let setup_build_env fill in the rest
+GCC_VER_MIN=11      # oldest supported version
+GCC_VER_MAX=16      # newest tested/preferred version
+GCC_VER_CEILING=25  # scan up to this version; anything above GCC_VER_MAX is untested but allowed
+for __gcc_ver in `seq $GCC_VER_CEILING -1 $GCC_VER_MIN`
 do
-  type g++-${__v} >/dev/null 2>&1
+  type g++-${__gcc_ver} >/dev/null 2>&1
   if [ $? -eq 0 ]; then
-    type gcc-${__v} >/dev/null 2>&1
+    type gcc-${__gcc_ver} >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-      type gfortran-${__v} >/dev/null 2>&1
+      type gfortran-${__gcc_ver} >/dev/null 2>&1
       if [ $? -eq 0 ]; then
-        if [ $? -eq 0 ]; then
-          [ "X$CXX" = "X" ] && [ "`g++-${__v} --version 2>&1 | head -n 1 | sed "s/g++-${__v}/g++/g"`" != "`g++ --version 2>&1 | head -n 1`" ] && export CXX="g++-${__v}" || export CXX="g++"
-          [ "X$CC"  = "X" ] && [ "`gcc-${__v} --version 2>&1 | head -n 1 | sed "s/gcc-${__v}/gcc/g"`" != "`gcc --version 2>&1 | head -n 1`" ] && export CC="gcc-${__v}" || export CC="gcc"
-          [ "X$FC"  = "X" ] && [ "`gfortran-${__v} --version 2>&1 | head -n 1`" != "`gfortran --version 2>&1 | head -n 1`" ] && export FC="gfortran-${__v}" || export FC="gfortran"
-          export GCC_COMPILER_VERSION=${__v}
-          export GCC_COMMAND_EXT="-${__v}"
-          break
+        # All three compilers present at this version — pick versioned vs unversioned name
+        # by comparing version strings. sed normalises "g++-13 ..." to "g++ ..." so the
+        # strings are comparable; if they still differ, the unversioned name points elsewhere.
+        if [ "X$CXX" = "X" ]; then
+          if [ "`g++-${__gcc_ver} --version 2>&1 | head -n 1 | sed "s/g++-${__gcc_ver}/g++/g"`" \
+               != "`g++ --version 2>&1 | head -n 1`" ]; then
+            export CXX="g++-${__gcc_ver}"
+          else
+            export CXX="g++"
+          fi
         fi
+        if [ "X$CC" = "X" ]; then
+          if [ "`gcc-${__gcc_ver} --version 2>&1 | head -n 1 | sed "s/gcc-${__gcc_ver}/gcc/g"`" \
+               != "`gcc --version 2>&1 | head -n 1`" ]; then
+            export CC="gcc-${__gcc_ver}"
+          else
+            export CC="gcc"
+          fi
+        fi
+        if [ "X$FC" = "X" ]; then
+          if [ "`gfortran-${__gcc_ver} --version 2>&1 | head -n 1`" \
+               != "`gfortran --version 2>&1 | head -n 1`" ]; then
+            export FC="gfortran-${__gcc_ver}"
+          else
+            export FC="gfortran"
+          fi
+        fi
+        export GCC_COMPILER_VERSION=${__gcc_ver}
+        export GCC_COMMAND_EXT="-${__gcc_ver}"
+        break
       else
-        echo " WARNING: although we found a C/C++ compiler (\"gcc-${__v}\", \"g++-${__v}\"), the Fortran compiler (\"gfortran-${__v}\") is missing!"
+        echo " WARNING: although we found a C/C++ compiler (\"gcc-${__gcc_ver}\", \"g++-${__gcc_ver}\"), the Fortran compiler (\"gfortran-${__gcc_ver}\") is missing!"
       fi
     fi
   else
-    type gcc-${__v} >/dev/null 2>&1
+    type gcc-${__gcc_ver} >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-      echo " WARNING: although we found a C compiler (\"gcc-${__v}\"), the C++ compiler (\"g++-${__v}\") is missing!"
+      echo " WARNING: although we found a C compiler (\"gcc-${__gcc_ver}\"), the C++ compiler (\"g++-${__gcc_ver}\") is missing!"
     fi
   fi
+  # Fallback: check whether the unversioned g++ happens to be this version.
+  # grep -c " 13\." counts lines containing " 13." — the dot prevents matching e.g. " 130."
   type g++ >/dev/null 2>&1
   if [ $? -eq 0 ]; then
-    if [ `g++ --version 2>&1 | head -n1 | grep -c " ${__v}\."` -eq 1 ]; then
-      export GCC_COMPILER_VERSION=${__v};export GCC_COMMAND_EXT=""
+    if [ `g++ --version 2>&1 | head -n1 | grep -c " ${__gcc_ver}\."` -eq 1 ]; then
+      export GCC_COMPILER_VERSION=${__gcc_ver}
+      export GCC_COMMAND_EXT=""
       break
     fi
   fi
-  type g++-${__v} >/dev/null 2>&1
+  # Last resort: g++-N exists but its siblings were missing — record version and move on;
+  # setup_build_env will set CC/CXX/FC individually using GCC_COMMAND_EXT.
+  type g++-${__gcc_ver} >/dev/null 2>&1
   if [ $? -eq 0 ]; then
-    export GCC_COMPILER_VERSION=${__v};export GCC_COMMAND_EXT="-${__v}"
+    export GCC_COMPILER_VERSION=${__gcc_ver}
+    export GCC_COMMAND_EXT="-${__gcc_ver}"
     break
   fi
 done
-[ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working (?) gcc/g++ version 13/12/11/14/15 found?"
+[ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working gcc/g++ found in version range $GCC_VER_MIN–$GCC_VER_CEILING"
 printf "\n ### Compiler version found/used = $GCC_COMPILER_VERSION\n\n"
-if [ $GCC_COMPILER_VERSION -lt 15 ]; then
-  if [ $GCC_COMPILER_VERSION -lt 11 ]; then
-    printf "\n ### WARNING: compiler version below the preferred minimum version 11\n"
-  else
-    printf "\n ### NOTE: compiler version below the preferred version 15\n"
-  fi
+if [ $GCC_COMPILER_VERSION -gt $GCC_VER_MAX ]; then
+  printf "\n ### NOTE: compiler version $GCC_COMPILER_VERSION is newer than the tested maximum ($GCC_VER_MAX) — should work but is untested\n"
+elif [ $GCC_COMPILER_VERSION -lt $GCC_VER_MIN ]; then
+  printf "\n ### WARNING: compiler version $GCC_COMPILER_VERSION is below the minimum supported version $GCC_VER_MIN\n"
+elif [ $GCC_COMPILER_VERSION -lt $GCC_VER_MAX ]; then
+  printf "\n ### NOTE: compiler version $GCC_COMPILER_VERSION is below the preferred version $GCC_VER_MAX\n"
   type scl >/dev/null 2>&1
   if [ $? -eq 0 ]; then
-    printf "\n ### NOTE: you might be able to switch to a preferred compiler version via\n\n"
-    printf "    scl enable gcc-toolset-15 bash\n\n"
+    printf "\n ### NOTE: you might be able to switch to a preferred compiler version, e.g., via\n\n"
+    printf "    scl enable gcc-toolset-$GCC_VER_MAX bash\n\n"
   fi
-elif [ $GCC_COMPILER_VERSION -gt 15 ]; then
-  printf "\n ### WARNING: compiler version above the preferred version 15\n"
 fi
 
 # -------------------------------------------------------------------------------------
@@ -734,22 +773,25 @@ build_with_meson () {
   fi
 }
 build_save_mylogs_and_rm () {
-  # save the previous my_* files (if existing)
+  # When MY_DONE_EXT is set this is a repeat build; preserve logs from previous attempts
+  # before wiping the build directory, then restore them afterwards.
   if [ "X$MY_DONE_EXT" != "X" ]; then
-    for __f in `ls my_*.log 2>/dev/null`
+    # Rename my_foo.log → my_foo.log1 so repeat-attempt logs don't overwrite the first
+    for log_file in `ls my_*.log 2>/dev/null`
     do
-      [ ! -f ${__f}1 ] && mv $__f ${__f}1
+      [ ! -f ${log_file}1 ] && mv $log_file ${log_file}1
     done
+    # $$ is the shell PID; used to make a unique temp dir that survives the rm -rf * below
     mkdir -p $PREFIX/__$$.tmpdir >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-      for __i in `seq 1 $MY_DONE_EXT`
+      for build_attempt in `seq 1 $MY_DONE_EXT`
       do
-        mv my_*.log${__i} $PREFIX/__$$.tmpdir/. 2>/dev/null
+        mv my_*.log${build_attempt} $PREFIX/__$$.tmpdir/. 2>/dev/null
       done
     fi
   fi
   rm -rf *
-  # re-instate old my*.log* files
+  # restore saved logs into the freshly-cleared directory
   if [ -d $PREFIX/__$$.tmpdir ]; then
     mv $PREFIX/__$$.tmpdir/my*.log* . 2>/dev/null
     rm -fr $PREFIX/__$$.tmpdir 2>/dev/null
@@ -1073,7 +1115,7 @@ build_maeparser () {
 }
 
 build_coordgen() {
-  build_with_cmake coordgen ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
+  build_with_cmake coordgenlibs ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
   -DCOORDGEN_BUILD_TESTS=OFF \
   -DCOORDGEN_BUILD_EXAMPLE=OFF \
   -DCOORDGEN_USE_MAEPARSER=ON \
@@ -1235,54 +1277,72 @@ build_fftw () {
 # -------------------------------------------------------------------------------------
 # other functions
 do_wget () {
+  # Arguments: URL [output-filename [max-retries]]
   __url=$1;shift
   if [ $# -ge 1 ]; then
-    __out=$1;shift
+    __output_file=$1;shift
   else
-    __out=`basename $__url`
+    __output_file=`basename $__url`
   fi
   if [ $# -ge 1 ]; then
-    __ntry=$1;shift
+    __max_retries=$1;shift
   else
-    # try three-times as default:
-    __ntry=3
+    __max_retries=3
   fi
-  
-  __p=`basename $__out | sed "s/[_.0-9]/ /g" | sed "s/- //g" | awk '{print $1}'`
-  echo "do_wget \"$__p\" \"$__out\" \"$__url\"" >> /tmp/`basename ${0%.sh}`.debug
-  if [ ! -f $__out ]; then
+
+  # Derive a short package name used in the log filename (my_get_<pkg>.log).
+  # Strip version numbers, dots, underscores, and a leading "- ", then take the first word.
+  # e.g. "boost_1_82_0.tar.bz2" → "boost", "cmake-3.27.0.tar.gz" → "cmake"
+  __pkg_name=`basename $__output_file | sed "s/[_.0-9]/ /g" | sed "s/- //g" | awk '{print $1}'`
+
+  # Append this download call to a per-script debug log in /tmp for post-mortem tracing
+  echo "do_wget \"$__pkg_name\" \"$__output_file\" \"$__url\"" >> /tmp/`basename ${0%.sh}`.debug
+
+  if [ ! -f $__output_file ]; then
+    # wget 2.x negotiates content-encoding and decompresses on the fly by default,
+    # which corrupts binary archives; disable it to receive the raw bytes
     case `wget --version | awk '/^GNU/{print $3;exit}'` in
-      2.*) __wget="wget --no-compression";;
-      *) __wget="wget";;
+      2.*) __wget_cmd="wget --no-compression";;
+      *) __wget_cmd="wget";;
     esac
     isuccess=0
+    # --retry-on-host-error is not recognised on Fedora 40+ builds of wget; omit it there
     case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-      fedora-4[0-9]*) __wget_retry_on_host_error="";;
-      *) __wget_retry_on_host_error="--retry-on-host-error";;
+      fedora-4[0-9]*) __wget_host_error_flag="";;
+      *) __wget_host_error_flag="--retry-on-host-error";;
     esac
-    __common_wget_flags="--retry-connrefused --retry-on-http-error=503,429  $__wget_retry_on_host_error --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
-    printf "\n getting $__out ... "
-    # first try to get it from $url_contrib
-    __url_from="${url_contrib}/`basename $__url`"
-    $__wget $__common_wget_flags -O "$__out" ${url_contrib}/$__out > my_get_${__p}.log 2>&1
-    if [ $? -ne 0 ] || [ ! -s $__out ]; then
-      rm -fv "$__out" >> my_get_${__p}.log 2>&1
-      $__wget $__common_wget_flags -O "$__out" ${url_contrib}/`basename $__url` >> my_get_${__p}.log 2>&1
-      if [ $? -ne 0 ] || [ ! -s $__out ]; then
-        rm -fv "$__out" >> my_get_${__p}.log 2>&1
-        for __itry in `seq 1 $__ntry`
+    __wget_common_flags="--retry-connrefused --retry-on-http-error=503,429  $__wget_host_error_flag --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
+    printf "\n getting $__output_file ... "
+
+    # --- Three-tier download strategy ---
+    # Tier 1: contrib mirror at the full relative path (fastest, avoids hammering upstream)
+    __actual_source_url="${url_contrib}/$__output_file"
+    $__wget_cmd $__wget_common_flags -O "$__output_file" ${url_contrib}/$__output_file > my_get_${__pkg_name}.log 2>&1
+    if [ $? -ne 0 ] || [ ! -s $__output_file ]; then
+      # ! -s: file missing or zero-length (i.e. partial/empty download)
+      rm -fv "$__output_file" >> my_get_${__pkg_name}.log 2>&1
+
+      # Tier 2: contrib mirror using only the URL's basename (handles path mismatches)
+      __actual_source_url="${url_contrib}/`basename $__url`"
+      $__wget_cmd $__wget_common_flags -O "$__output_file" ${url_contrib}/`basename $__url` >> my_get_${__pkg_name}.log 2>&1
+      if [ $? -ne 0 ] || [ ! -s $__output_file ]; then
+        rm -fv "$__output_file" >> my_get_${__pkg_name}.log 2>&1
+
+        # Tier 3: original upstream URL, retried up to __max_retries times with linear back-off
+        for __attempt in `seq 1 $__max_retries`
         do
-          __url_from="$__url"
-          $__wget $__common_wget_flags -O "$__out" "$__url" >> my_get_${__p}.log 2>&1
-          if [ $? -eq 0 ] && [ -s "$__out" ]; then
+          __actual_source_url="$__url"
+          $__wget_cmd $__wget_common_flags -O "$__output_file" "$__url" >> my_get_${__pkg_name}.log 2>&1
+          if [ $? -eq 0 ] && [ -s "$__output_file" ]; then
             isuccess=1
             break
           fi
-          rm -fv "$__out" >> my_get_${__p}.log 2>&1
-          if [ $__itry -eq $__ntry ]; then
-            error "see `mypwd`/my_get_${__p}.log"
+          rm -fv "$__output_file" >> my_get_${__pkg_name}.log 2>&1
+          if [ $__attempt -eq $__max_retries ]; then
+            error "see `mypwd`/my_get_${__pkg_name}.log"
           fi
-          sleep `expr $__itry \* 5`
+          # Linear back-off: 5s after attempt 1, 10s after attempt 2, etc.
+          sleep `expr $__attempt \* 5`
         done
       else
         isuccess=1
@@ -1290,23 +1350,25 @@ do_wget () {
     else
       isuccess=1
     fi
-    echo "from \"$__url_from\" ... done"
+    echo "from \"$__actual_source_url\" ... done"
   fi
-  if [ -f $__out ]; then
-    case "$__out" in
+
+  if [ -f $__output_file ]; then
+    case "$__output_file" in
       *.tar*|*.tgz)
-        __dir=`tar -tvf "$__out" 2>&1 | head -n 1 | cut -f2- -d':' | sed "s%/.*%%g" | awk '{print $NF}'`
-        if [ "X$__dir" = "X" ]; then
-          ls -l "$__out"
-          file "$__out"
-          error "unable to understand (expected) tarball $__out"
+        # List the archive, take the first entry, grab the path (last field), strip trailing slash.
+        __tarball_top_dir=`tar -tvf "$__output_file" 2>&1 | head -n 1 | awk '{print $NF}' | sed "s%/.*%%"`
+        if [ "X$__tarball_top_dir" = "X" ]; then
+          ls -l "$__output_file"
+          file "$__output_file"
+          error "unable to understand (expected) tarball $__output_file"
         else
-          if [ ! -d $__dir/ ]; then
-            printf "   unpacking $__out ... "
-            tar -xf "$__out"
+          if [ ! -d $__tarball_top_dir/ ]; then
+            printf "   unpacking $__output_file ... "
+            tar -xf "$__output_file"
             if [ $? -ne 0 ]; then
-              ls -l "$__out"
-              file "$__out"
+              ls -l "$__output_file"
+              file "$__output_file"
               error "see above"
             fi
             echo "done"
@@ -1315,11 +1377,10 @@ do_wget () {
         fi
         ;;
     esac
-    [ $do_wgotten -gt 0 ] && echo "`mypwd`/$__out" >> /tmp/`basename ${0%.sh}`.wgotten
   else
     if [ $isuccess -eq 0 ]; then
       # make sure to remove any (partial) files ...
-      rm -f $__out
+      rm -f $__output_file
     fi
   fi
   return 0
@@ -1433,10 +1494,15 @@ setup_build_env () {
   export GI_TYPELIB_PATH="$PREFIX/lib/girepository-1.0:$PREFIX/lib64/girepository-1.0"
   export CMAKE_BUILD_PARALLEL_LEVEL=${nthreads}
 
-  # GCC_COMPILER_VERSION is defined in image-specific configuration, sourced above
+  # GCC_COMMAND_EXT is an optional version suffix set in the distro config (e.g. "-13" → gcc-13).
+  # Only set CC/CXX/FC/F77 when the caller hasn't already provided them.
+  # `type` prints where the compiler was found (e.g. "gcc is /usr/bin/gcc").
+  # sed "s/^/ # CC  : /" inserts " # CC  : " at the start of every line (^ matches
+  # the beginning of the line without consuming any characters, so the substitution
+  # is purely an insertion). This makes the output appear as a comment in the build log.
   if [ "X$CC" = "X" ]; then
     CC=gcc${GCC_COMMAND_EXT}
-    type $CC  2>&1 | awk '{print " # $CC  :",$0}' || error
+    type $CC  2>&1 | sed "s/^/ # CC  : /" || error
     [ $do_distro -eq 1 ] && CC="$CC -mtune=generic" || CC="$CC -march=native -mtune=native"
   fi
   export CC
@@ -1444,7 +1510,7 @@ setup_build_env () {
 
   if [ "X$CXX" = "X" ]; then
     CXX=g++${GCC_COMMAND_EXT}
-    type $CXX 2>&1 | awk '{print " # $CXX :",$0}'  || error
+    type $CXX 2>&1 | sed "s/^/ # CXX : /" || error
     [ $do_distro -eq 1 ] && CXX="$CXX -mtune=generic" || CXX="$CXX -march=native -mtune=native"
   fi
   export CXX
@@ -1452,7 +1518,7 @@ setup_build_env () {
 
   if [ "X$FC" = "X" ]; then
     FC=gfortran${GCC_COMMAND_EXT}
-    type $FC  2>&1 | awk '{print " # $FC  :",$0}'  || error
+    type $FC  2>&1 | sed "s/^/ # FC  : /" || error
     [ $do_distro -eq 1 ] && FC="$FC -mtune=generic" || FC="$FC -march=native -mtune=native"
   fi
   export FC
@@ -1474,11 +1540,14 @@ additional_build_env_setup () {
   export CFLAGS="-I${PREFIX}/include"
   export CXXFLAGS="-I${PREFIX}/include"
   IFS=":"
-  for i in $PKG_CONFIG_LIBDIR
+  # IFS is ":" so PKG_CONFIG_LIBDIR is split on colons into individual directories
+  for pkgconfig_dir in $PKG_CONFIG_LIBDIR
   do
-    # ensure we only add non-standard directories and do this only once
-    case $i in
-      ${PREFIX}/*) [ `echo " $LDFLAGS " | grep -c " -L${i} "` -eq 0 ] && export LDFLAGS="-L${i} ${LDFLAGS}";;
+    case $pkgconfig_dir in
+      # Only add directories that live under our prefix (skip standard system paths)
+      ${PREFIX}/*)
+        # grep -c returns 0 if the flag is absent; surrounding spaces prevent partial matches (e.g. -L/foo matching -L/foobar)
+        [ `echo " $LDFLAGS " | grep -c " -L${pkgconfig_dir} "` -eq 0 ] && export LDFLAGS="-L${pkgconfig_dir} ${LDFLAGS}";;
     esac
   done
   unset IFS
@@ -1532,7 +1601,7 @@ download_dependencies () {
 
   # Freetype2
   #   This one is a special snowflake which really likes to fail...
-  do_wget https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VER}.tar.xz freetype-${FREETYPE_VER}.tar.xz 8
+  do_wget https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VER}.tar.xz freetype-${FREETYPE_VER}.tar.xz 15
   
   # Fontconfig
   #do_wget https://www.freedesktop.org/software/fontconfig/release/fontconfig-${FONTCONFIG_VER}.tar.xz
@@ -1660,24 +1729,28 @@ download_dependencies () {
   do_wget https://github.com/schrodinger/maeparser/archive/refs/tags/v${MAEPARSER_VER}.tar.gz maeparser-${MAEPARSER_VER}.tar.gz
 
   # Coordgen
-  do_wget https://github.com/schrodinger/coordgenlibs/archive/refs/tags/v${COORDGEN_VER}.tar.gz coordgen-${COORDGEN_VER}.tar.gz
+  do_wget https://github.com/schrodinger/coordgenlibs/archive/refs/tags/v${COORDGEN_VER}.tar.gz coordgenlibs-${COORDGEN_VER}.tar.gz
 }
 
 build_dependencies () {
   # order matters - and some have to be done multiple times it seems
-  for __p in $BUILD_DEPENDENCIES
+  for dep in $BUILD_DEPENDENCIES
   do
-    __pp=`echo $__p | sed "s/-//g"`
-    eval "__n=\$__n_${__pp}"
-    [ "X$__n" = "X" ] && __n=0
-    __n=`expr $__n + 1`
-    case $__n in
-      1) __t="";;
-      *) __t=" again (#$__n)";export MY_DONE_EXT=$__n;;
+    # Variable names can't contain hyphens; strip them to form a valid shell identifier
+    dep_varname=`echo $dep | sed "s/-//g"`
+    # Retrieve how many times this dependency has been built so far (0 if first time)
+    eval "build_count=\$build_count_${dep_varname}"
+    [ "X$build_count" = "X" ] && build_count=0
+    build_count=`expr $build_count + 1`
+    case $build_count in
+      1) retry_suffix="";;
+      *) retry_suffix=" again (#$build_count)";export MY_DONE_EXT=$build_count;;
     esac
-    [ ! -f $BUILD_DIR/$__p/.my_done${MY_DONE_EXT} ] && [ $iverb -gt 0 ] && printf "\n >>> building $__p${__t}\n"
-    eval "build_${__p}${__n#1}" || error
-    eval "__n_${__pp}=\$__n"
+    [ ! -f $BUILD_DIR/$dep/.my_done${MY_DONE_EXT} ] && [ $iverb -gt 0 ] && printf "\n >>> building $dep${retry_suffix}\n"
+    # First build calls build_<dep>; subsequent builds call build_<dep>2, build_<dep>3, etc.
+    # (${build_count#1} strips the leading "1", yielding "" for 1, "2" for 2, etc.)
+    eval "build_${dep}${build_count#1}" || error
+    eval "build_count_${dep_varname}=\$build_count"
     unset MY_DONE_EXT
   done
 }
@@ -1701,20 +1774,20 @@ download_coot () {
 }
 
 build_coot () {
-  case `uname` in
-    Linux)
-      ls /usr/lib*/liblas.so >/dev/null 2>&1
-      if [ $? -ne 0 ]; then
-        if [ ! -f $PREFIX/lib/libblas.so ]; then
-          if [ -f /usr/lib64/libblas.so.3 ]; then
-            ln -s /usr/lib64/libblas.so.3 $PREFIX/lib/libblas.so
-          elif [ -f /usr/lib/libblas.so.3 ]; then
-            ln -s /usr/lib/libblas.so.3 $PREFIX/lib/libblas.so
-          fi
+    # todo: inspect those blas shenanigans
+    ls /usr/lib*/libblas.so >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      if [ ! -f $PREFIX/lib/libblas.so ]; then
+        warning "BLAS library not found in $PREFIX/lib - trying to link it against in /usr/lib or /usr/lib64"
+        if [ -f /usr/lib64/libblas.so.3 ]; then
+          ln -s /usr/lib64/libblas.so.3 $PREFIX/lib/libblas.so
+        elif [ -f /usr/lib/libblas.so.3 ]; then
+          ln -s /usr/lib/libblas.so.3 $PREFIX/lib/libblas.so
+        else
+          warning "BLAS library not found at /usr/lib, nor at /usr/lib64 - Coot may fail to build or run without it"
         fi
       fi
-      ;;
-  esac
+    fi
   cd $COOT_BUILD_DIR
   additional_build_env_setup
 
