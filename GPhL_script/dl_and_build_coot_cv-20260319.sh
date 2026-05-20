@@ -1323,8 +1323,8 @@ do_wget () {
   if [ -f $__output_file ]; then
     case "$__output_file" in
       *.tar*|*.tgz)
-        # Peek at the first entry to find the top-level directory name inside the archive
-        __tarball_top_dir=`tar -tvf "$__output_file" 2>&1 | head -n 1 | cut -f2- -d':' | sed "s%/.*%%g" | awk '{print $NF}'`
+        # List the archive, take the first entry, grab the path (last field), strip trailing slash.
+        __tarball_top_dir=`tar -tvf "$__output_file" 2>&1 | head -n 1 | awk '{print $NF}' | sed "s%/.*%%"`
         if [ "X$__tarball_top_dir" = "X" ]; then
           ls -l "$__output_file"
           file "$__output_file"
@@ -1463,6 +1463,10 @@ setup_build_env () {
 
   # GCC_COMMAND_EXT is an optional version suffix set in the distro config (e.g. "-13" → gcc-13).
   # Only set CC/CXX/FC/F77 when the caller hasn't already provided them.
+  # `type` prints where the compiler was found (e.g. "gcc is /usr/bin/gcc").
+  # sed "s/^/ # CC  : /" inserts " # CC  : " at the start of every line (^ matches
+  # the beginning of the line without consuming any characters, so the substitution
+  # is purely an insertion). This makes the output appear as a comment in the build log.
   if [ "X$CC" = "X" ]; then
     CC=gcc${GCC_COMMAND_EXT}
     type $CC  2>&1 | sed "s/^/ # CC  : /" || error
