@@ -958,7 +958,7 @@ build_boost () {
     cp -a $DEPS_DIR/boost_${BOOST_VER_} $BUILD_DIR/boost || error
     cd $BUILD_DIR/boost || error
 
-    printf "## bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
+    printf " ### bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
     ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,system,atomic,container,context,fiber,coroutine,json,python,random > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
     echo "done"
 
@@ -967,7 +967,7 @@ build_boost () {
       sed -i "s/gcc${GCC_COMMAND_EXT}/gcc/g" project-config.jam || error
     fi
 
-    printf "## building boost (see `mypwd`/my_build.log${MY_DONE_EXT}) ... "
+    printf " ### building boost (see `mypwd`/my_build.log${MY_DONE_EXT}) ... "
     BOOST_BUILD_PATH=. ./b2 link=shared variant=release threading=multi runtime-link=shared install --prefix=${PREFIX} > my_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_build.log${MY_DONE_EXT}"
     echo "done"
 
