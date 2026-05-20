@@ -1913,6 +1913,10 @@ EOF
   fi
 }
 
+build_chapi () {
+  printf "Building chapi is a stub right now."
+}
+
 complete_coot () {
   # get reference structures:
   if [ ! -d $PREFIX/share/coot/reference-structures ]; then
@@ -2251,6 +2255,7 @@ setup_all_and_build_coot () {
 e
   download_coot || error
   build_coot || error
+  build_chapi || error
   complete_coot || error
 }
 create_coot_wrapper () {
