@@ -740,22 +740,25 @@ build_with_meson () {
   fi
 }
 build_save_mylogs_and_rm () {
-  # save the previous my_* files (if existing)
+  # When MY_DONE_EXT is set this is a repeat build; preserve logs from previous attempts
+  # before wiping the build directory, then restore them afterwards.
   if [ "X$MY_DONE_EXT" != "X" ]; then
-    for __f in `ls my_*.log 2>/dev/null`
+    # Rename my_foo.log → my_foo.log1 so repeat-attempt logs don't overwrite the first
+    for log_file in `ls my_*.log 2>/dev/null`
     do
-      [ ! -f ${__f}1 ] && mv $__f ${__f}1
+      [ ! -f ${log_file}1 ] && mv $log_file ${log_file}1
     done
+    # $$ is the shell PID; used to make a unique temp dir that survives the rm -rf * below
     mkdir -p $PREFIX/__$$.tmpdir >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-      for __i in `seq 1 $MY_DONE_EXT`
+      for build_attempt in `seq 1 $MY_DONE_EXT`
       do
-        mv my_*.log${__i} $PREFIX/__$$.tmpdir/. 2>/dev/null
+        mv my_*.log${build_attempt} $PREFIX/__$$.tmpdir/. 2>/dev/null
       done
     fi
   fi
   rm -rf *
-  # re-instate old my*.log* files
+  # restore saved logs into the freshly-cleared directory
   if [ -d $PREFIX/__$$.tmpdir ]; then
     mv $PREFIX/__$$.tmpdir/my*.log* . 2>/dev/null
     rm -fr $PREFIX/__$$.tmpdir 2>/dev/null
@@ -1241,54 +1244,71 @@ build_fftw () {
 # -------------------------------------------------------------------------------------
 # other functions
 do_wget () {
+  # Arguments: URL [output-filename [max-retries]]
   __url=$1;shift
   if [ $# -ge 1 ]; then
-    __out=$1;shift
+    __output_file=$1;shift
   else
-    __out=`basename $__url`
+    __output_file=`basename $__url`
   fi
   if [ $# -ge 1 ]; then
-    __ntry=$1;shift
+    __max_retries=$1;shift
   else
-    # try three-times as default:
-    __ntry=3
+    __max_retries=3
   fi
-  
-  __p=`basename $__out | sed "s/[_.0-9]/ /g" | sed "s/- //g" | awk '{print $1}'`
-  echo "do_wget \"$__p\" \"$__out\" \"$__url\"" >> /tmp/`basename ${0%.sh}`.debug
-  if [ ! -f $__out ]; then
+
+  # Derive a short package name used in the log filename (my_get_<pkg>.log).
+  # Strip version numbers, dots, underscores, and a leading "- ", then take the first word.
+  # e.g. "boost_1_82_0.tar.bz2" → "boost", "cmake-3.27.0.tar.gz" → "cmake"
+  __pkg_name=`basename $__output_file | sed "s/[_.0-9]/ /g" | sed "s/- //g" | awk '{print $1}'`
+
+  # Append this download call to a per-script debug log in /tmp for post-mortem tracing
+  echo "do_wget \"$__pkg_name\" \"$__output_file\" \"$__url\"" >> /tmp/`basename ${0%.sh}`.debug
+
+  if [ ! -f $__output_file ]; then
+    # wget 2.x negotiates content-encoding and decompresses on the fly by default,
+    # which corrupts binary archives; disable it to receive the raw bytes
     case `wget --version | awk '/^GNU/{print $3;exit}'` in
-      2.*) __wget="wget --no-compression";;
-      *) __wget="wget";;
+      2.*) __wget_cmd="wget --no-compression";;
+      *) __wget_cmd="wget";;
     esac
     isuccess=0
+    # --retry-on-host-error is not recognised on Fedora 40+ builds of wget; omit it there
     case `echo "$os" | tr '[A-Z]' '[a-z]'` in
-      fedora-4[0-9]*) __wget_retry_on_host_error="";;
-      *) __wget_retry_on_host_error="--retry-on-host-error";;
+      fedora-4[0-9]*) __wget_host_error_flag="";;
+      *) __wget_host_error_flag="--retry-on-host-error";;
     esac
-    __common_wget_flags="--retry-connrefused --retry-on-http-error=503,429  $__wget_retry_on_host_error --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
-    printf "\n getting $__out ... "
-    # first try to get it from $url_contrib
-    __url_from="${url_contrib}/`basename $__url`"
-    $__wget $__common_wget_flags -O "$__out" ${url_contrib}/$__out > my_get_${__p}.log 2>&1
-    if [ $? -ne 0 ] || [ ! -s $__out ]; then
-      rm -fv "$__out" >> my_get_${__p}.log 2>&1
-      $__wget $__common_wget_flags -O "$__out" ${url_contrib}/`basename $__url` >> my_get_${__p}.log 2>&1
-      if [ $? -ne 0 ] || [ ! -s $__out ]; then
-        rm -fv "$__out" >> my_get_${__p}.log 2>&1
-        for __itry in `seq 1 $__ntry`
+    __wget_common_flags="--retry-connrefused --retry-on-http-error=503,429  $__wget_host_error_flag --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
+    printf "\n getting $__output_file ... "
+
+    # --- Three-tier download strategy ---
+    # Tier 1: contrib mirror at the full relative path (fastest, avoids hammering upstream)
+    __actual_source_url="${url_contrib}/`basename $__url`"
+    $__wget_cmd $__wget_common_flags -O "$__output_file" ${url_contrib}/$__output_file > my_get_${__pkg_name}.log 2>&1
+    if [ $? -ne 0 ] || [ ! -s $__output_file ]; then
+      # ! -s: file missing or zero-length (i.e. partial/empty download)
+      rm -fv "$__output_file" >> my_get_${__pkg_name}.log 2>&1
+
+      # Tier 2: contrib mirror using only the URL's basename (handles path mismatches)
+      $__wget_cmd $__wget_common_flags -O "$__output_file" ${url_contrib}/`basename $__url` >> my_get_${__pkg_name}.log 2>&1
+      if [ $? -ne 0 ] || [ ! -s $__output_file ]; then
+        rm -fv "$__output_file" >> my_get_${__pkg_name}.log 2>&1
+
+        # Tier 3: original upstream URL, retried up to __max_retries times with linear back-off
+        for __attempt in `seq 1 $__max_retries`
         do
-          __url_from="$__url"
-          $__wget $__common_wget_flags -O "$__out" "$__url" >> my_get_${__p}.log 2>&1
-          if [ $? -eq 0 ] && [ -s "$__out" ]; then
+          __actual_source_url="$__url"
+          $__wget_cmd $__wget_common_flags -O "$__output_file" "$__url" >> my_get_${__pkg_name}.log 2>&1
+          if [ $? -eq 0 ] && [ -s "$__output_file" ]; then
             isuccess=1
             break
           fi
-          rm -fv "$__out" >> my_get_${__p}.log 2>&1
-          if [ $__itry -eq $__ntry ]; then
-            error "see `mypwd`/my_get_${__p}.log"
+          rm -fv "$__output_file" >> my_get_${__pkg_name}.log 2>&1
+          if [ $__attempt -eq $__max_retries ]; then
+            error "see `mypwd`/my_get_${__pkg_name}.log"
           fi
-          sleep `expr $__itry \* 5`
+          # Linear back-off: 5s after attempt 1, 10s after attempt 2, etc.
+          sleep `expr $__attempt \* 5`
         done
       else
         isuccess=1
@@ -1296,23 +1316,25 @@ do_wget () {
     else
       isuccess=1
     fi
-    echo "from \"$__url_from\" ... done"
+    echo "from \"$__actual_source_url\" ... done"
   fi
-  if [ -f $__out ]; then
-    case "$__out" in
+
+  if [ -f $__output_file ]; then
+    case "$__output_file" in
       *.tar*|*.tgz)
-        __dir=`tar -tvf "$__out" 2>&1 | head -n 1 | cut -f2- -d':' | sed "s%/.*%%g" | awk '{print $NF}'`
-        if [ "X$__dir" = "X" ]; then
-          ls -l "$__out"
-          file "$__out"
-          error "unable to understand (expected) tarball $__out"
+        # Peek at the first entry to find the top-level directory name inside the archive
+        __tarball_top_dir=`tar -tvf "$__output_file" 2>&1 | head -n 1 | cut -f2- -d':' | sed "s%/.*%%g" | awk '{print $NF}'`
+        if [ "X$__tarball_top_dir" = "X" ]; then
+          ls -l "$__output_file"
+          file "$__output_file"
+          error "unable to understand (expected) tarball $__output_file"
         else
-          if [ ! -d $__dir/ ]; then
-            printf "   unpacking $__out ... "
-            tar -xf "$__out"
+          if [ ! -d $__tarball_top_dir/ ]; then
+            printf "   unpacking $__output_file ... "
+            tar -xf "$__output_file"
             if [ $? -ne 0 ]; then
-              ls -l "$__out"
-              file "$__out"
+              ls -l "$__output_file"
+              file "$__output_file"
               error "see above"
             fi
             echo "done"
@@ -1324,7 +1346,7 @@ do_wget () {
   else
     if [ $isuccess -eq 0 ]; then
       # make sure to remove any (partial) files ...
-      rm -f $__out
+      rm -f $__output_file
     fi
   fi
   return 0
@@ -1438,10 +1460,11 @@ setup_build_env () {
   export GI_TYPELIB_PATH="$PREFIX/lib/girepository-1.0:$PREFIX/lib64/girepository-1.0"
   export CMAKE_BUILD_PARALLEL_LEVEL=${nthreads}
 
-  # GCC_COMPILER_VERSION is defined in image-specific configuration, sourced above
+  # GCC_COMMAND_EXT is an optional version suffix set in the distro config (e.g. "-13" → gcc-13).
+  # Only set CC/CXX/FC/F77 when the caller hasn't already provided them.
   if [ "X$CC" = "X" ]; then
     CC=gcc${GCC_COMMAND_EXT}
-    type $CC  2>&1 | awk '{print " # $CC  :",$0}' || error
+    type $CC  2>&1 | sed "s/^/ # CC  : /" || error
     [ $do_distro -eq 1 ] && CC="$CC -mtune=generic" || CC="$CC -march=native -mtune=native"
   fi
   export CC
@@ -1449,7 +1472,7 @@ setup_build_env () {
 
   if [ "X$CXX" = "X" ]; then
     CXX=g++${GCC_COMMAND_EXT}
-    type $CXX 2>&1 | awk '{print " # $CXX :",$0}'  || error
+    type $CXX 2>&1 | sed "s/^/ # CXX : /" || error
     [ $do_distro -eq 1 ] && CXX="$CXX -mtune=generic" || CXX="$CXX -march=native -mtune=native"
   fi
   export CXX
@@ -1457,7 +1480,7 @@ setup_build_env () {
 
   if [ "X$FC" = "X" ]; then
     FC=gfortran${GCC_COMMAND_EXT}
-    type $FC  2>&1 | awk '{print " # $FC  :",$0}'  || error
+    type $FC  2>&1 | sed "s/^/ # FC  : /" || error
     [ $do_distro -eq 1 ] && FC="$FC -mtune=generic" || FC="$FC -march=native -mtune=native"
   fi
   export FC
