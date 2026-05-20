@@ -661,7 +661,9 @@ e
 #   * full versioned triple (g++-N, gcc-N, gfortran-N) found → set CC/CXX/FC explicitly
 #   * unversioned g++ IS this version (symlink points here) → use unversioned names
 #   * only g++-N found (siblings missing) → record version, let setup_build_env fill in the rest
-for __gcc_ver in 16 15 14 13 12 11
+GCC_VER_MIN=11
+GCC_VER_MAX=16
+for __gcc_ver in `seq $GCC_VER_MAX -1 $GCC_VER_MIN`
 do
   type g++-${__gcc_ver} >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -728,18 +730,18 @@ do
     break
   fi
 done
-[ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working (?) gcc/g++ version 13/12/11/14/15/16 found?"
+[ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working (?) gcc/g++ version $GCC_VER_MIN–$GCC_VER_MAX found?"
 printf "\n ### Compiler version found/used = $GCC_COMPILER_VERSION\n\n"
-if [ $GCC_COMPILER_VERSION -lt 16 ]; then
-  if [ $GCC_COMPILER_VERSION -lt 11 ]; then
-    printf "\n ### WARNING: compiler version below the preferred minimum version 11\n"
+if [ $GCC_COMPILER_VERSION -lt $GCC_VER_MAX ]; then
+  if [ $GCC_COMPILER_VERSION -lt $GCC_VER_MIN ]; then
+    printf "\n ### WARNING: compiler version below the preferred minimum version $GCC_VER_MIN\n"
   else
-    printf "\n ### NOTE: compiler version below the preferred version 16\n"
+    printf "\n ### NOTE: compiler version below the preferred version $GCC_VER_MAX\n"
   fi
   type scl >/dev/null 2>&1
   if [ $? -eq 0 ]; then
     printf "\n ### NOTE: you might be able to switch to a preferred compiler version, e.g., via\n\n"
-    printf "    scl enable gcc-toolset-16 bash\n\n"
+    printf "    scl enable gcc-toolset-$GCC_VER_MAX bash\n\n"
   fi
 elif [ $GCC_COMPILER_VERSION -gt 16 ]; then
   printf "\n ### WARNING: compiler version above the preferred version 16\n"
