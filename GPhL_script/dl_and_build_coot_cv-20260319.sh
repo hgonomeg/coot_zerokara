@@ -761,14 +761,14 @@ build_with_meson () {
     build_save_mylogs_and_rm
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
     meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done meson setup"
     cd $BUILD_DIR/$__p || error
     printf "  meson compile (see `mypwd`/my_meson_compile.log${MY_DONE_EXT}) ... "
     meson compile > my_meson_compile.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_compile.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done meson compile"
     printf "  meson install (see `mypwd`/my_meson_install.log${MY_DONE_EXT}) ... "
     meson install > my_meson_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_install.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done meson install"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -818,11 +818,11 @@ build_with_configure () {
     if [ $__do_autogen -eq 1 ]; then
       printf "  autogen.sh (see `mypwd`/my_autogen.log${MY_DONE_EXT}) ... "
       $DEPS_DIR/${__p}-${__v}/autogen.sh --prefix=$PREFIX > my_autogen.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_autogen.log${MY_DONE_EXT}"
-      echo "done"
+      echo "done autogen.sh"
     fi
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done configure"
 
     # make sure that we don't have -g as a flag
     case $btype in
@@ -833,10 +833,10 @@ build_with_configure () {
 
     printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
     make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done make"
     printf "  make install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
     make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done make install"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -854,13 +854,13 @@ build_with_cmake () {
     printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
     cmake $DEPS_DIR/${__p}-${__v} \
           -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=release $@ > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done configuring project"
     printf "  cmake --build (see `mypwd`/my_cmake_build.log${MY_DONE_EXT}) ... "
     cmake --build . -j ${nthreads} > my_cmake_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_build.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done building project"
     printf "  cmake --install (see `mypwd`/my_cmake_install.log${MY_DONE_EXT}) ... "
     cmake --install .  > my_cmake_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_install.log${MY_DONE_EXT}"
-    echo "done"
+    echo "done installing project"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -1820,7 +1820,7 @@ build_coot () {
   if [ ! -f .my_autogen_done ]; then
     printf " ### Coot: autogen.sh (see `mypwd`/my_autogen.log) ... "
     ./autogen.sh > my_autogen.log 2>&1 || error "see `mypwd`/my_autogen.log"
-    echo "done"
+    echo "done autogen.sh"
     touch .my_autogen_done
     rm -f .my_configure_done
   fi
@@ -1867,7 +1867,7 @@ EOF
                 --with-boost-thread=boost_thread \
                 --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}" \
                 > my_configure.log 2>&1 || error "see `mypwd`/my_configure.log"
-    echo "done"
+    echo "done configure"
     touch .my_configure_done
     rm -f .my_make_done
   fi
@@ -1918,10 +1918,10 @@ EOF
   if [ ! -f .my_make_done ]; then
     printf " ### Coot: make (see `mypwd`/my_make.log) ... "
     make -j ${nthreads} > my_make.log 2>&1 || error "see `mypwd`/my_make.log"
-    echo "done"
+    echo "done make"
     printf " ### Coot: install (see `mypwd`/my_make_install.log) ... "
     make install > my_make_install.log 2>&1 || error "see `mypwd`/my_make_install.log"
-    echo "done"
+    echo "done make install"
 
     touch .my_make_done
   fi
