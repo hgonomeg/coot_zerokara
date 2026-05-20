@@ -1117,7 +1117,7 @@ build_maeparser () {
 }
 
 build_coordgen() {
-  build_with_cmake coordgenlibs ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
+  build_with_cmake coordgen ${COORDGEN_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5  \
   -DCOORDGEN_BUILD_TESTS=OFF \
   -DCOORDGEN_BUILD_EXAMPLE=OFF \
   -DCOORDGEN_USE_MAEPARSER=ON \
@@ -1737,6 +1737,10 @@ download_dependencies () {
 
   # Coordgen
   do_wget https://github.com/schrodinger/coordgenlibs/archive/refs/tags/v${COORDGEN_VER}.tar.gz coordgenlibs-${COORDGEN_VER}.tar.gz
+  if [ -d coordgenlibs-${COORDGEN_VER} ] && [ ! -d coordgen-${COORDGEN_VER} ]; then
+    mv coordgenlibs-${COORDGEN_VER} coordgen-${COORDGEN_VER} && \
+    ln -s coordgen-${COORDGEN_VER} coordgenlibs-${COORDGEN_VER} || error
+  fi
 
   # Eigen
   do_wget https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VER}/eigen-${EIGEN_VER}.tar.gz
