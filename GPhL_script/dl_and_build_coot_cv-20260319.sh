@@ -661,9 +661,10 @@ e
 #   * full versioned triple (g++-N, gcc-N, gfortran-N) found → set CC/CXX/FC explicitly
 #   * unversioned g++ IS this version (symlink points here) → use unversioned names
 #   * only g++-N found (siblings missing) → record version, let setup_build_env fill in the rest
-GCC_VER_MIN=11
-GCC_VER_MAX=16
-for __gcc_ver in `seq $GCC_VER_MAX -1 $GCC_VER_MIN`
+GCC_VER_MIN=11      # oldest supported version
+GCC_VER_MAX=16      # newest tested/preferred version
+GCC_VER_CEILING=25  # scan up to this version; anything above GCC_VER_MAX is untested but allowed
+for __gcc_ver in `seq $GCC_VER_CEILING -1 $GCC_VER_MIN`
 do
   type g++-${__gcc_ver} >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -730,21 +731,19 @@ do
     break
   fi
 done
-[ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working (?) gcc/g++ version $GCC_VER_MIN–$GCC_VER_MAX found?"
+[ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working gcc/g++ found in version range $GCC_VER_MIN–$GCC_VER_CEILING"
 printf "\n ### Compiler version found/used = $GCC_COMPILER_VERSION\n\n"
-if [ $GCC_COMPILER_VERSION -lt $GCC_VER_MAX ]; then
-  if [ $GCC_COMPILER_VERSION -lt $GCC_VER_MIN ]; then
-    printf "\n ### WARNING: compiler version below the preferred minimum version $GCC_VER_MIN\n"
-  else
-    printf "\n ### NOTE: compiler version below the preferred version $GCC_VER_MAX\n"
-  fi
+if [ $GCC_COMPILER_VERSION -gt $GCC_VER_MAX ]; then
+  printf "\n ### NOTE: compiler version $GCC_COMPILER_VERSION is newer than the tested maximum ($GCC_VER_MAX) — should work but is untested\n"
+elif [ $GCC_COMPILER_VERSION -lt $GCC_VER_MIN ]; then
+  printf "\n ### WARNING: compiler version $GCC_COMPILER_VERSION is below the minimum supported version $GCC_VER_MIN\n"
+elif [ $GCC_COMPILER_VERSION -lt $GCC_VER_MAX ]; then
+  printf "\n ### NOTE: compiler version $GCC_COMPILER_VERSION is below the preferred version $GCC_VER_MAX\n"
   type scl >/dev/null 2>&1
   if [ $? -eq 0 ]; then
     printf "\n ### NOTE: you might be able to switch to a preferred compiler version, e.g., via\n\n"
     printf "    scl enable gcc-toolset-$GCC_VER_MAX bash\n\n"
   fi
-elif [ $GCC_COMPILER_VERSION -gt 16 ]; then
-  printf "\n ### WARNING: compiler version above the preferred version 16\n"
 fi
 
 # -------------------------------------------------------------------------------------
