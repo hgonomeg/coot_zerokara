@@ -40,28 +40,6 @@ error () {
 warning () {
   [ $# -eq 0 ] && printf "\n WARNING: see above\n\n" || printf "\n WARNING: $@\n\n"
 }
-usage () {
-  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distro]\n"
-  printf "\n  -h                     : this help message\n"
-  printf "\n  -v                     : increase verbosity\n"
-  printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
-  printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs etc)\n"
-  printf "\n  -distributable         : build binaries for distribution (default is to tune for local machine/CPU)\n"
-  printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
-  printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
-  printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
-  printf "\n  -branch <branch>       : Coot branch (default = \"$COOT_BRANCH\")\n"
-  printf "\n  -patch <file>          : Coot patch file\n"
-
-  printf "\n Tested on:\n"
-  printf "   AlmaLinux 8.10 and 9.5 (todo: test again)\n"
-  printf "   Arch Linux (20260402)\n"
-  printf "   Debian 13\n"
-  printf "   Fedora Linux 43 and 44\n"
-  printf "   openSUSE Leap 15 (todo: test again)\n"
-  printf "   Rocky Linux 9.3\n"
-  printf "   Ubuntu 24.04 and 26.04\n"
-}
 
 case `uname` in
   Linux) true;;
@@ -91,6 +69,29 @@ elif [ -f /etc/centos-release ]; then
 else
   warning "Could not determine operating system distro/version!"
 fi
+
+usage () {
+  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distro]\n"
+  printf "\n  -h                     : this help message\n"
+  printf "\n  -v                     : increase verbosity\n"
+  printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
+  printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs etc)\n"
+  printf "\n  -distributable         : build binaries for distribution (default is to tune for local machine/CPU)\n"
+  printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
+  printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
+  printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
+  printf "\n  -branch <branch>       : Coot branch (default = \"$COOT_BRANCH\")\n"
+  printf "\n  -patch <file>          : Coot patch file\n"
+
+  printf "\n Tested on:\n"
+  printf "   AlmaLinux 8.10 and 9.5 (todo: test again)\n"
+  printf "   Arch Linux (20260402)\n"
+  printf "   Debian 13\n"
+  printf "   Fedora Linux 43 and 44\n"
+  printf "   openSUSE Leap 15 (todo: test again)\n"
+  printf "   Rocky Linux 9.3\n"
+  printf "   Ubuntu 24.04 and 26.04\n"
+}
 
 ## -------------------------------------------------------------------------------
 ## Command-line arguments
