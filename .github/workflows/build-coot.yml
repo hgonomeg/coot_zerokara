@@ -55,7 +55,7 @@ jobs:
         run: |
           mkdir -p $GITHUB_WORKSPACE/coot-build
           cd $GITHUB_WORKSPACE/coot-build
-          bash $GITHUB_WORKSPACE/GPhL_script/dl_and_build_coot_cv-20260319.sh -os -distributable -noninteractive
+          COOT_GIT=https://github.com/hgonomeg/coot bash $GITHUB_WORKSPACE/GPhL_script/dl_and_build_coot_cv-20260319.sh -os -distributable -noninteractive
 
       - name: Collect build logs on failure
         if: failure()
