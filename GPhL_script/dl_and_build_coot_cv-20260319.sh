@@ -226,10 +226,11 @@ if [ $do_os -eq 1 ]; then
              gettext-tools \
              libpsl-devel \
              glibc-locale \
+             openal-soft-devel \
              || error
       ;;
     rocky*|alma*|centos*)
-        $sudo dnf update -y
+        #$sudo dnf update -y
         $sudo dnf install -y dnf-plugins-core
         $sudo dnf config-manager --set-enabled crb
         $sudo dnf install -y epel-release
@@ -297,6 +298,7 @@ if [ $do_os -eq 1 ]; then
             glibc-langpack-en \
             glibc-gconv-extra \
             libpsl-devel \
+            openal-soft-devel
             || error
       ;;
     fedora*)
@@ -366,7 +368,8 @@ if [ $do_os -eq 1 ]; then
               xmlto \
               pkgconf-pkg-config \
               libpsl-devel \
-              glibc-gconv-extra
+              glibc-gconv-extra \
+              openal-soft-devel
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
@@ -383,6 +386,7 @@ if [ $do_os -eq 1 ]; then
           libglfw3-dev \
           libpsl-dev \
           xz-utils \
+          libopenal-dev \
           bc || error
       ;;
     arch*)
@@ -397,7 +401,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils libpsl bc || error
+            inetutils libpsl bc openal || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -462,6 +466,8 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            harfbuzz
            freetype
            fontconfig
+           libogg
+           libvorbis
            libjpeg
            pixman
            cairo
@@ -625,6 +631,8 @@ WAYLANDPROTOCOLS_VER=1.47
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
 EIGEN_VER=5.0.1
+LIBOGG_VER=1.3.6
+LIBVORBIS_VER=1.3.7
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -1128,6 +1136,15 @@ build_eigen () {
   build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
           -DEIGEN_BUILD_TESTING=OFF
 }
+
+build_libogg () {
+  build_with_cmake libogg ${LIBOGG_VER} -DBUILD_SHARED_LIBS=ON
+}
+
+build_libvorbis () {
+  build_with_configure libvorbis ${LIBVORBIS_VER} --enable-shared --disable-static
+}
+
  
 build_rdkit () {
   build_with_cmake rdkit ${RDKIT_VER} -DRDK_BUILD_CAIRO_SUPPORT=ON \
@@ -1744,6 +1761,12 @@ download_dependencies () {
 
   # Eigen
   do_wget https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VER}/eigen-${EIGEN_VER}.tar.gz
+
+  # libogg
+  do_wget https://downloads.xiph.org/releases/ogg/libogg-${LIBOGG_VER}.tar.xz
+
+  # libvorbis
+  do_wget https://downloads.xiph.org/releases/vorbis/libvorbis-${LIBVORBIS_VER}.tar.xz
 }
 
 build_dependencies () {
@@ -1846,6 +1869,7 @@ CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequ
 ./configure --prefix=\$PREFIX \\
             --libexecdir=\$PREFIX/libexec \\
             --disable-static \\
+            --with-sound \\
             --with-enhanced-ligand-tools \\
             --with-rdkit-prefix=\$PREFIX \\
             --with-boost=\$PREFIX \\
@@ -1860,6 +1884,7 @@ EOF
     ./configure --prefix=$PREFIX \
                 --libexecdir=$PREFIX/libexec \
                 --disable-static \
+                --with-sound \
                 --with-enhanced-ligand-tools \
                 --with-rdkit-prefix=$PREFIX \
                 --with-boost=$PREFIX \
