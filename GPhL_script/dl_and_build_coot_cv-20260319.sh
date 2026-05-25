@@ -226,14 +226,16 @@ if [ $do_os -eq 1 ]; then
              gettext-tools \
              libpsl-devel \
              glibc-locale \
+             openal-soft-devel \
              || error
       ;;
     rocky*|alma*|centos*)
-        $sudo dnf update -y
+        #$sudo dnf update -y
         $sudo dnf install -y dnf-plugins-core
         $sudo dnf config-manager --set-enabled crb
         $sudo dnf install -y epel-release
-        $sudo dnf config-manager --set-enabled powertools
+        # This doesn't work. What does it do?
+        # $sudo dnf config-manager --set-enabled powertools
         $sudo dnf update -y
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
           centos-10*|almalinux-10*) __toolsets="";;
@@ -297,6 +299,7 @@ if [ $do_os -eq 1 ]; then
             glibc-langpack-en \
             glibc-gconv-extra \
             libpsl-devel \
+            openal-soft-devel \
             || error
       ;;
     fedora*)
@@ -366,7 +369,8 @@ if [ $do_os -eq 1 ]; then
               xmlto \
               pkgconf-pkg-config \
               libpsl-devel \
-              glibc-gconv-extra
+              glibc-gconv-extra \
+              openal-soft-devel
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
@@ -383,6 +387,7 @@ if [ $do_os -eq 1 ]; then
           libglfw3-dev \
           libpsl-dev \
           xz-utils \
+          libopenal-dev \
           bc || error
       ;;
     arch*)
@@ -397,7 +402,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils libpsl bc || error
+            inetutils libpsl bc openal || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -462,6 +467,8 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            harfbuzz
            freetype
            fontconfig
+           libogg
+           libvorbis
            libjpeg
            pixman
            cairo
@@ -598,8 +605,8 @@ GDK_PIXBUF_VER=${GDK_PIXBUF_VER_MM}.4
 ATK_VER_MM=2.38
 ATK_VER=${ATK_VER_MM}.0
 GTK_VER_Major=4
-GTK_VER_Minor=20
-GTK_VER_Patch=3
+GTK_VER_Minor=22
+GTK_VER_Patch=4
 GTK_VER=${GTK_VER_Major}.${GTK_VER_Minor}.${GTK_VER_Patch}
 MMDB_VER=2.0.22
 GSL_VER=2.8
@@ -625,6 +632,8 @@ WAYLANDPROTOCOLS_VER=1.47
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
 EIGEN_VER=5.0.1
+LIBOGG_VER=1.3.6
+LIBVORBIS_VER=1.3.7
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -761,14 +770,14 @@ build_with_meson () {
     build_save_mylogs_and_rm
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
     meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
-    echo "done meson setup"
+    echo "done"
     cd $BUILD_DIR/$__p || error
     printf "  meson compile (see `mypwd`/my_meson_compile.log${MY_DONE_EXT}) ... "
     meson compile > my_meson_compile.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_compile.log${MY_DONE_EXT}"
-    echo "done meson compile"
+    echo "done"
     printf "  meson install (see `mypwd`/my_meson_install.log${MY_DONE_EXT}) ... "
     meson install > my_meson_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_install.log${MY_DONE_EXT}"
-    echo "done meson install"
+    echo "done"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -818,11 +827,11 @@ build_with_configure () {
     if [ $__do_autogen -eq 1 ]; then
       printf "  autogen.sh (see `mypwd`/my_autogen.log${MY_DONE_EXT}) ... "
       $DEPS_DIR/${__p}-${__v}/autogen.sh --prefix=$PREFIX > my_autogen.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_autogen.log${MY_DONE_EXT}"
-      echo "done autogen.sh"
+      echo "done"
     fi
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
-    echo "done configure"
+    echo "done"
 
     # make sure that we don't have -g as a flag
     case $btype in
@@ -833,10 +842,10 @@ build_with_configure () {
 
     printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
     make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
-    echo "done make"
+    echo "done"
     printf "  make install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
     make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
-    echo "done make install"
+    echo "done"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -854,13 +863,13 @@ build_with_cmake () {
     printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
     cmake $DEPS_DIR/${__p}-${__v} \
           -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=release $@ > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
-    echo "done configuring project"
+    echo "done"
     printf "  cmake --build (see `mypwd`/my_cmake_build.log${MY_DONE_EXT}) ... "
     cmake --build . -j ${nthreads} > my_cmake_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_build.log${MY_DONE_EXT}"
-    echo "done building project"
+    echo "done"
     printf "  cmake --install (see `mypwd`/my_cmake_install.log${MY_DONE_EXT}) ... "
     cmake --install .  > my_cmake_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_install.log${MY_DONE_EXT}"
-    echo "done installing project"
+    echo "done"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -1128,6 +1137,15 @@ build_eigen () {
   build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
           -DEIGEN_BUILD_TESTING=OFF
 }
+
+build_libogg () {
+  build_with_cmake libogg ${LIBOGG_VER} -DBUILD_SHARED_LIBS=ON
+}
+
+build_libvorbis () {
+  build_with_configure libvorbis ${LIBVORBIS_VER} --enable-shared --disable-static
+}
+
  
 build_rdkit () {
   build_with_cmake rdkit ${RDKIT_VER} -DRDK_BUILD_CAIRO_SUPPORT=ON \
@@ -1207,7 +1225,9 @@ build_libclipper () {
     mkdir -p $BUILD_DIR/libclipper || error
     cd $BUILD_DIR/libclipper || error
     rm -rf *
-
+    printf "  patching libclipper ... "
+    sed -i 's/from >> &word\[0\]/from >> word/' $DEPS_DIR/clipper-${LIBCLIPPER_VER_PRE}/clipper/cif/cif_data_io.cpp
+    echo "done"
     printf "  configure clipper with FC=$FC CC=$CC CXX=$CXX ... "
     CXXFLAGS="-g -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
     CFLAGS="-g -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
@@ -1744,6 +1764,12 @@ download_dependencies () {
 
   # Eigen
   do_wget https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VER}/eigen-${EIGEN_VER}.tar.gz
+
+  # libogg
+  do_wget https://downloads.xiph.org/releases/ogg/libogg-${LIBOGG_VER}.tar.xz
+
+  # libvorbis
+  do_wget https://downloads.xiph.org/releases/vorbis/libvorbis-${LIBVORBIS_VER}.tar.xz
 }
 
 build_dependencies () {
@@ -1820,7 +1846,7 @@ build_coot () {
   if [ ! -f .my_autogen_done ]; then
     printf " ### Coot: autogen.sh (see `mypwd`/my_autogen.log) ... "
     ./autogen.sh > my_autogen.log 2>&1 || error "see `mypwd`/my_autogen.log"
-    echo "done autogen.sh"
+    echo "done"
     touch .my_autogen_done
     rm -f .my_configure_done
   fi
@@ -1832,6 +1858,8 @@ build_coot () {
       opt) __opt="-g -O3 -ffast-math";;
       *) __opt="";;
     esac
+    # todo:
+    # * Add --with-sound when patches for openal version requirements land in Coot
     cat <<EOF > my_configure.sh
 #!/bin/sh
 
@@ -1867,7 +1895,7 @@ EOF
                 --with-boost-thread=boost_thread \
                 --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}" \
                 > my_configure.log 2>&1 || error "see `mypwd`/my_configure.log"
-    echo "done configure"
+    echo "done"
     touch .my_configure_done
     rm -f .my_make_done
   fi
@@ -1918,10 +1946,10 @@ EOF
   if [ ! -f .my_make_done ]; then
     printf " ### Coot: make (see `mypwd`/my_make.log) ... "
     make -j ${nthreads} > my_make.log 2>&1 || error "see `mypwd`/my_make.log"
-    echo "done make"
+    echo "done"
     printf " ### Coot: install (see `mypwd`/my_make_install.log) ... "
     make install > my_make_install.log 2>&1 || error "see `mypwd`/my_make_install.log"
-    echo "done make install"
+    echo "done"
 
     touch .my_make_done
   fi
