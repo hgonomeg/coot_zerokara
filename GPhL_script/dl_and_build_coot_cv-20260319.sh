@@ -72,6 +72,26 @@ esac
 env | sort > .env_start || error
 umask 022
 
+if [ -f /etc/os-release ]; then
+  os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
+elif [ -f /etc/lsb-release ]; then
+  os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
+elif [ -f /etc/SUSE-brand ]; then
+  warning "OpenSUSE version could not be determined"
+  os=openSUSE
+elif [ -f /etc/rocky-release ]; then
+  warning "Rocky version could not be determined"
+  os=Rocky
+elif [ -f /etc/debian_version ]; then
+  warning "Debian version obtained from /etc/debian_version"
+  os="Debian-`head -n 1 /etc/debian_version | cut -f1 -d'/'`"
+elif [ -f /etc/centos-release ]; then
+  warning "CentOS version could not be determined"
+  os=CentOS
+else
+  warning "Could not determine operating system distro/version!"
+fi
+
 ## -------------------------------------------------------------------------------
 ## Command-line arguments
 ## -------------------------------------------------------------------------------
@@ -115,26 +135,6 @@ do
   esac
   shift
 done
-
-if [ -f /etc/os-release ]; then
-  os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
-elif [ -f /etc/lsb-release ]; then
-  os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
-elif [ -f /etc/SUSE-brand ]; then
-  warning "OpenSUSE version could not be determined"
-  os=openSUSE
-elif [ -f /etc/rocky-release ]; then
-  warning "Rocky version could not be determined"
-  os=Rocky
-elif [ -f /etc/debian_version ]; then
-  warning "Debian version obtained from /etc/debian_version"
-  os="Debian-`head -n 1 /etc/debian_version | cut -f1 -d'/'`"
-elif [ -f /etc/centos-release ]; then
-  warning "CentOS version could not be determined"
-  os=CentOS
-else
-  warning "Could not determine operating system distro/version!"
-fi
 
 ## -------------------------------------------------------------------------------
 ## OS-specific packages etc
