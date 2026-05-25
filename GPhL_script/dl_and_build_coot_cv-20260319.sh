@@ -1224,7 +1224,9 @@ build_libclipper () {
     mkdir -p $BUILD_DIR/libclipper || error
     cd $BUILD_DIR/libclipper || error
     rm -rf *
-
+    printf "  patching libclipper ..."
+    sed -i 's/from >> &word\[0\]/from >> word/' clipper/cif/cif_data_io.cpp
+    echo "done"
     printf "  configure clipper with FC=$FC CC=$CC CXX=$CXX ... "
     CXXFLAGS="-g -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
     CFLAGS="-g -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
