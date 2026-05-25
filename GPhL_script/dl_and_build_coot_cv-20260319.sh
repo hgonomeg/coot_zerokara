@@ -769,14 +769,14 @@ build_with_meson () {
     build_save_mylogs_and_rm
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
     meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
-    echo "done meson setup"
+    echo "done"
     cd $BUILD_DIR/$__p || error
     printf "  meson compile (see `mypwd`/my_meson_compile.log${MY_DONE_EXT}) ... "
     meson compile > my_meson_compile.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_compile.log${MY_DONE_EXT}"
-    echo "done meson compile"
+    echo "done"
     printf "  meson install (see `mypwd`/my_meson_install.log${MY_DONE_EXT}) ... "
     meson install > my_meson_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_install.log${MY_DONE_EXT}"
-    echo "done meson install"
+    echo "done"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
@@ -862,13 +862,13 @@ build_with_cmake () {
     printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
     cmake $DEPS_DIR/${__p}-${__v} \
           -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=release $@ > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
-    echo "done configuring project"
+    echo "done"
     printf "  cmake --build (see `mypwd`/my_cmake_build.log${MY_DONE_EXT}) ... "
     cmake --build . -j ${nthreads} > my_cmake_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_build.log${MY_DONE_EXT}"
-    echo "done building project"
+    echo "done"
     printf "  cmake --install (see `mypwd`/my_cmake_install.log${MY_DONE_EXT}) ... "
     cmake --install .  > my_cmake_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_install.log${MY_DONE_EXT}"
-    echo "done installing project"
+    echo "done"
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
