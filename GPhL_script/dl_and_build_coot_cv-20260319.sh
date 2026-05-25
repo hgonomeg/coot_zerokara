@@ -85,6 +85,7 @@ usage () {
   printf "\n  -debug                 : Do debug build\n"
   printf "\n  -clean                 : Run make clean after building\n"
   printf "\n  -patch <file>          : Coot patch file\n"
+  printf "\n  -no_chapi              : Do not build Coot headless API\n"
 
   printf "\n Tested on:\n"
   printf "   AlmaLinux 8.10 and 9.5 (todo: test again)\n"
@@ -110,6 +111,7 @@ branch=""
 COOT_TAG="main"
 COOT_BRANCH=""
 patch_file=""
+no_chapi=0
 btype="opt"
 do_clean=0
 while [ $# -gt 0 ]
@@ -127,6 +129,7 @@ do
     -tag) tag=$2;outtag=${tag#Release-};shift;;
     -branch) branch=$2;outtag=$branch;shift;;
     -debug) btype="debug";;
+    -no_chapi) no_chapi=1;;
     -patch)
       [ ! -f "$2" ] && error "file for -patch command not found = \"$2\""
       case "$2" in
@@ -1960,7 +1963,38 @@ EOF
 }
 
 build_chapi () {
-  printf "Building chapi is a stub right now."
+cat << EOF
+  ########################################################################
+  ### Building Chapi
+  ########################################################################
+EOF
+  cd $COOT_BUILD_DIR
+  # Do we need this here?
+  additional_build_env_setup
+  mkdir -p chapi-build && cd chapi-build || error
+  # Todo: make sure we do it in a way consistent with how we build Coot (e.g. build type, build flags, etc.)
+  if [ ! -f .my_cmake_done ]; then
+    printf " ### Chapi: cmake (see `mypwd`/my_chapi_cmake.log) ... "
+    cmake -S .. -DCMAKE_INSTALL_PREFIX=$PREFIX > my_chapi_cmake.log 2>&1 \
+    || error "see `mypwd`/my_chapi_cmake.log"
+    echo "done"
+    touch .my_cmake_done
+    rm -f .my_make_done
+  fi
+  if [ ! -f .my_make_done ]; then
+    printf " ### Chapi: make (see `mypwd`/my_chapi_make.log) ... "
+    make -j ${nthreads} > my_chapi_make.log 2>&1 || error "see `mypwd`/my_chapi_make.log"
+    echo "done"
+    touch .my_make_done
+    do_cleans="`pwd` $do_cleans"
+  fi
+  if [ ! -f .my_install_done ]; then
+    printf " ### Chapi: install (see `mypwd`/my_chapi_install.log) ... "
+    make install > my_chapi_install.log 2>&1 || error "see `mypwd`/my_chapi_install.log"
+    echo "done"
+    touch .my_install_done
+  fi
+
 }
 
 complete_coot () {
@@ -2301,7 +2335,9 @@ setup_all_and_build_coot () {
 e
   download_coot || error
   build_coot || error
-  build_chapi || error
+  if [ $no_chapi -eq 0 ]; then
+    build_chapi || error
+  fi
   complete_coot || error
 }
 create_coot_wrapper () {
