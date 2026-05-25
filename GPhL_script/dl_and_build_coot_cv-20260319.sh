@@ -298,7 +298,7 @@ if [ $do_os -eq 1 ]; then
             glibc-langpack-en \
             glibc-gconv-extra \
             libpsl-devel \
-            openal-soft-devel
+            openal-soft-devel \
             || error
       ;;
     fedora*)
