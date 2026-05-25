@@ -234,7 +234,8 @@ if [ $do_os -eq 1 ]; then
         $sudo dnf install -y dnf-plugins-core
         $sudo dnf config-manager --set-enabled crb
         $sudo dnf install -y epel-release
-        $sudo dnf config-manager --set-enabled powertools
+        # This doesn't work. What does it do?
+        # $sudo dnf config-manager --set-enabled powertools
         $sudo dnf update -y
         case `echo "$os" | tr '[A-Z]' '[a-z]'` in
           centos-10*|almalinux-10*) __toolsets="";;
