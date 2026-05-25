@@ -24,7 +24,7 @@ pipeline {
         stage('Run script') {
             steps {
                sh 'mkdir -p ./coot-build'
-               sh '. /opt/rh/gcc-toolset-15/enable; cd ./coot-build; echo now, the real build...; ls -alh; ls -alh ..; bash ../GPhL_script/dl_and_build_coot_cv-20260319.sh -os -distro -noninteractive'
+               sh '. /opt/rh/gcc-toolset-15/enable; cd ./coot-build; echo now, the real build...; ls -alh; ls -alh ..; COOT_GIT=https://github.com/hgonomeg/coot bash ../GPhL_script/dl_and_build_coot_cv-20260319.sh -os -distro -noninteractive'
                archiveArtifacts artifacts: 'coot-build/coot-*.tar.gz', fingerprint: true
             }
             post {
