@@ -46,7 +46,7 @@ usage () {
   printf "\n  -v                     : increase verbosity\n"
   printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
   printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs etc)\n"
-  printf "\n  -distro                : build binaries for distribution (default is to tune for local machine/CPU)\n"
+  printf "\n  -distributable         : build binaries for distribution (default is to tune for local machine/CPU)\n"
   printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
   printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
   printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
@@ -78,7 +78,7 @@ umask 022
 iverb=0
 nthreads=`nproc --all`
 do_minimaltar=1
-do_distro=0
+do_distributable=0
 do_noninteractive=0
 do_os=0
 tag=""
@@ -96,7 +96,7 @@ do
     -nthreads)nthreads=$2;shift;;
     -minimaltar)do_minimaltar=1;;
     -fulltar)do_minimaltar=0;;
-    -distr*)do_distro=1;;
+    -distributable)do_distributable=1;;
     -clean*) do_clean=1;;
     -[oO][sS]) do_os=1;;
     -noninteractive) do_noninteractive=1;;
@@ -1530,7 +1530,7 @@ setup_build_env () {
   if [ "X$CC" = "X" ]; then
     CC=gcc${GCC_COMMAND_EXT}
     type $CC  2>&1 | sed "s/^/ # CC  : /" || error
-    [ $do_distro -eq 1 ] && CC="$CC -mtune=generic" || CC="$CC -march=native -mtune=native"
+    [ $do_distributable -eq 1 ] && CC="$CC -mtune=generic" || CC="$CC -march=native -mtune=native"
   fi
   export CC
   echo " # CC=\"$CC\""
@@ -1538,7 +1538,7 @@ setup_build_env () {
   if [ "X$CXX" = "X" ]; then
     CXX=g++${GCC_COMMAND_EXT}
     type $CXX 2>&1 | sed "s/^/ # CXX : /" || error
-    [ $do_distro -eq 1 ] && CXX="$CXX -mtune=generic" || CXX="$CXX -march=native -mtune=native"
+    [ $do_distributable -eq 1 ] && CXX="$CXX -mtune=generic" || CXX="$CXX -march=native -mtune=native"
   fi
   export CXX
   echo " # CXX=\"$CXX\""
@@ -1546,7 +1546,7 @@ setup_build_env () {
   if [ "X$FC" = "X" ]; then
     FC=gfortran${GCC_COMMAND_EXT}
     type $FC  2>&1 | sed "s/^/ # FC  : /" || error
-    [ $do_distro -eq 1 ] && FC="$FC -mtune=generic" || FC="$FC -march=native -mtune=native"
+    [ $do_distributable -eq 1 ] && FC="$FC -mtune=generic" || FC="$FC -march=native -mtune=native"
   fi
   export FC
   echo " # FC=\"$FC\""
@@ -1853,7 +1853,7 @@ build_coot () {
   #--with-libdw --with-backward
   if [ ! -f .my_configure_done ]; then
     printf " ### Coot: configure (see `mypwd`/my_configure.log) ... "
-    [ $do_distro -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
+    [ $do_distributable -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
     case $btype in
       opt) __opt="-g -O3 -ffast-math";;
       *) __opt="";;
