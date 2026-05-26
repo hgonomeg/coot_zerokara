@@ -481,6 +481,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            curl
            poppler
            cairo
+           glycin
            gdk_pixbuf
            atk
            wayland
@@ -600,6 +601,7 @@ SMI_VER=2.4
 # LIBRSVG_VER=${LIBRSVG_VER_MM}.4
 LIBRSVG_VER_MM=2.58
 LIBRSVG_VER=${LIBRSVG_VER_MM}.0
+GLYCIN_VER=2.1.1
 GDK_PIXBUF_VER_MM=2.44
 GDK_PIXBUF_VER=${GDK_PIXBUF_VER_MM}.4
 ATK_VER_MM=2.38
@@ -1097,12 +1099,15 @@ build_librsvg () {
   build_with_autogen_and_configure librsvg ${LIBRSVG_VER}
 }
 
-# not sure if we really need to build twice ...
+build_glycin () {
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=disabled
+}
+
 build_gdk_pixbuf () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=disabled
 }
 build_gdk_pixbuf2 () {
-  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=disabled
+  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=enabled
 }
 
 build_atk () {
@@ -1661,6 +1666,9 @@ download_dependencies () {
 
   # Librsvg
   do_wget https://gitlab.gnome.org/GNOME/librsvg/-/archive/${LIBRSVG_VER}/librsvg-${LIBRSVG_VER}.tar.gz
+
+  # Glycin
+  do_wget https://gitlab.gnome.org/GNOME/glycin/-/archive/${GLYCIN_VER}/glycin-${GLYCIN_VER}.tar.bz2
 
   # GDK-Pixbuf
   do_wget https://download.gnome.org/sources/gdk-pixbuf/${GDK_PIXBUF_VER_MM}/gdk-pixbuf-${GDK_PIXBUF_VER}.tar.xz
