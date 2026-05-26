@@ -1891,6 +1891,7 @@ CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequ
             --with-rdkit-prefix=\$PREFIX \\
             --with-boost=\$PREFIX \\
             --with-gemmi=\$PREFIX \\
+            --with-libdw=\$PREFIX \\
             --with-boost-thread=boost_thread \\
             --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}"
 EOF
@@ -1905,6 +1906,7 @@ EOF
                 --with-rdkit-prefix=$PREFIX \
                 --with-boost=$PREFIX \
                 --with-gemmi=$PREFIX \
+                --with-libdw=$PREFIX \
                 --with-boost-thread=boost_thread \
                 --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}" \
                 > my_configure.log 2>&1 || error "see `mypwd`/my_configure.log"
