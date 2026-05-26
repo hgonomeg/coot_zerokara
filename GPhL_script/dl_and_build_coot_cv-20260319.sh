@@ -492,6 +492,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            highway
            lcms2
            libjxl
+           libcap
            bubblewrap
            glycin
            gdk_pixbuf
@@ -616,6 +617,7 @@ LIBRSVG_VER=${LIBRSVG_VER_MM}.0
 HIGHWAY_VER=1.4.0
 LCMS2_VER=2.19.1
 LIBJXL_VER=0.11.2
+LIBCAP_VER=2.78
 BUBBLEWRAP_VER=0.11.2
 GLYCIN_VER=2.1.1
 GDK_PIXBUF_VER_MM=2.44
@@ -1149,6 +1151,31 @@ build_libjxl () {
     -DJPEGXL_ENABLE_DOXYGEN=OFF \
     -DJPEGXL_ENABLE_MANPAGES=OFF \
     -Wno-dev
+}
+
+build_libcap () {
+  # libcap uses a plain Makefile (no configure/cmake/meson).
+  # GOLANG=no skips the optional Go bindings (avoids needing Go);
+  # RAISE_SETFCAP=no skips the privileged setcap step during install;
+  # building only the libcap/ subdir avoids the progs and PAM module.
+  if [ ! -f $BUILD_DIR/libcap/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building libcap (${LIBCAP_VER}) with make\n"
+    rm -rf $BUILD_DIR/libcap
+    cp -a $DEPS_DIR/libcap-${LIBCAP_VER} $BUILD_DIR/libcap || error
+    cd $BUILD_DIR/libcap || error
+
+    printf "  running make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -C libcap -j ${nthreads} lib=lib prefix=$PREFIX DYNAMIC=yes GOLANG=no > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  running install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make -C libcap install lib=lib prefix=$PREFIX DYNAMIC=yes GOLANG=no RAISE_SETFCAP=no > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+    do_cleans="$do_cleans `pwd`"
+
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/libcap/.my_done${MY_DONE_EXT}
+  fi
 }
 
 build_bubblewrap () {
@@ -1734,6 +1761,9 @@ download_dependencies () {
 
   # libjxl
   do_wget https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VER}.tar.gz libjxl-${LIBJXL_VER}.tar.gz
+
+  # libcap
+  do_wget https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-${LIBCAP_VER}.tar.xz
 
   # Bubblewrap
   do_wget https://github.com/containers/bubblewrap/releases/download/v${BUBBLEWRAP_VER}/bubblewrap-${BUBBLEWRAP_VER}.tar.xz
