@@ -1103,8 +1103,14 @@ build_smi () {
   build_with_meson shared-mime-info ${SMI_VER}
 }
 
+# librsvg dropped autotools (autogen.sh/configure) for a Meson build in the 2.59+ series.
 build_librsvg () {
-  build_with_autogen_and_configure librsvg ${LIBRSVG_VER}
+  build_with_meson librsvg ${LIBRSVG_VER} \
+    -Dtests=false \
+    -Dintrospection=enabled \
+    -Dpixbuf=enabled \
+    -Dvala=disabled \
+    -Ddocs=disabled
 }
 
 build_libjxl () {
