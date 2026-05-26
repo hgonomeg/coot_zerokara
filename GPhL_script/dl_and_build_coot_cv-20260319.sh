@@ -1108,7 +1108,13 @@ build_librsvg () {
 }
 
 build_libjxl () {
-  build_with_cmake libjxl ${LIBJXL_VER} -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_FUZZERS=OFF
+  build_with_cmake libjxl ${LIBJXL_VER} \
+    -DBUILD_SHARED_LIBS=ON \
+    -DBUILD_TESTING=OFF \
+    -DJPEGXL_ENABLE_FUZZERS=OFF \
+    -DJPEGXL_ENABLE_TOOLS=OFF \
+    -DJPEGXL_ENABLE_EXAMPLES=OFF \
+    -DJPEGXL_ENABLE_DEVTOOLS=OFF
 }
 
 build_bubblewrap () {
