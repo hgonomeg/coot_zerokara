@@ -485,6 +485,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            curl
            poppler
            cairo
+           libjxl
            bubblewrap
            glycin
            gdk_pixbuf
@@ -606,6 +607,7 @@ SMI_VER=2.4
 # LIBRSVG_VER=${LIBRSVG_VER_MM}.4
 LIBRSVG_VER_MM=2.58
 LIBRSVG_VER=${LIBRSVG_VER_MM}.0
+LIBJXL_VER=0.11.2
 BUBBLEWRAP_VER=0.11.2
 GLYCIN_VER=2.1.1
 GDK_PIXBUF_VER_MM=2.44
@@ -1105,12 +1107,16 @@ build_librsvg () {
   build_with_autogen_and_configure librsvg ${LIBRSVG_VER}
 }
 
+build_libjxl () {
+  build_with_cmake libjxl ${LIBJXL_VER} -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_FUZZERS=OFF
+}
+
 build_bubblewrap () {
   build_with_meson bubblewrap ${BUBBLEWRAP_VER} -Dtests=false
 }
 
 build_glycin () {
-  build_with_meson glycin ${GLYCIN_VER} -Dtests=false
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg
 }
 
 build_gdk_pixbuf () {
@@ -1676,6 +1682,9 @@ download_dependencies () {
 
   # Librsvg
   do_wget https://gitlab.gnome.org/GNOME/librsvg/-/archive/${LIBRSVG_VER}/librsvg-${LIBRSVG_VER}.tar.gz
+
+  # libjxl
+  do_wget https://github.com/libjxl/libjxl/releases/download/v${LIBJXL_VER}/libjxl-${LIBJXL_VER}.tar.gz
 
   # Bubblewrap
   do_wget https://github.com/containers/bubblewrap/releases/download/v${BUBBLEWRAP_VER}/bubblewrap-${BUBBLEWRAP_VER}.tar.xz
