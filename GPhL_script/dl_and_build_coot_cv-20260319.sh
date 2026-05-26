@@ -164,8 +164,7 @@ if [ $do_os -eq 1 ]; then
   case `echo "$os" | tr '[A-Z]' '[a-z]'` in
     opensuse*)
       # probably not all needed:
-      $sudo zypper install -y \
-            -t pattern devel_basis || error
+      $sudo zypper install -y --force-resolution --allow-downgrade -t pattern devel_basis || error
       # probably not all needed:
       $sudo zypper install -y \
              libopenssl-3-devel \
@@ -228,6 +227,7 @@ if [ $do_os -eq 1 ]; then
              glibc-locale \
              openal-soft-devel \
              libseccomp-devel \
+             libzstd-devel \
              || error
       ;;
     rocky*|alma*|centos*)
@@ -302,6 +302,7 @@ if [ $do_os -eq 1 ]; then
             libpsl-devel \
             openal-soft-devel \
             libseccomp-devel \
+            libzstd-devel \
             || error
       ;;
     fedora*)
@@ -373,7 +374,8 @@ if [ $do_os -eq 1 ]; then
               libpsl-devel \
               glibc-gconv-extra \
               openal-soft-devel \
-              libseccomp-devel
+              libseccomp-devel \
+              libzstd-devel
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
@@ -392,6 +394,7 @@ if [ $do_os -eq 1 ]; then
           xz-utils \
           libopenal-dev \
           libseccomp-dev \
+          libzstd-dev \
           bc || error
       ;;
     arch*)
@@ -406,7 +409,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils libpsl bc openal libseccomp || error
+            inetutils libpsl bc openal libseccomp zstd || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -485,14 +488,18 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            curl
            poppler
            cairo
+           highway
+           lcms2
            libjxl
+           libcap
            bubblewrap
            glycin
            gdk_pixbuf
            atk
            wayland
            gtk
-           pygobject 
+           glycin
+           pygobject
            fftw
            maeparser
            coordgen
@@ -607,7 +614,10 @@ SMI_VER=2.4
 # LIBRSVG_VER=${LIBRSVG_VER_MM}.4
 LIBRSVG_VER_MM=2.58
 LIBRSVG_VER=${LIBRSVG_VER_MM}.0
+HIGHWAY_VER=1.4.0
+LCMS2_VER=2.19.1
 LIBJXL_VER=0.11.2
+LIBCAP_VER=2.78
 BUBBLEWRAP_VER=0.11.2
 GLYCIN_VER=2.1.1
 GDK_PIXBUF_VER_MM=2.44
@@ -777,6 +787,8 @@ build_with_meson () {
     printf "\n ### building $__p ($__v) with meson\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before a fresh meson setup; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
     meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
@@ -793,6 +805,21 @@ build_with_meson () {
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
   fi
 }
+# Wipes the current build directory (rm -rf *) so every build starts from a clean
+# slate, while making sure no build log is silently lost across repeat builds.
+#
+# A "repeat build" is when the same package is built more than once (MY_DONE_EXT is
+# set on the 2nd+ pass) — e.g. glycin and gdk-pixbuf are each built twice. The prior
+# pass left "my_*.log" files in this directory that the rm -rf would destroy, so we:
+#   1. rename the previous pass's "my_X.log" -> "my_X.log1" (numeric suffix per pass),
+#   2. stash all "my_*.logN" in a PID-named temp dir so they survive the wipe,
+#   3. rm -rf * to clear the build artifacts,
+#   4. restore the stashed logs into the now-empty directory.
+# Net result: pass 1's logs become my_*.log1, pass 2's are my_*.log2, etc. — preserved,
+# not overwritten. On a first build (MY_DONE_EXT empty) it simply does the rm -rf *.
+#
+# Must be called with the current directory set to the package's build dir
+# ($BUILD_DIR/$__p), since it operates on "." (the cwd).
 build_save_mylogs_and_rm () {
   # When MY_DONE_EXT is set this is a repeat build; preserve logs from previous attempts
   # before wiping the build directory, then restore them afterwards.
@@ -833,6 +860,8 @@ build_with_configure () {
     printf "\n ### building $__p ($__v) with configure/make\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before configure/make; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     if [ $__do_autogen -eq 1 ]; then
       printf "  autogen.sh (see `mypwd`/my_autogen.log${MY_DONE_EXT}) ... "
@@ -869,6 +898,8 @@ build_with_cmake () {
     printf "\n ### building $__p ($__v) with cmake\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before a fresh cmake configure; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
     cmake $DEPS_DIR/${__p}-${__v} \
@@ -1107,27 +1138,90 @@ build_librsvg () {
   build_with_autogen_and_configure librsvg ${LIBRSVG_VER}
 }
 
+build_highway () {
+  build_with_cmake highway ${HIGHWAY_VER} \
+    -DBUILD_SHARED_LIBS=ON \
+    -DHWY_ENABLE_TESTS=OFF \
+    -DHWY_ENABLE_EXAMPLES=OFF
+}
+
+build_lcms2 () {
+  build_with_configure lcms2 ${LCMS2_VER} --enable-shared --disable-static
+}
+
 build_libjxl () {
   build_with_cmake libjxl ${LIBJXL_VER} \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_TESTING=OFF \
+    -DJPEGXL_FORCE_SYSTEM_HWY=ON \
+    -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
+    -DJPEGXL_FORCE_SYSTEM_LCMS2=ON \
+    -DJPEGXL_BUNDLE_LIBPNG=OFF \
+    -DJPEGXL_ENABLE_SKCMS=OFF \
+    -DJPEGXL_ENABLE_SJPEG=OFF \
     -DJPEGXL_ENABLE_FUZZERS=OFF \
     -DJPEGXL_ENABLE_TOOLS=OFF \
     -DJPEGXL_ENABLE_EXAMPLES=OFF \
-    -DJPEGXL_ENABLE_DEVTOOLS=OFF
+    -DJPEGXL_ENABLE_DEVTOOLS=OFF \
+    -DJPEGXL_ENABLE_PLUGINS=OFF \
+    -DJPEGXL_ENABLE_OPENEXR=OFF \
+    -DJPEGXL_ENABLE_VIEWERS=OFF \
+    -DJPEGXL_ENABLE_BENCHMARK=OFF \
+    -DJPEGXL_ENABLE_JNI=OFF \
+    -DJPEGXL_ENABLE_JPEGLI=OFF \
+    -DJPEGXL_ENABLE_DOXYGEN=OFF \
+    -DJPEGXL_ENABLE_MANPAGES=OFF \
+    -Wno-dev
+}
+
+build_libcap () {
+  # libcap uses a plain Makefile (no configure/cmake/meson).
+  # GOLANG=no skips the optional Go bindings (avoids needing Go);
+  # RAISE_SETFCAP=no skips the privileged setcap step during install;
+  # building only the libcap/ subdir avoids the progs and PAM module.
+  if [ ! -f $BUILD_DIR/libcap/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building libcap (${LIBCAP_VER}) with make\n"
+    rm -rf $BUILD_DIR/libcap
+    cp -a $DEPS_DIR/libcap-${LIBCAP_VER} $BUILD_DIR/libcap || error
+    cd $BUILD_DIR/libcap || error
+
+    printf "  running make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -C libcap -j ${nthreads} lib=lib prefix=$PREFIX DYNAMIC=yes GOLANG=no > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  running install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make -C libcap install lib=lib prefix=$PREFIX DYNAMIC=yes GOLANG=no RAISE_SETFCAP=no > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+    do_cleans="$do_cleans `pwd`"
+
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/libcap/.my_done${MY_DONE_EXT}
+  fi
 }
 
 build_bubblewrap () {
   build_with_meson bubblewrap ${BUBBLEWRAP_VER} -Dtests=false
 }
 
+# First glycin build runs before gtk4 exists, so the GTK 4 bindings
+# (libglycin-gtk4) must be disabled here. The second build (build_glycin2),
+# after gtk is built, enables them.
+# Thumbnailer disabled: its libglycin-rebind-sys -sys crate uses pkg-config to
+# find an installed glycin-2.pc, which doesn't exist pre-install, so it can't
+# build in-tree. Coot doesn't need the standalone thumbnailer anyway.
 build_glycin () {
-  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=false -Dvapi=false -Dglycin-thumbnailer=false
+}
+build_glycin2 () {
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=true -Dvapi=false -Dglycin-thumbnailer=false
 }
 
+# gdk_pixbuf is a dependency of glycin, so it needs to be built first before (and without) glycin
 build_gdk_pixbuf () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=disabled
 }
+
+# Gets rebuilt after glycin, so that glycin support is included.
 build_gdk_pixbuf2 () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=enabled
 }
@@ -1689,8 +1783,17 @@ download_dependencies () {
   # Librsvg
   do_wget https://gitlab.gnome.org/GNOME/librsvg/-/archive/${LIBRSVG_VER}/librsvg-${LIBRSVG_VER}.tar.gz
 
+  # Highway
+  do_wget https://github.com/google/highway/archive/refs/tags/${HIGHWAY_VER}.tar.gz highway-${HIGHWAY_VER}.tar.gz
+
+  # Little-CMS (lcms2)
+  do_wget https://github.com/mm2/Little-CMS/releases/download/lcms${LCMS2_VER}/lcms2-${LCMS2_VER}.tar.gz
+
   # libjxl
   do_wget https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VER}.tar.gz libjxl-${LIBJXL_VER}.tar.gz
+
+  # libcap
+  do_wget https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-${LIBCAP_VER}.tar.xz
 
   # Bubblewrap
   do_wget https://github.com/containers/bubblewrap/releases/download/v${BUBBLEWRAP_VER}/bubblewrap-${BUBBLEWRAP_VER}.tar.xz
