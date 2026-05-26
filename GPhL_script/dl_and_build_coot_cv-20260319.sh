@@ -1858,8 +1858,6 @@ build_coot () {
       opt) __opt="-g -O3 -ffast-math";;
       *) __opt="";;
     esac
-    # todo:
-    # * Add --with-sound when patches for openal version requirements land in Coot
     cat <<EOF > my_configure.sh
 #!/bin/sh
 
@@ -1874,6 +1872,7 @@ CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequ
 ./configure --prefix=\$PREFIX \\
             --libexecdir=\$PREFIX/libexec \\
             --disable-static \\
+            --with-sound \\
             --with-enhanced-ligand-tools \\
             --with-rdkit-prefix=\$PREFIX \\
             --with-boost=\$PREFIX \\
@@ -1888,6 +1887,7 @@ EOF
     ./configure --prefix=$PREFIX \
                 --libexecdir=$PREFIX/libexec \
                 --disable-static \
+                --with-sound \
                 --with-enhanced-ligand-tools \
                 --with-rdkit-prefix=$PREFIX \
                 --with-boost=$PREFIX \
