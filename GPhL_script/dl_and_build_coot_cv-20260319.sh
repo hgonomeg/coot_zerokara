@@ -164,7 +164,7 @@ if [ $do_os -eq 1 ]; then
   case `echo "$os" | tr '[A-Z]' '[a-z]'` in
     opensuse*)
       # probably not all needed:
-      $sudo sudo zypper install -y --force-resolution --allow-downgrade -t pattern devel_basis || error
+      $sudo zypper install -y --force-resolution --allow-downgrade -t pattern devel_basis || error
       # probably not all needed:
       $sudo zypper install -y \
              libopenssl-3-devel \
