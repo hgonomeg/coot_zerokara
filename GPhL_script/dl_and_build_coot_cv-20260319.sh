@@ -1100,7 +1100,7 @@ build_librsvg () {
 }
 
 build_glycin () {
-  build_with_meson glycin ${GLYCIN_VER} -Dtests=disabled
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false
 }
 
 build_gdk_pixbuf () {
