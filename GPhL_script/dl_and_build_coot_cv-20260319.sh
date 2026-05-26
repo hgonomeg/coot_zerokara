@@ -499,7 +499,8 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            atk
            wayland
            gtk
-           pygobject 
+           glycin
+           pygobject
            fftw
            maeparser
            coordgen
@@ -1182,8 +1183,14 @@ build_bubblewrap () {
   build_with_meson bubblewrap ${BUBBLEWRAP_VER} -Dtests=false
 }
 
+# First glycin build runs before gtk4 exists, so the GTK 4 bindings
+# (libglycin-gtk4) must be disabled here. The second build (build_glycin2),
+# after gtk is built, enables them.
 build_glycin () {
-  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=false
+}
+build_glycin2 () {
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=true
 }
 
 # gdk_pixbuf is a dependency of glycin, so it needs to be built first before (and without) glycin
