@@ -27,11 +27,11 @@ jobs:
             container: archlinux:latest
           - distro: rocky-9
             container: rockylinux:9
+          - distro: fedora-44
+            container: fedora:44
           # - distro: opensuse-leap-15
           #   container: opensuse/leap:15
           # todo: almalinux
-          #- distro: fedora-44
-          #  container: fedora:44
 
     container:
       image: ${{ matrix.container }}
