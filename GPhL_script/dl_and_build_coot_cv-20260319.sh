@@ -485,6 +485,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            curl
            poppler
            cairo
+           highway
            libjxl
            bubblewrap
            glycin
@@ -607,6 +608,7 @@ SMI_VER=2.4
 # LIBRSVG_VER=${LIBRSVG_VER_MM}.4
 LIBRSVG_VER_MM=2.58
 LIBRSVG_VER=${LIBRSVG_VER_MM}.0
+HIGHWAY_VER=1.4.0
 LIBJXL_VER=0.11.2
 BUBBLEWRAP_VER=0.11.2
 GLYCIN_VER=2.1.1
@@ -1107,6 +1109,13 @@ build_librsvg () {
   build_with_autogen_and_configure librsvg ${LIBRSVG_VER}
 }
 
+build_highway () {
+  build_with_cmake highway ${HIGHWAY_VER} \
+    -DBUILD_SHARED_LIBS=ON \
+    -DHWY_ENABLE_TESTS=OFF \
+    -DHWY_ENABLE_EXAMPLES=OFF
+}
+
 build_libjxl () {
   build_with_cmake libjxl ${LIBJXL_VER} \
     -DBUILD_SHARED_LIBS=ON \
@@ -1114,7 +1123,8 @@ build_libjxl () {
     -DJPEGXL_ENABLE_FUZZERS=OFF \
     -DJPEGXL_ENABLE_TOOLS=OFF \
     -DJPEGXL_ENABLE_EXAMPLES=OFF \
-    -DJPEGXL_ENABLE_DEVTOOLS=OFF
+    -DJPEGXL_ENABLE_DEVTOOLS=OFF \
+    -DJPEGXL_FORCE_SYSTEM_HWY=ON
 }
 
 build_bubblewrap () {
@@ -1688,6 +1698,9 @@ download_dependencies () {
 
   # Librsvg
   do_wget https://gitlab.gnome.org/GNOME/librsvg/-/archive/${LIBRSVG_VER}/librsvg-${LIBRSVG_VER}.tar.gz
+
+  # Highway
+  do_wget https://github.com/google/highway/archive/refs/tags/${HIGHWAY_VER}.tar.gz highway-${HIGHWAY_VER}.tar.gz
 
   # libjxl
   do_wget https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VER}.tar.gz libjxl-${LIBJXL_VER}.tar.gz
