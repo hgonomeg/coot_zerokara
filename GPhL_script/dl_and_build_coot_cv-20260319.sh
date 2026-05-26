@@ -1533,8 +1533,8 @@ initial_setup () {
     touch $BUILD_DIR/ninjabuild/.my_done
   fi
 
-  cd $PREFIX || error
   mkdir -p $DEPS_DIR/rust || error
+  cd $DEPS_DIR/rust || error
   if [ ! -f rustup-init.sh ]; then
     printf "\n### Installing RUST (hopefully into CARGO_HOME=$CARGO_HOME)\n"
     # Rust for librsvg - installs into $HOME it seems?!
@@ -1542,6 +1542,7 @@ initial_setup () {
     chmod +x rustup-init.sh || error
     RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > $DEPS_DIR/rust/my_rust_install.log 2>&1 || error "see $DEPS_DIR/rust/my_rust_install.log"
   fi
+  cd $PREFIX || error
 
   # librsvg's Meson build drives cargo-c (cargo cbuild / cinstall) to produce the C-ABI
   # library plus its .pc file and headers; rustup does not ship it, so install the
