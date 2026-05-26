@@ -227,6 +227,7 @@ if [ $do_os -eq 1 ]; then
              libpsl-devel \
              glibc-locale \
              openal-soft-devel \
+             libseccomp-devel \
              || error
       ;;
     rocky*|alma*|centos*)
@@ -300,6 +301,7 @@ if [ $do_os -eq 1 ]; then
             glibc-gconv-extra \
             libpsl-devel \
             openal-soft-devel \
+            libseccomp-devel \
             || error
       ;;
     fedora*)
@@ -370,7 +372,8 @@ if [ $do_os -eq 1 ]; then
               pkgconf-pkg-config \
               libpsl-devel \
               glibc-gconv-extra \
-              openal-soft-devel
+              openal-soft-devel \
+              libseccomp-devel
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
@@ -388,6 +391,7 @@ if [ $do_os -eq 1 ]; then
           libpsl-dev \
           xz-utils \
           libopenal-dev \
+          libseccomp-dev \
           bc || error
       ;;
     arch*)
@@ -402,7 +406,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils libpsl bc openal || error
+            inetutils libpsl bc openal libseccomp || error
       ;;
     *) error "unsupported OS!";;
   esac
