@@ -286,7 +286,6 @@ if [ $do_os -eq 1 ]; then
             expat-devel \
             dbus-devel \
             libmount-devel \
-            elfutils-libelf-devel \
             readline-devel \
             ncurses-devel \
             sqlite-devel \
@@ -359,7 +358,6 @@ if [ $do_os -eq 1 ]; then
               blas-devel \
               dbus-devel \
               libmount-devel \
-              elfutils-libelf-devel \
               readline-devel \
               ncurses-devel \
               sqlite-devel \
@@ -400,7 +398,7 @@ if [ $do_os -eq 1 ]; then
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
-            dbus util-linux-libs expat libffi elfutils libxml2 readline \
+            dbus util-linux-libs expat libffi libxml2 readline \
             openssl ncurses sqlite lzo xz bzip2 libpng brotli \
             libxcb \
             mesa \
@@ -457,6 +455,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
          # order matters - and some have to be done multiple times it seems
          # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
          BUILD_DEPENDENCIES="
+           libdwarf
            pcre2
            glib
            gobject_introspection
@@ -617,9 +616,7 @@ GTK_VER_Patch=4
 GTK_VER=${GTK_VER_Major}.${GTK_VER_Minor}.${GTK_VER_Patch}
 MMDB_VER=2.0.22
 GSL_VER=2.8
-#GEMMI_VER=0.6.3
 GEMMI_VER=0.7.5
-#LIBCCP4_VER=6.5.1
 LIBCCP4_VER=8.0.0
 LIBSSM_VER=1.4
 LIBCLIPPER_VER_PRE=2.1
@@ -641,6 +638,8 @@ COORDGEN_VER=3.0.2
 EIGEN_VER=5.0.1
 LIBOGG_VER=1.3.6
 LIBVORBIS_VER=1.3.7
+ELFUTILS_VER=0.195
+LIBDWARF_VER=2.3.1
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -929,9 +928,14 @@ build_wayland () {
 build_waylandprotocols () {
   build_with_meson wayland-protocols ${WAYLANDPROTOCOLS_VER}
 }
-# build_elfutils () {
-#   build_with_configure elfutils ${ELFUTILS_VER} --disable-debuginfod
-# }
+
+build_libdwarf () {
+  build_with_meson libdwarf ${LIBDWARF_VER}
+}
+
+build_elfutils () {
+  build_with_configure elfutils ${ELFUTILS_VER} --disable-debuginfod
+}
 
 # build_libvdpau () {
 #   build_with_meson libvdpau ${LIBVDPAU_VER}
@@ -1591,8 +1595,7 @@ additional_build_env_setup () {
 
 
 #TODO:
-# * JPEG for poppler (and tiff)
-# * curl, libbackward
+# * libbackward
 
 download_dependencies () {
   cd $DEPS_DIR || error
@@ -1748,8 +1751,10 @@ download_dependencies () {
   done
 
   # # elfutils
-  # do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
+  do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
 
+  # libdwarf
+  do_wget https://github.com/davea42/libdwarf-code/releases/download/v${LIBDWARF_VER}/libdwarf-${LIBDWARF_VER}.tar.xz
 
   # Shared-mime-info
   do_wget https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/${SMI_VER}/shared-mime-info-${SMI_VER}.tar.gz
