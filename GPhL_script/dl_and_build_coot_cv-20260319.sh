@@ -1534,12 +1534,22 @@ initial_setup () {
   fi
 
   cd $PREFIX || error
+  mkdir -p $DEPS_DIR/rust || error
   if [ ! -f rustup-init.sh ]; then
     printf "\n### Installing RUST (hopefully into CARGO_HOME=$CARGO_HOME)\n"
     # Rust for librsvg - installs into $HOME it seems?!
     do_wget https://sh.rustup.rs rustup-init.sh 5
     chmod +x rustup-init.sh || error
-    RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > my_rust_install.log 2>&1 || error "see `mypwd`/my_rust_install.log"
+    RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > $DEPS_DIR/rust/my_rust_install.log 2>&1 || error "see $DEPS_DIR/rust/my_rust_install.log"
+  fi
+
+  # librsvg's Meson build drives cargo-c (cargo cbuild / cinstall) to produce the C-ABI
+  # library plus its .pc file and headers; rustup does not ship it, so install the
+  # cargo-cbuild subcommand into CARGO_HOME. (https://github.com/lu-zero/cargo-c)
+  if [ ! -x $CARGO_HOME/bin/cargo-cbuild ]; then
+    printf "\n### Installing cargo-c into CARGO_HOME=$CARGO_HOME ... "
+    $CARGO_HOME/bin/cargo install cargo-c --locked > $DEPS_DIR/rust/my_cargo_c_install.log 2>&1 || error "see $DEPS_DIR/rust/my_cargo_c_install.log"
+    echo "done"
   fi
 }
 
