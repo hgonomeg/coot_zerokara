@@ -490,6 +490,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            poppler
            cairo
            highway
+           lcms2
            libjxl
            bubblewrap
            glycin
@@ -613,6 +614,7 @@ SMI_VER=2.4
 LIBRSVG_VER_MM=2.58
 LIBRSVG_VER=${LIBRSVG_VER_MM}.0
 HIGHWAY_VER=1.4.0
+LCMS2_VER=2.19.1
 LIBJXL_VER=0.11.2
 BUBBLEWRAP_VER=0.11.2
 GLYCIN_VER=2.1.1
@@ -1120,13 +1122,20 @@ build_highway () {
     -DHWY_ENABLE_EXAMPLES=OFF
 }
 
+build_lcms2 () {
+  build_with_configure lcms2 ${LCMS2_VER} --enable-shared --disable-static
+}
+
 build_libjxl () {
   build_with_cmake libjxl ${LIBJXL_VER} \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_TESTING=OFF \
     -DJPEGXL_FORCE_SYSTEM_HWY=ON \
     -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
-    -DJPEGXL_FORCE_SYSTEM_LIBPNG=ON \
+    -DJPEGXL_FORCE_SYSTEM_LCMS2=ON \
+    -DJPEGXL_BUNDLE_LIBPNG=OFF \
+    -DJPEGXL_ENABLE_SKCMS=OFF \
+    -DJPEGXL_ENABLE_SJPEG=OFF \
     -DJPEGXL_ENABLE_FUZZERS=OFF \
     -DJPEGXL_ENABLE_TOOLS=OFF \
     -DJPEGXL_ENABLE_EXAMPLES=OFF \
@@ -1135,6 +1144,10 @@ build_libjxl () {
     -DJPEGXL_ENABLE_OPENEXR=OFF \
     -DJPEGXL_ENABLE_VIEWERS=OFF \
     -DJPEGXL_ENABLE_BENCHMARK=OFF \
+    -DJPEGXL_ENABLE_JNI=OFF \
+    -DJPEGXL_ENABLE_JPEGLI=OFF \
+    -DJPEGXL_ENABLE_DOXYGEN=OFF \
+    -DJPEGXL_ENABLE_MANPAGES=OFF \
     -Wno-dev
 }
 
@@ -1715,6 +1728,9 @@ download_dependencies () {
 
   # Highway
   do_wget https://github.com/google/highway/archive/refs/tags/${HIGHWAY_VER}.tar.gz highway-${HIGHWAY_VER}.tar.gz
+
+  # Little-CMS (lcms2)
+  do_wget https://github.com/mm2/Little-CMS/releases/download/lcms${LCMS2_VER}/lcms2-${LCMS2_VER}.tar.gz
 
   # libjxl
   do_wget https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VER}.tar.gz libjxl-${LIBJXL_VER}.tar.gz
