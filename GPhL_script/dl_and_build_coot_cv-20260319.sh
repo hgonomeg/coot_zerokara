@@ -1690,7 +1690,7 @@ download_dependencies () {
   do_wget https://gitlab.gnome.org/GNOME/librsvg/-/archive/${LIBRSVG_VER}/librsvg-${LIBRSVG_VER}.tar.gz
 
   # libjxl
-  do_wget https://github.com/libjxl/libjxl/releases/download/v${LIBJXL_VER}/libjxl-${LIBJXL_VER}.tar.gz
+  do_wget https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VER}.tar.gz libjxl-${LIBJXL_VER}.tar.gz
 
   # Bubblewrap
   do_wget https://github.com/containers/bubblewrap/releases/download/v${BUBBLEWRAP_VER}/bubblewrap-${BUBBLEWRAP_VER}.tar.xz
