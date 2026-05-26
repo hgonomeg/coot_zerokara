@@ -1134,7 +1134,8 @@ build_libjxl () {
     -DJPEGXL_ENABLE_PLUGINS=OFF \
     -DJPEGXL_ENABLE_OPENEXR=OFF \
     -DJPEGXL_ENABLE_VIEWERS=OFF \
-    -DJPEGXL_ENABLE_BENCHMARK=OFF
+    -DJPEGXL_ENABLE_BENCHMARK=OFF \
+    -Wno-dev
 }
 
 build_bubblewrap () {
@@ -1145,9 +1146,12 @@ build_glycin () {
   build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg
 }
 
+# gdk_pixbuf is a dependency of glycin, so it needs to be built first before (and without) glycin
 build_gdk_pixbuf () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=disabled
 }
+
+# Gets rebuilt after glycin, so that glycin support is included.
 build_gdk_pixbuf2 () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=enabled
 }
