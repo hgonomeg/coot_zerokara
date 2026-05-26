@@ -228,6 +228,7 @@ if [ $do_os -eq 1 ]; then
              glibc-locale \
              openal-soft-devel \
              libseccomp-devel \
+             libzstd-devel \
              || error
       ;;
     rocky*|alma*|centos*)
@@ -302,6 +303,7 @@ if [ $do_os -eq 1 ]; then
             libpsl-devel \
             openal-soft-devel \
             libseccomp-devel \
+            libzstd-devel \
             || error
       ;;
     fedora*)
@@ -373,7 +375,8 @@ if [ $do_os -eq 1 ]; then
               libpsl-devel \
               glibc-gconv-extra \
               openal-soft-devel \
-              libseccomp-devel
+              libseccomp-devel \
+              libzstd-devel
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
@@ -392,6 +395,7 @@ if [ $do_os -eq 1 ]; then
           xz-utils \
           libopenal-dev \
           libseccomp-dev \
+          libzstd-dev \
           bc || error
       ;;
     arch*)
@@ -406,7 +410,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils libpsl bc openal libseccomp || error
+            inetutils libpsl bc openal libseccomp zstd || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -485,14 +489,18 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            curl
            poppler
            cairo
+           highway
+           lcms2
            libjxl
+           libcap
            bubblewrap
            glycin
            gdk_pixbuf
            atk
            wayland
            gtk
-           pygobject 
+           glycin
+           pygobject
            fftw
            maeparser
            coordgen
@@ -602,12 +610,12 @@ CAIRO_VER=1.18.4
 PANGO_VER_MM=1.57
 PANGO_VER=${PANGO_VER_MM}.1
 SMI_VER=2.4
-# Todo: fix build - broken autogen stuff
 LIBRSVG_VER_MM=2.62
 LIBRSVG_VER=${LIBRSVG_VER_MM}.2
-# LIBRSVG_VER_MM=2.58
-# LIBRSVG_VER=${LIBRSVG_VER_MM}.0
+HIGHWAY_VER=1.4.0
+LCMS2_VER=2.19.1
 LIBJXL_VER=0.11.2
+LIBCAP_VER=2.78
 BUBBLEWRAP_VER=0.11.2
 GLYCIN_VER=2.1.1
 GDK_PIXBUF_VER_MM=2.44
@@ -1117,27 +1125,87 @@ build_librsvg () {
     -Ddocs=disabled
 }
 
+build_highway () {
+  build_with_cmake highway ${HIGHWAY_VER} \
+    -DBUILD_SHARED_LIBS=ON \
+    -DHWY_ENABLE_TESTS=OFF \
+    -DHWY_ENABLE_EXAMPLES=OFF
+}
+
+build_lcms2 () {
+  build_with_configure lcms2 ${LCMS2_VER} --enable-shared --disable-static
+}
+
 build_libjxl () {
   build_with_cmake libjxl ${LIBJXL_VER} \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_TESTING=OFF \
+    -DJPEGXL_FORCE_SYSTEM_HWY=ON \
+    -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
+    -DJPEGXL_FORCE_SYSTEM_LCMS2=ON \
+    -DJPEGXL_BUNDLE_LIBPNG=OFF \
+    -DJPEGXL_ENABLE_SKCMS=OFF \
+    -DJPEGXL_ENABLE_SJPEG=OFF \
     -DJPEGXL_ENABLE_FUZZERS=OFF \
     -DJPEGXL_ENABLE_TOOLS=OFF \
     -DJPEGXL_ENABLE_EXAMPLES=OFF \
-    -DJPEGXL_ENABLE_DEVTOOLS=OFF
+    -DJPEGXL_ENABLE_DEVTOOLS=OFF \
+    -DJPEGXL_ENABLE_PLUGINS=OFF \
+    -DJPEGXL_ENABLE_OPENEXR=OFF \
+    -DJPEGXL_ENABLE_VIEWERS=OFF \
+    -DJPEGXL_ENABLE_BENCHMARK=OFF \
+    -DJPEGXL_ENABLE_JNI=OFF \
+    -DJPEGXL_ENABLE_JPEGLI=OFF \
+    -DJPEGXL_ENABLE_DOXYGEN=OFF \
+    -DJPEGXL_ENABLE_MANPAGES=OFF \
+    -Wno-dev
+}
+
+build_libcap () {
+  # libcap uses a plain Makefile (no configure/cmake/meson).
+  # GOLANG=no skips the optional Go bindings (avoids needing Go);
+  # RAISE_SETFCAP=no skips the privileged setcap step during install;
+  # building only the libcap/ subdir avoids the progs and PAM module.
+  if [ ! -f $BUILD_DIR/libcap/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building libcap (${LIBCAP_VER}) with make\n"
+    rm -rf $BUILD_DIR/libcap
+    cp -a $DEPS_DIR/libcap-${LIBCAP_VER} $BUILD_DIR/libcap || error
+    cd $BUILD_DIR/libcap || error
+
+    printf "  running make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -C libcap -j ${nthreads} lib=lib prefix=$PREFIX DYNAMIC=yes GOLANG=no > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  running install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make -C libcap install lib=lib prefix=$PREFIX DYNAMIC=yes GOLANG=no RAISE_SETFCAP=no > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+    do_cleans="$do_cleans `pwd`"
+
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/libcap/.my_done${MY_DONE_EXT}
+  fi
 }
 
 build_bubblewrap () {
   build_with_meson bubblewrap ${BUBBLEWRAP_VER} -Dtests=false
 }
 
+# First glycin build runs before gtk4 exists, so the GTK 4 bindings
+# (libglycin-gtk4) must be disabled here. The second build (build_glycin2),
+# after gtk is built, enables them.
 build_glycin () {
-  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=false -Dvapi=false
+}
+build_glycin2 () {
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=true -Dvapi=false
 }
 
+# gdk_pixbuf is a dependency of glycin, so it needs to be built first before (and without) glycin
 build_gdk_pixbuf () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=disabled
 }
+
+# Gets rebuilt after glycin, so that glycin support is included.
 build_gdk_pixbuf2 () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=enabled
 }
@@ -1713,8 +1781,17 @@ download_dependencies () {
   # Librsvg
   do_wget https://gitlab.gnome.org/GNOME/librsvg/-/archive/${LIBRSVG_VER}/librsvg-${LIBRSVG_VER}.tar.gz
 
+  # Highway
+  do_wget https://github.com/google/highway/archive/refs/tags/${HIGHWAY_VER}.tar.gz highway-${HIGHWAY_VER}.tar.gz
+
+  # Little-CMS (lcms2)
+  do_wget https://github.com/mm2/Little-CMS/releases/download/lcms${LCMS2_VER}/lcms2-${LCMS2_VER}.tar.gz
+
   # libjxl
   do_wget https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VER}.tar.gz libjxl-${LIBJXL_VER}.tar.gz
+
+  # libcap
+  do_wget https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-${LIBCAP_VER}.tar.xz
 
   # Bubblewrap
   do_wget https://github.com/containers/bubblewrap/releases/download/v${BUBBLEWRAP_VER}/bubblewrap-${BUBBLEWRAP_VER}.tar.xz
