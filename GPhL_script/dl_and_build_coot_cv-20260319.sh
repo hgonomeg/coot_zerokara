@@ -455,6 +455,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
          # order matters - and some have to be done multiple times it seems
          # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
          BUILD_DEPENDENCIES="
+           elfutils
            libdwarf
            pcre2
            glib
