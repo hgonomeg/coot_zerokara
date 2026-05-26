@@ -30,7 +30,7 @@ jobs:
           - distro: rocky-9
             container: rockylinux:9
           - distro: opensuse-leap-15
-            container: opensuse/leap:15
+            container: opensuse/leap:15.5
           # todo: almalinux
 
     container:
