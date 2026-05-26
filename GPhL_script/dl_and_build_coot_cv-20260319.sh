@@ -788,6 +788,8 @@ build_with_meson () {
     printf "\n ### building $__p ($__v) with meson\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before a fresh meson setup; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
     meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
@@ -804,6 +806,21 @@ build_with_meson () {
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
   fi
 }
+# Wipes the current build directory (rm -rf *) so every build starts from a clean
+# slate, while making sure no build log is silently lost across repeat builds.
+#
+# A "repeat build" is when the same package is built more than once (MY_DONE_EXT is
+# set on the 2nd+ pass) — e.g. glycin and gdk-pixbuf are each built twice. The prior
+# pass left "my_*.log" files in this directory that the rm -rf would destroy, so we:
+#   1. rename the previous pass's "my_X.log" -> "my_X.log1" (numeric suffix per pass),
+#   2. stash all "my_*.logN" in a PID-named temp dir so they survive the wipe,
+#   3. rm -rf * to clear the build artifacts,
+#   4. restore the stashed logs into the now-empty directory.
+# Net result: pass 1's logs become my_*.log1, pass 2's are my_*.log2, etc. — preserved,
+# not overwritten. On a first build (MY_DONE_EXT empty) it simply does the rm -rf *.
+#
+# Must be called with the current directory set to the package's build dir
+# ($BUILD_DIR/$__p), since it operates on "." (the cwd).
 build_save_mylogs_and_rm () {
   # When MY_DONE_EXT is set this is a repeat build; preserve logs from previous attempts
   # before wiping the build directory, then restore them afterwards.
@@ -844,6 +861,8 @@ build_with_configure () {
     printf "\n ### building $__p ($__v) with configure/make\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before configure/make; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     if [ $__do_autogen -eq 1 ]; then
       printf "  autogen.sh (see `mypwd`/my_autogen.log${MY_DONE_EXT}) ... "
@@ -880,6 +899,8 @@ build_with_cmake () {
     printf "\n ### building $__p ($__v) with cmake\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before a fresh cmake configure; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
     cmake $DEPS_DIR/${__p}-${__v} \
