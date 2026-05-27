@@ -1213,11 +1213,14 @@ build_bubblewrap () {
 # First glycin build runs before gtk4 exists, so the GTK 4 bindings
 # (libglycin-gtk4) must be disabled here. The second build (build_glycin2),
 # after gtk is built, enables them.
+# Thumbnailer disabled: its libglycin-rebind-sys -sys crate uses pkg-config to
+# find an installed glycin-2.pc, which doesn't exist pre-install, so it can't
+# build in-tree. Coot doesn't need the standalone thumbnailer anyway.
 build_glycin () {
-  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=false -Dvapi=false
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=false -Dvapi=false -Dglycin-thumbnailer=false
 }
 build_glycin2 () {
-  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=true -Dvapi=false
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=true -Dvapi=false -Dglycin-thumbnailer=false
 }
 
 # gdk_pixbuf is a dependency of glycin, so it needs to be built first before (and without) glycin
