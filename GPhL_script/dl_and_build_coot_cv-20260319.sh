@@ -1210,6 +1210,9 @@ build_libcap () {
 }
 
 build_bubblewrap () {
+  # bubblewrap cranks -Werror=format=2, so newer GCC's bogus "%s is null"
+  # format-overflow false-positive becomes a hard error. Demote it to a warning.
+  CFLAGS="$CFLAGS -Wno-error=format-overflow" \
   build_with_meson bubblewrap ${BUBBLEWRAP_VER} -Dtests=false
 }
 
