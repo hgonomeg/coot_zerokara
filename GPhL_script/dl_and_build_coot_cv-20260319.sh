@@ -495,7 +495,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            bubblewrap
            glycin
            gdk_pixbuf
-           at-spi2-core
+           at_spi2_core
            wayland
            gtk
            glycin
