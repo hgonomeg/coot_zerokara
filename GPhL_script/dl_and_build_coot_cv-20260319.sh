@@ -199,6 +199,7 @@ if [ $do_os -eq 1 ]; then
              libXcursor-devel \
              libXinerama-devel \
              libXdamage-devel \
+             libXtst-devel \
              libexpat-devel \
              dbus-1-devel \
              libmount-devel \
@@ -267,6 +268,7 @@ if [ $do_os -eq 1 ]; then
             libXcursor-devel \
             libXdamage-devel \
             libXinerama-devel \
+            libXtst-devel \
             libdrm-devel \
             blas-devel \
             tar \
@@ -343,6 +345,7 @@ if [ $do_os -eq 1 ]; then
               bison \
               libXdamage-devel \
               libXinerama-devel \
+              libXtst-devel \
               libdrm-devel \
               expat-devel \
               libxml2-devel \
@@ -389,7 +392,7 @@ if [ $do_os -eq 1 ]; then
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
-          libxdamage-dev libxinerama-dev \
+          libxdamage-dev libxinerama-dev libxtst-dev \
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
           libopenblas-dev libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
           libglfw3-dev \
@@ -408,7 +411,7 @@ if [ $do_os -eq 1 ]; then
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
-            libxdamage libxinerama \
+            libxdamage libxinerama libxtst \
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
@@ -498,7 +501,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            bubblewrap
            glycin
            gdk_pixbuf
-           atk
+           at_spi2_core
            wayland
            gtk
            glycin
@@ -621,9 +624,8 @@ LIBCAP_VER=2.78
 BUBBLEWRAP_VER=0.11.2
 GLYCIN_VER=2.1.1
 GDK_PIXBUF_VER_MM=2.44
-GDK_PIXBUF_VER=${GDK_PIXBUF_VER_MM}.4
-ATK_VER_MM=2.38
-ATK_VER=${ATK_VER_MM}.0
+GDK_PIXBUF_VER=${GDK_PIXBUF_VER_MM}.6
+AT_SPI2_CORE_VER=2.60.4
 GTK_VER_Major=4
 GTK_VER_Minor=22
 GTK_VER_Patch=4
@@ -1239,8 +1241,8 @@ build_gdk_pixbuf2 () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=enabled
 }
 
-build_atk () {
-  build_with_meson atk ${ATK_VER}
+build_at_spi2_core () {
+  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER}
 }
 
 build_gtk () {
@@ -1831,9 +1833,8 @@ download_dependencies () {
   # GDK-Pixbuf
   do_wget https://download.gnome.org/sources/gdk-pixbuf/${GDK_PIXBUF_VER_MM}/gdk-pixbuf-${GDK_PIXBUF_VER}.tar.xz
 
-  # Atk / at-spi2-core
-  do_wget https://download.gnome.org/sources/atk/${ATK_VER_MM}/atk-${ATK_VER}.tar.xz
-  # do_wget https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/${ATK_VER}/at-spi2-core-${ATK_VER}.tar.bz2 
+  # at-spi2-core
+  do_wget https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/${AT_SPI2_CORE_VER}/at-spi2-core-${AT_SPI2_CORE_VER}.tar.bz2 
   
   # Gtk
   do_wget https://download.gnome.org/sources/gtk/${GTK_VER_Major}.${GTK_VER_Minor}/gtk-${GTK_VER}.tar.xz
@@ -1877,7 +1878,7 @@ download_dependencies () {
   do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz
 
   # gc
-  do_wget https://www.hboehm.info/gc/gc_source/gc-${GC_VER}.tar.gz
+  do_wget https://www.hboehm.info/gc/gc_source/gc-${GC_VER}.tar.gz gc-${GC_VER}.tar.gz 10
 
   # expat
   # do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER}| sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.gz
