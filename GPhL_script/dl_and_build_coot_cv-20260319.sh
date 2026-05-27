@@ -199,6 +199,7 @@ if [ $do_os -eq 1 ]; then
              libXcursor-devel \
              libXinerama-devel \
              libXdamage-devel \
+             libXtst-devel \
              libexpat-devel \
              dbus-1-devel \
              libmount-devel \
@@ -267,6 +268,7 @@ if [ $do_os -eq 1 ]; then
             libXcursor-devel \
             libXdamage-devel \
             libXinerama-devel \
+            libxtst-devel \
             libdrm-devel \
             blas-devel \
             tar \
@@ -343,6 +345,7 @@ if [ $do_os -eq 1 ]; then
               bison \
               libXdamage-devel \
               libXinerama-devel \
+              libxtst-devel \
               libdrm-devel \
               expat-devel \
               libxml2-devel \
@@ -389,7 +392,7 @@ if [ $do_os -eq 1 ]; then
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
-          libxdamage-dev libxinerama-dev \
+          libxdamage-dev libxinerama-dev libxtst-dev \
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
           libopenblas-dev libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
           libglfw3-dev \
@@ -408,7 +411,7 @@ if [ $do_os -eq 1 ]; then
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
-            libxdamage libxinerama \
+            libxdamage libxinerama libxtst \
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
