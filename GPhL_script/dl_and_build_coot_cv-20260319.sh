@@ -229,6 +229,9 @@ if [ $do_os -eq 1 ]; then
              libseccomp-devel \
              libzstd-devel \
              || error
+      # openSUSE, ever so helpful, ships a stale fixincludes bits/floatn.h that
+      # shadows glibc's good one and breaks <tgmath.h>. Nuke it so gcc sees the real header.
+      $sudo rm -f "$(gcc-13 -print-file-name=include-fixed)/bits/floatn.h"
       ;;
     rocky*|alma*|centos*)
         #$sudo dnf update -y
