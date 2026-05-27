@@ -615,11 +615,8 @@ CAIRO_VER=1.18.4
 PANGO_VER_MM=1.57
 PANGO_VER=${PANGO_VER_MM}.1
 SMI_VER=2.4
-# Todo: fix build - broken autogen stuff
-# LIBRSVG_VER_MM=2.61
-# LIBRSVG_VER=${LIBRSVG_VER_MM}.4
-LIBRSVG_VER_MM=2.58
-LIBRSVG_VER=${LIBRSVG_VER_MM}.0
+LIBRSVG_VER_MM=2.62
+LIBRSVG_VER=${LIBRSVG_VER_MM}.2
 HIGHWAY_VER=1.4.0
 LCMS2_VER=2.19.1
 LIBJXL_VER=0.11.2
@@ -668,6 +665,9 @@ export DEPS_DIR=${PREFIX}/deps
 export COOT_DOWNLOAD_DIR=$PREFIX
 export COOT_BUILD_DIR=$COOT_DOWNLOAD_DIR/$COOT_DIR
 export CARGO_HOME=${PREFIX}/.cargo
+# RUSTUP_HOME holds the actual toolchains (rustc, std, components); without this it
+# defaults to $HOME/.rustup, i.e. outside $PREFIX. Keep all of Rust under $PREFIX.
+export RUSTUP_HOME=${PREFIX}/.rustup
 
 cat <<e
 
@@ -688,6 +688,7 @@ cat <<e
   COOT_DOWNLOAD_DIR .................... $COOT_DOWNLOAD_DIR
   COOT_BUILD_DIR ....................... $COOT_BUILD_DIR
   CARGO_HOME ........................... $CARGO_HOME
+  RUSTUP_HOME .......................... $RUSTUP_HOME
 
 e
 
@@ -1139,8 +1140,14 @@ build_smi () {
   build_with_meson shared-mime-info ${SMI_VER}
 }
 
+# librsvg dropped autotools (autogen.sh/configure) for a Meson build in the 2.59+ series.
 build_librsvg () {
-  build_with_autogen_and_configure librsvg ${LIBRSVG_VER}
+  build_with_meson librsvg ${LIBRSVG_VER} \
+    -Dtests=false \
+    -Dintrospection=enabled \
+    -Dpixbuf=enabled \
+    -Dvala=disabled \
+    -Ddocs=disabled
 }
 
 build_highway () {
@@ -1205,6 +1212,9 @@ build_libcap () {
 }
 
 build_bubblewrap () {
+  # bubblewrap cranks -Werror=format=2, so newer GCC's bogus "%s is null"
+  # format-overflow false-positive becomes a hard error. Demote it to a warning.
+  CFLAGS="$CFLAGS -Wno-error=format-overflow" \
   build_with_meson bubblewrap ${BUBBLEWRAP_VER} -Dtests=false
 }
 
@@ -1626,13 +1636,27 @@ initial_setup () {
     touch $BUILD_DIR/ninjabuild/.my_done
   fi
 
-  cd $PREFIX || error
+  mkdir -p $DEPS_DIR/rust || error
+  cd $DEPS_DIR/rust || error
   if [ ! -f rustup-init.sh ]; then
-    printf "\n### Installing RUST (hopefully into CARGO_HOME=$CARGO_HOME)\n"
-    # Rust for librsvg - installs into $HOME it seems?!
+    printf "\n### Installing RUST (into CARGO_HOME=$CARGO_HOME, RUSTUP_HOME=$RUSTUP_HOME)\n"
+    # Rust for librsvg - this tries to install it into $HOME by default
+    # so, we're overriding that to install into $PREFIX (via RUSTUP_HOME and CARGO_HOME)
+    #
+    # TODO: Clemens, PLEASE DO NOT CACHE rustup-init.sh in the contrib mirror
     do_wget https://sh.rustup.rs rustup-init.sh 5
     chmod +x rustup-init.sh || error
-    RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > my_rust_install.log 2>&1 || error "see `mypwd`/my_rust_install.log"
+    RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > $DEPS_DIR/rust/my_rust_install.log 2>&1 || error "see $DEPS_DIR/rust/my_rust_install.log"
+  fi
+  cd $PREFIX || error
+
+  # librsvg's Meson build drives cargo-c (cargo cbuild / cinstall) to produce the C-ABI
+  # library plus its .pc file and headers; rustup does not ship it, so install the
+  # cargo-cbuild subcommand into CARGO_HOME. (https://github.com/lu-zero/cargo-c)
+  if [ ! -x $CARGO_HOME/bin/cargo-cbuild ]; then
+    printf "\n### Installing cargo-c into CARGO_HOME=$CARGO_HOME ... "
+    $CARGO_HOME/bin/cargo install cargo-c --locked > $DEPS_DIR/rust/my_cargo_c_install.log 2>&1 || error "see $DEPS_DIR/rust/my_cargo_c_install.log"
+    echo "done"
   fi
 }
 
@@ -2800,11 +2824,11 @@ cat <<EOF
 
   or just
 
-    rm -fr coot deps build .cargo
+    rm -fr coot deps build .cargo .rustup
 
   (to use the installation here) or even
 
-    rm -fr coot deps build .cargo doc etc info var libexec bin include share lib lib64
+    rm -fr coot deps build .cargo .rustup doc etc info var libexec bin include share lib lib64
 
   and use the created tarball (after unpacking) instead.
 
