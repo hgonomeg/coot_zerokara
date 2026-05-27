@@ -495,7 +495,7 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            bubblewrap
            glycin
            gdk_pixbuf
-           atk
+           at-spi2-core
            wayland
            gtk
            glycin
@@ -622,8 +622,7 @@ BUBBLEWRAP_VER=0.11.2
 GLYCIN_VER=2.1.1
 GDK_PIXBUF_VER_MM=2.44
 GDK_PIXBUF_VER=${GDK_PIXBUF_VER_MM}.4
-ATK_VER_MM=2.38
-ATK_VER=${ATK_VER_MM}.0
+AT_SPI2_CORE_VER=2.60.4
 GTK_VER_Major=4
 GTK_VER_Minor=22
 GTK_VER_Patch=4
@@ -1226,8 +1225,8 @@ build_gdk_pixbuf2 () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=enabled
 }
 
-build_atk () {
-  build_with_meson atk ${ATK_VER}
+build_at_spi2_core () {
+  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER}
 }
 
 build_gtk () {
@@ -1804,9 +1803,8 @@ download_dependencies () {
   # GDK-Pixbuf
   do_wget https://download.gnome.org/sources/gdk-pixbuf/${GDK_PIXBUF_VER_MM}/gdk-pixbuf-${GDK_PIXBUF_VER}.tar.xz
 
-  # Atk / at-spi2-core
-  do_wget https://download.gnome.org/sources/atk/${ATK_VER_MM}/atk-${ATK_VER}.tar.xz
-  do_wget https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/${ATK_VER}/at-spi2-core-${ATK_VER}.tar.bz2 
+  # at-spi2-core
+  do_wget https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/${AT_SPI2_CORE_VER}/at-spi2-core-${AT_SPI2_CORE_VER}.tar.bz2 
   
   # Gtk
   do_wget https://download.gnome.org/sources/gtk/${GTK_VER_Major}.${GTK_VER_Minor}/gtk-${GTK_VER}.tar.xz
