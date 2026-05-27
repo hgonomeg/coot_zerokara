@@ -268,7 +268,7 @@ if [ $do_os -eq 1 ]; then
             libXcursor-devel \
             libXdamage-devel \
             libXinerama-devel \
-            libxtst-devel \
+            libXtst-devel \
             libdrm-devel \
             blas-devel \
             tar \
@@ -345,7 +345,7 @@ if [ $do_os -eq 1 ]; then
               bison \
               libXdamage-devel \
               libXinerama-devel \
-              libxtst-devel \
+              libXtst-devel \
               libdrm-devel \
               expat-devel \
               libxml2-devel \
