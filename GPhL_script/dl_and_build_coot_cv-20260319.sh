@@ -164,8 +164,7 @@ if [ $do_os -eq 1 ]; then
   case `echo "$os" | tr '[A-Z]' '[a-z]'` in
     opensuse*)
       # probably not all needed:
-      $sudo zypper install -y \
-            -t pattern devel_basis || error
+      $sudo zypper install -y --force-resolution --allow-downgrade -t pattern devel_basis || error
       # probably not all needed:
       $sudo zypper install -y \
              libopenssl-3-devel \
@@ -200,6 +199,7 @@ if [ $do_os -eq 1 ]; then
              libXcursor-devel \
              libXinerama-devel \
              libXdamage-devel \
+             libXtst-devel \
              libexpat-devel \
              dbus-1-devel \
              libmount-devel \
@@ -227,7 +227,12 @@ if [ $do_os -eq 1 ]; then
              libpsl-devel \
              glibc-locale \
              openal-soft-devel \
+             libseccomp-devel \
+             libzstd-devel \
              || error
+      # openSUSE, ever so helpful, ships a stale fixincludes bits/floatn.h that
+      # shadows glibc's good one and breaks <tgmath.h>. Nuke it so gcc sees the real header.
+      $sudo rm -f "$(gcc-13 -print-file-name=include-fixed)/bits/floatn.h"
       ;;
     rocky*|alma*|centos*)
         #$sudo dnf update -y
@@ -263,6 +268,7 @@ if [ $do_os -eq 1 ]; then
             libXcursor-devel \
             libXdamage-devel \
             libXinerama-devel \
+            libXtst-devel \
             libdrm-devel \
             blas-devel \
             tar \
@@ -300,6 +306,8 @@ if [ $do_os -eq 1 ]; then
             glibc-gconv-extra \
             libpsl-devel \
             openal-soft-devel \
+            libseccomp-devel \
+            libzstd-devel \
             || error
       ;;
     fedora*)
@@ -337,6 +345,7 @@ if [ $do_os -eq 1 ]; then
               bison \
               libXdamage-devel \
               libXinerama-devel \
+              libXtst-devel \
               libdrm-devel \
               expat-devel \
               libxml2-devel \
@@ -370,7 +379,9 @@ if [ $do_os -eq 1 ]; then
               pkgconf-pkg-config \
               libpsl-devel \
               glibc-gconv-extra \
-              openal-soft-devel
+              openal-soft-devel \
+              libseccomp-devel \
+              libzstd-devel
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
@@ -381,13 +392,15 @@ if [ $do_os -eq 1 ]; then
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
-          libxdamage-dev libxinerama-dev \
+          libxdamage-dev libxinerama-dev libxtst-dev \
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
           libopenblas-dev libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
           libglfw3-dev \
           libpsl-dev \
           xz-utils \
           libopenal-dev \
+          libseccomp-dev \
+          libzstd-dev \
           bc || error
       ;;
     arch*)
@@ -398,11 +411,11 @@ if [ $do_os -eq 1 ]; then
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
-            libxdamage libxinerama \
+            libxdamage libxinerama libxtst \
             libxkbcommon xcb-util libx11 \
             openblas blas gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils libpsl bc openal || error
+            inetutils libpsl bc openal libseccomp zstd || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -481,11 +494,18 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
            curl
            poppler
            cairo
+           highway
+           lcms2
+           libjxl
+           libcap
+           bubblewrap
+           glycin
            gdk_pixbuf
-           atk
+           at_spi2_core
            wayland
            gtk
-           pygobject 
+           glycin
+           pygobject
            fftw
            maeparser
            coordgen
@@ -595,15 +615,17 @@ CAIRO_VER=1.18.4
 PANGO_VER_MM=1.57
 PANGO_VER=${PANGO_VER_MM}.1
 SMI_VER=2.4
-# Todo: fix build - broken autogen stuff
-# LIBRSVG_VER_MM=2.61
-# LIBRSVG_VER=${LIBRSVG_VER_MM}.4
-LIBRSVG_VER_MM=2.58
-LIBRSVG_VER=${LIBRSVG_VER_MM}.0
+LIBRSVG_VER_MM=2.62
+LIBRSVG_VER=${LIBRSVG_VER_MM}.2
+HIGHWAY_VER=1.4.0
+LCMS2_VER=2.19.1
+LIBJXL_VER=0.11.2
+LIBCAP_VER=2.78
+BUBBLEWRAP_VER=0.11.2
+GLYCIN_VER=2.1.1
 GDK_PIXBUF_VER_MM=2.44
-GDK_PIXBUF_VER=${GDK_PIXBUF_VER_MM}.4
-ATK_VER_MM=2.38
-ATK_VER=${ATK_VER_MM}.0
+GDK_PIXBUF_VER=${GDK_PIXBUF_VER_MM}.6
+AT_SPI2_CORE_VER=2.60.4
 GTK_VER_Major=4
 GTK_VER_Minor=22
 GTK_VER_Patch=4
@@ -643,6 +665,9 @@ export DEPS_DIR=${PREFIX}/deps
 export COOT_DOWNLOAD_DIR=$PREFIX
 export COOT_BUILD_DIR=$COOT_DOWNLOAD_DIR/$COOT_DIR
 export CARGO_HOME=${PREFIX}/.cargo
+# RUSTUP_HOME holds the actual toolchains (rustc, std, components); without this it
+# defaults to $HOME/.rustup, i.e. outside $PREFIX. Keep all of Rust under $PREFIX.
+export RUSTUP_HOME=${PREFIX}/.rustup
 
 cat <<e
 
@@ -663,6 +688,7 @@ cat <<e
   COOT_DOWNLOAD_DIR .................... $COOT_DOWNLOAD_DIR
   COOT_BUILD_DIR ....................... $COOT_BUILD_DIR
   CARGO_HOME ........................... $CARGO_HOME
+  RUSTUP_HOME .......................... $RUSTUP_HOME
 
 e
 
@@ -767,6 +793,8 @@ build_with_meson () {
     printf "\n ### building $__p ($__v) with meson\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before a fresh meson setup; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
     meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
@@ -783,6 +811,21 @@ build_with_meson () {
     touch $BUILD_DIR/$__p/.my_done${MY_DONE_EXT}
   fi
 }
+# Wipes the current build directory (rm -rf *) so every build starts from a clean
+# slate, while making sure no build log is silently lost across repeat builds.
+#
+# A "repeat build" is when the same package is built more than once (MY_DONE_EXT is
+# set on the 2nd+ pass) — e.g. glycin and gdk-pixbuf are each built twice. The prior
+# pass left "my_*.log" files in this directory that the rm -rf would destroy, so we:
+#   1. rename the previous pass's "my_X.log" -> "my_X.log1" (numeric suffix per pass),
+#   2. stash all "my_*.logN" in a PID-named temp dir so they survive the wipe,
+#   3. rm -rf * to clear the build artifacts,
+#   4. restore the stashed logs into the now-empty directory.
+# Net result: pass 1's logs become my_*.log1, pass 2's are my_*.log2, etc. — preserved,
+# not overwritten. On a first build (MY_DONE_EXT empty) it simply does the rm -rf *.
+#
+# Must be called with the current directory set to the package's build dir
+# ($BUILD_DIR/$__p), since it operates on "." (the cwd).
 build_save_mylogs_and_rm () {
   # When MY_DONE_EXT is set this is a repeat build; preserve logs from previous attempts
   # before wiping the build directory, then restore them afterwards.
@@ -823,6 +866,8 @@ build_with_configure () {
     printf "\n ### building $__p ($__v) with configure/make\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before configure/make; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     if [ $__do_autogen -eq 1 ]; then
       printf "  autogen.sh (see `mypwd`/my_autogen.log${MY_DONE_EXT}) ... "
@@ -859,6 +904,8 @@ build_with_cmake () {
     printf "\n ### building $__p ($__v) with cmake\n"
     mkdir -p $BUILD_DIR/$__p || error
     cd $BUILD_DIR/$__p || error
+    # Clean the build dir before a fresh cmake configure; on a 2nd-pass build this also
+    # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
     printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
     cmake $DEPS_DIR/${__p}-${__v} \
@@ -1093,20 +1140,109 @@ build_smi () {
   build_with_meson shared-mime-info ${SMI_VER}
 }
 
+# librsvg dropped autotools (autogen.sh/configure) for a Meson build in the 2.59+ series.
 build_librsvg () {
-  build_with_autogen_and_configure librsvg ${LIBRSVG_VER}
+  build_with_meson librsvg ${LIBRSVG_VER} \
+    -Dtests=false \
+    -Dintrospection=enabled \
+    -Dpixbuf=enabled \
+    -Dvala=disabled \
+    -Ddocs=disabled
 }
 
-# not sure if we really need to build twice ...
+build_highway () {
+  build_with_cmake highway ${HIGHWAY_VER} \
+    -DBUILD_SHARED_LIBS=ON \
+    -DHWY_ENABLE_TESTS=OFF \
+    -DHWY_ENABLE_EXAMPLES=OFF
+}
+
+build_lcms2 () {
+  build_with_configure lcms2 ${LCMS2_VER} --enable-shared --disable-static
+}
+
+build_libjxl () {
+  build_with_cmake libjxl ${LIBJXL_VER} \
+    -DBUILD_SHARED_LIBS=ON \
+    -DBUILD_TESTING=OFF \
+    -DJPEGXL_FORCE_SYSTEM_HWY=ON \
+    -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
+    -DJPEGXL_FORCE_SYSTEM_LCMS2=ON \
+    -DJPEGXL_BUNDLE_LIBPNG=OFF \
+    -DJPEGXL_ENABLE_SKCMS=OFF \
+    -DJPEGXL_ENABLE_SJPEG=OFF \
+    -DJPEGXL_ENABLE_FUZZERS=OFF \
+    -DJPEGXL_ENABLE_TOOLS=OFF \
+    -DJPEGXL_ENABLE_EXAMPLES=OFF \
+    -DJPEGXL_ENABLE_DEVTOOLS=OFF \
+    -DJPEGXL_ENABLE_PLUGINS=OFF \
+    -DJPEGXL_ENABLE_OPENEXR=OFF \
+    -DJPEGXL_ENABLE_VIEWERS=OFF \
+    -DJPEGXL_ENABLE_BENCHMARK=OFF \
+    -DJPEGXL_ENABLE_JNI=OFF \
+    -DJPEGXL_ENABLE_JPEGLI=OFF \
+    -DJPEGXL_ENABLE_DOXYGEN=OFF \
+    -DJPEGXL_ENABLE_MANPAGES=OFF \
+    -Wno-dev
+}
+
+build_libcap () {
+  # libcap uses a plain Makefile (no configure/cmake/meson).
+  # GOLANG=no skips the optional Go bindings (avoids needing Go);
+  # RAISE_SETFCAP=no skips the privileged setcap step during install;
+  # building only the libcap/ subdir avoids the progs and PAM module.
+  if [ ! -f $BUILD_DIR/libcap/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building libcap (${LIBCAP_VER}) with make\n"
+    rm -rf $BUILD_DIR/libcap
+    cp -a $DEPS_DIR/libcap-${LIBCAP_VER} $BUILD_DIR/libcap || error
+    cd $BUILD_DIR/libcap || error
+
+    printf "  running make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -C libcap -j ${nthreads} lib=lib prefix=$PREFIX DYNAMIC=yes GOLANG=no > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  running install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make -C libcap install lib=lib prefix=$PREFIX DYNAMIC=yes GOLANG=no RAISE_SETFCAP=no > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+    do_cleans="$do_cleans `pwd`"
+
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/libcap/.my_done${MY_DONE_EXT}
+  fi
+}
+
+build_bubblewrap () {
+  # bubblewrap cranks -Werror=format=2, so newer GCC's bogus "%s is null"
+  # format-overflow false-positive becomes a hard error. Demote it to a warning.
+  CFLAGS="$CFLAGS -Wno-error=format-overflow" \
+  build_with_meson bubblewrap ${BUBBLEWRAP_VER} -Dtests=false
+}
+
+# First glycin build runs before gtk4 exists, so the GTK 4 bindings
+# (libglycin-gtk4) must be disabled here. The second build (build_glycin2),
+# after gtk is built, enables them.
+# Thumbnailer disabled: its libglycin-rebind-sys -sys crate uses pkg-config to
+# find an installed glycin-2.pc, which doesn't exist pre-install, so it can't
+# build in-tree. Coot doesn't need the standalone thumbnailer anyway.
+build_glycin () {
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=false -Dvapi=false -Dglycin-thumbnailer=false
+}
+build_glycin2 () {
+  build_with_meson glycin ${GLYCIN_VER} -Dtests=false -Dloaders=glycin-image-rs,glycin-jxl,glycin-svg -Dlibglycin-gtk4=true -Dvapi=false -Dglycin-thumbnailer=false
+}
+
+# gdk_pixbuf is a dependency of glycin, so it needs to be built first before (and without) glycin
 build_gdk_pixbuf () {
   build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=disabled
 }
+
+# Gets rebuilt after glycin, so that glycin support is included.
 build_gdk_pixbuf2 () {
-  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=disabled
+  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=enabled
 }
 
-build_atk () {
-  build_with_meson atk ${ATK_VER}
+build_at_spi2_core () {
+  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER}
 }
 
 build_gtk () {
@@ -1500,13 +1636,27 @@ initial_setup () {
     touch $BUILD_DIR/ninjabuild/.my_done
   fi
 
-  cd $PREFIX || error
+  mkdir -p $DEPS_DIR/rust || error
+  cd $DEPS_DIR/rust || error
   if [ ! -f rustup-init.sh ]; then
-    printf "\n### Installing RUST (hopefully into CARGO_HOME=$CARGO_HOME)\n"
-    # Rust for librsvg - installs into $HOME it seems?!
+    printf "\n### Installing RUST (into CARGO_HOME=$CARGO_HOME, RUSTUP_HOME=$RUSTUP_HOME)\n"
+    # Rust for librsvg - this tries to install it into $HOME by default
+    # so, we're overriding that to install into $PREFIX (via RUSTUP_HOME and CARGO_HOME)
+    #
+    # TODO: Clemens, PLEASE DO NOT CACHE rustup-init.sh in the contrib mirror
     do_wget https://sh.rustup.rs rustup-init.sh 5
     chmod +x rustup-init.sh || error
-    RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > my_rust_install.log 2>&1 || error "see `mypwd`/my_rust_install.log"
+    RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > $DEPS_DIR/rust/my_rust_install.log 2>&1 || error "see $DEPS_DIR/rust/my_rust_install.log"
+  fi
+  cd $PREFIX || error
+
+  # librsvg's Meson build drives cargo-c (cargo cbuild / cinstall) to produce the C-ABI
+  # library plus its .pc file and headers; rustup does not ship it, so install the
+  # cargo-cbuild subcommand into CARGO_HOME. (https://github.com/lu-zero/cargo-c)
+  if [ ! -x $CARGO_HOME/bin/cargo-cbuild ]; then
+    printf "\n### Installing cargo-c into CARGO_HOME=$CARGO_HOME ... "
+    $CARGO_HOME/bin/cargo install cargo-c --locked > $DEPS_DIR/rust/my_cargo_c_install.log 2>&1 || error "see $DEPS_DIR/rust/my_cargo_c_install.log"
+    echo "done"
   fi
 }
 
@@ -1662,12 +1812,29 @@ download_dependencies () {
   # Librsvg
   do_wget https://gitlab.gnome.org/GNOME/librsvg/-/archive/${LIBRSVG_VER}/librsvg-${LIBRSVG_VER}.tar.gz
 
+  # Highway
+  do_wget https://github.com/google/highway/archive/refs/tags/${HIGHWAY_VER}.tar.gz highway-${HIGHWAY_VER}.tar.gz
+
+  # Little-CMS (lcms2)
+  do_wget https://github.com/mm2/Little-CMS/releases/download/lcms${LCMS2_VER}/lcms2-${LCMS2_VER}.tar.gz
+
+  # libjxl
+  do_wget https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VER}.tar.gz libjxl-${LIBJXL_VER}.tar.gz
+
+  # libcap
+  do_wget https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-${LIBCAP_VER}.tar.xz
+
+  # Bubblewrap
+  do_wget https://github.com/containers/bubblewrap/releases/download/v${BUBBLEWRAP_VER}/bubblewrap-${BUBBLEWRAP_VER}.tar.xz
+
+  # Glycin
+  do_wget https://gitlab.gnome.org/GNOME/glycin/-/archive/${GLYCIN_VER}/glycin-${GLYCIN_VER}.tar.bz2
+
   # GDK-Pixbuf
   do_wget https://download.gnome.org/sources/gdk-pixbuf/${GDK_PIXBUF_VER_MM}/gdk-pixbuf-${GDK_PIXBUF_VER}.tar.xz
 
-  # Atk / at-spi2-core
-  do_wget https://download.gnome.org/sources/atk/${ATK_VER_MM}/atk-${ATK_VER}.tar.xz
-  # do_wget https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/${ATK_VER}/at-spi2-core-${ATK_VER}.tar.bz2 
+  # at-spi2-core
+  do_wget https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/${AT_SPI2_CORE_VER}/at-spi2-core-${AT_SPI2_CORE_VER}.tar.bz2 
   
   # Gtk
   do_wget https://download.gnome.org/sources/gtk/${GTK_VER_Major}.${GTK_VER_Minor}/gtk-${GTK_VER}.tar.xz
@@ -1711,7 +1878,7 @@ download_dependencies () {
   do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz
 
   # gc
-  do_wget https://www.hboehm.info/gc/gc_source/gc-${GC_VER}.tar.gz
+  do_wget https://www.hboehm.info/gc/gc_source/gc-${GC_VER}.tar.gz gc-${GC_VER}.tar.gz 10
 
   # expat
   # do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER}| sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.gz
@@ -2657,11 +2824,11 @@ cat <<EOF
 
   or just
 
-    rm -fr coot deps build .cargo
+    rm -fr coot deps build .cargo .rustup
 
   (to use the installation here) or even
 
-    rm -fr coot deps build .cargo doc etc info var libexec bin include share lib lib64
+    rm -fr coot deps build .cargo .rustup doc etc info var libexec bin include share lib lib64
 
   and use the created tarball (after unpacking) instead.
 
