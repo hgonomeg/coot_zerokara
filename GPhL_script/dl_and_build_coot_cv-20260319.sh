@@ -1889,7 +1889,8 @@ download_dependencies () {
   do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz
 
   # gc
-  do_wget https://www.hboehm.info/gc/gc_source/gc-${GC_VER}.tar.gz gc-${GC_VER}.tar.gz 10
+  # hboehm.info only carries tarballs up to 8.2.8; newer releases are on GitHub.
+  do_wget https://github.com/bdwgc/bdwgc/releases/download/v${GC_VER}/gc-${GC_VER}.tar.gz gc-${GC_VER}.tar.gz 10
 
   # expat
   # do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER}| sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.gz
