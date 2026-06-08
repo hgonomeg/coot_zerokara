@@ -2324,18 +2324,22 @@ EOF
 EOF
 }
 
-package_coot () {
-  cd $PREFIX || error
-  # build a "<distro>-<version>" tag for the tarball name from os-release
+# Echo a "<distro>-<version>" tag (for tarball names) from os-release / lsb-release.
+# Returns 1 if the distro can't be determined, so callers can `|| return`.
+detect_os_tag () {
   if [ -f /etc/os-release ]; then
     # sed "s/ [^-]*-/-/g": keep only NAME's first word, e.g. "Red Hat Enterprise Linux-9.5" -> "Red-9.5"
-    os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
+    (. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")
   elif [ -f /etc/lsb-release ]; then
-    os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
+    (. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})
   else
-    return
+    return 1
   fi
-  tarball_name=coot_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`.tar.gz
+}
+
+# Set $package_dirs to the install subdirs to ship, adding FontConfig (and rebuilding
+# its cache) when present. Runs in the current directory, i.e. the $PREFIX install tree.
+collect_package_dirs () {
   package_dirs="lib libexec share"
   [ -d lib64 ] && package_dirs="$package_dirs lib64"
   if [ -f bin/fc-match ]; then
@@ -2356,6 +2360,13 @@ package_coot () {
       fc-cache -rv 2>&1 | sed 's/^/     /' | grep -E -v " skipping| 0 fonts"
     )
   fi
+}
+
+package_coot () {
+  cd $PREFIX || error
+  os=`detect_os_tag` || return
+  tarball_name=coot_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`.tar.gz
+  collect_package_dirs
   create_readme
   printf "\n packaging Coot as $tarball_name ... "
   tar -czf $tarball_name bin/coot* bin/layla bin/pyrogen bin/python3* $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
@@ -2366,37 +2377,10 @@ package_coot () {
 }
 package_coot_minimal () {
   cd $PREFIX || error
-  # build a "<distro>-<version>" tag for the tarball name from os-release
-  if [ -f /etc/os-release ]; then
-    # sed "s/ [^-]*-/-/g": keep only NAME's first word, e.g. "Red Hat Enterprise Linux-9.5" -> "Red-9.5"
-    os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
-  elif [ -f /etc/lsb-release ]; then
-    os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
-  else
-    return
-  fi
+  os=`detect_os_tag` || return
   package_basename=coot-${outtag}-minimal_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`
   tarball_name=$package_basename.tar.gz
-  package_dirs="lib libexec share"
-  [ -d lib64 ] && package_dirs="$package_dirs lib64"
-  if [ -f bin/fc-match ]; then
-    printf "  including FontConfig binaries, fonts and cache:\n"
-    [ -d var/cache/fontconfig ] && package_dirs="$package_dirs var/cache/fontconfig"
-    package_dirs="$package_dirs etc `ls bin/fc-* 2>/dev/null`"
-    make_font_dirs_and_files
-    (
-      FONTCONFIG_PATH="$PREFIX/etc/fonts"
-      FONTCONFIG_FILE="$PREFIX/etc/fonts/fonts.conf"
-      FONTCONFIG_CACHE="$PREFIX/var/cache/fontconfig"
-      XDG_CACHE_HOME="$PREFIX/var/cache"
-      LD_LIBRARY_PATH="$PREFIX/lib64:$PREFIX/lib"
-      PATH=$PREFIX/bin:$PATH
-      export FONTCONFIG_PATH FONTCONFIG_FILE FONTCONFIG_CACHE XDG_CACHE_HOME LD_LIBRARY_PATH PATH
-      unset FONTCONFIG_SYSROOT
-      # indent each fc-cache line 5 spaces (was awk), drop the " skipping"/" 0 fonts" noise (| = OR)
-      fc-cache -rv 2>&1 | sed 's/^/     /' | grep -E -v " skipping| 0 fonts"
-    )
-  fi
+  collect_package_dirs
   # stage a throwaway copy under a PID-named temp dir ($$ = this shell's PID), so we
   # can prune and strip it without touching the real install
   staging_root="__$$.tmp"
@@ -2411,18 +2395,25 @@ package_coot_minimal () {
   (
     cd $staging_dir || error
 
-    printf "\n preparing for minimal size ... "
-    find . -type f -name "*.[ai]" | xargs -r rm        # static libs (.a) and .i files ([ai] = a or i)
-    find . -type f -name "*.la" | xargs -r rm          # libtool archives
-    find share/locale -type d ! -name en | xargs -r rm -fr   # all locale dirs except "en"
-    find share -type f -name "*html" | grep -v coot | xargs -r rm   # stray *html, keep Coot's own (grep -v coot)
+    printf "\n preparing for minimal size ...\n"
+    printf "   removing static libraries and intermediates (*.a, *.i) ...\n"
+    find . -type f -name "*.[ai]" | xargs -r rm        # [ai] = a or i
+    printf "   removing libtool archives (*.la) ...\n"
+    find . -type f -name "*.la" | xargs -r rm
+    printf "   removing non-English locales ...\n"
+    find share/locale -type d ! -name en | xargs -r rm -fr
+    printf "   removing stray HTML docs (keeping Coot's own) ...\n"
+    find share -type f -name "*html" | grep -v coot | xargs -r rm   # grep -v coot = exclude Coot's docs
     rm -fr share/man share/doc share/RDKit/Docs share/cmake*/Help share/cmake*/Modules   # docs/help trees
     # strip symbols to shrink libraries/binaries, when `strip` is available
     if type strip >/dev/null 2>&1; then
+      printf "   stripping shared libraries ...\n"
       # .so files and versioned .so.N: name ends in "so" or in a digit ($ = end; | = OR)
       find lib* -name "*.so*" -type f | grep -E "so$|[0-9]$" | xargs -r -n 1 strip
-      find libexec -type f ! -name "*.*" | xargs -r -n 1 strip          # libexec binaries (no dot in name)
-      find bin -type f -size +100k ! -name "*.*" | xargs -r -n 1 strip  # bin binaries >100k, no extension
+      printf "   stripping libexec binaries ...\n"
+      find libexec -type f ! -name "*.*" | xargs -r -n 1 strip          # ! -name "*.*" = no dot in name
+      printf "   stripping bin binaries ...\n"
+      find bin -type f -size +100k ! -name "*.*" | xargs -r -n 1 strip  # >100k, no extension
     fi
     echo "done"
 
