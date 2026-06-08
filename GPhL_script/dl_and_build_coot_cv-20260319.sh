@@ -2123,6 +2123,29 @@ or
   setenv PATH "DIR$1/bin:\$PATH"   # tcsh/csh
 
 (replacing DIR with the correct directory name).
+
+You can then run Coot and its tools, e.g.:
+
+  coot
+  findwaters --help
+
+------------------------------------------------------------------------
+Using the headless API (Chapi) from the bundled Python
+------------------------------------------------------------------------
+
+This build ships its own Python together with the "coot_headless_api"
+module (a.k.a. Chapi). To use it, source the bundled environment file
+once in your shell:
+
+  . DIR$1/bin/coot-env.sh            # bash/sh/dash/zsh/ksh
+
+then use the bundled python3, from any directory:
+
+  python3 -c 'import coot_headless_api as chapi; print(chapi)'
+
+coot-env.sh auto-detects the install location (override by setting
+COOT_PREFIX) and exports PYTHONHOME, LD_LIBRARY_PATH and the COOT_* data
+directories, so that "import coot_headless_api" just works.
 EOF
 }
 
@@ -2785,6 +2808,70 @@ EOF
   fi
 }
 
+# Emit bin/coot-env.sh: a *sourceable* env file so users can drive the bundled Python
+# (e.g. `python3 -c 'import coot_headless_api'`) from their own shell. Named coot-env.sh
+# so it is picked up by the "bin/coot*" glob in package_coot{,_minimal}. Written via a
+# single-quoted heredoc so it self-derives the prefix at runtime (stays relocatable).
+create_coot_env () {
+  cd $PREFIX || error
+  if [ ! -f bin/coot-env.sh ]; then
+    cat <<'EOF' > bin/coot-env.sh
+#!/bin/sh
+# coot-env.sh — source this to use the tarball-shipped Coot and its bundled Python
+# from your own shell. After sourcing, the shipped python3 can import the headless
+# API:   python3 -c 'import coot_headless_api'
+#
+# Usage (sh/bash/zsh/ksh):
+#     . /path/to/coot/bin/coot-env.sh
+#
+# The install location is auto-detected; override by setting COOT_PREFIX beforehand.
+
+# --- locate the install prefix (the dir above this script's bin/) ---
+if [ "X${COOT_PREFIX:-}" = "X" ]; then
+  # this file is *sourced*, so $0 is unreliable; find our own path per shell
+  if [ -n "${BASH_SOURCE:-}" ]; then
+    _coot_self=${BASH_SOURCE}            # bash
+  elif [ -n "${ZSH_VERSION:-}" ]; then
+    _coot_self=${(%):-%x}                # zsh: %x = path of the sourced file
+  else
+    _coot_self=$0                        # other shells: best effort
+  fi
+  _coot_bindir=$(cd "$(dirname "$_coot_self")" && pwd)
+  COOT_PREFIX=$(dirname "$_coot_bindir") # bin/ -> install root
+  unset _coot_self _coot_bindir
+fi
+
+if [ ! -d "$COOT_PREFIX/lib" ]; then
+  echo "coot-env.sh: COOT_PREFIX=\"$COOT_PREFIX\" does not look like a Coot install" >&2
+  echo "  (set COOT_PREFIX to the unpacked tarball root and re-source)" >&2
+  return 1 2>/dev/null || exit 1
+fi
+export COOT_PREFIX
+
+# --- core runtime env (mirrors what coot-wrapper.sh sets up) ---
+PATH="$COOT_PREFIX/bin:$PATH"; export PATH
+# ${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} appends the caller's existing value, but the
+# ":+" form expands to ":$LD_LIBRARY_PATH" only when it is already set & non-empty,
+# and to nothing otherwise. That avoids leaving a dangling ":" (an empty path entry,
+# which the loader treats as the current directory "." — a correctness/security trap)
+# when LD_LIBRARY_PATH was previously unset.
+LD_LIBRARY_PATH="$COOT_PREFIX/lib64:$COOT_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; export LD_LIBRARY_PATH
+# PYTHONHOME makes the shipped python3 find its own stdlib + site-packages (where
+# coot_headless_api lives); no PYTHONPATH needed.
+PYTHONHOME="$COOT_PREFIX"; export PYTHONHOME
+
+# --- Coot data directories (so chapi finds dictionaries/structures at runtime) ---
+[ -d "$COOT_PREFIX/share/coot" ]                       && { COOT_DATA_DIR="$COOT_PREFIX/share/coot"; export COOT_DATA_DIR; }
+[ -d "$COOT_PREFIX/share/coot/scheme" ]                && { COOT_SCHEME_DIR="$COOT_PREFIX/share/coot/scheme"; export COOT_SCHEME_DIR; }
+[ -f "$COOT_PREFIX/share/coot/standard-residues.pdb" ] && { COOT_STANDARD_RESIDUES="$COOT_PREFIX/share/coot/standard-residues.pdb"; export COOT_STANDARD_RESIDUES; }
+[ -d "$COOT_PREFIX/share/coot/reference-structures" ]  && { COOT_REF_STRUCTS="$COOT_PREFIX/share/coot/reference-structures"; export COOT_REF_STRUCTS; }
+# monomer/dictionary library (only if the user hasn't pointed at a CCP4 one)
+[ "X${CLIBD_MON:-}" = "X" ] && [ -d "$COOT_PREFIX/share/coot/lib" ] && { COOT_REFMAC_LIB_DIR="$COOT_PREFIX/share/coot/lib"; export COOT_REFMAC_LIB_DIR; }
+EOF
+    chmod +x bin/coot-env.sh
+  fi
+}
+
 printf "\n################## setup_all_and_build_coot ################## \n\n"
 setup_all_and_build_coot || error
 printf "\n####################### handling fonts ####################### \n\n"
@@ -2793,6 +2880,8 @@ printf "\n###################### package_coot_prep ##################### \n\n"
 package_coot_prep        || error
 printf "\n#################### create_coot_wrapper ##################### \n\n"
 create_coot_wrapper      || error
+printf "\n###################### create_coot_env ###################### \n\n"
+create_coot_env          || error
 if [ $do_minimaltar -eq 1 ]; then
   printf "\n#################### package_coot_minimal #################### \n\n"
   package_coot_minimal   || error
