@@ -2366,21 +2366,23 @@ package_coot () {
 }
 package_coot_minimal () {
   cd $PREFIX || error
+  # build a "<distro>-<version>" tag for the tarball name from os-release
   if [ -f /etc/os-release ]; then
+    # sed "s/ [^-]*-/-/g": keep only NAME's first word, e.g. "Red Hat Enterprise Linux-9.5" -> "Red-9.5"
     os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
   elif [ -f /etc/lsb-release ]; then
     os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
   else
     return
   fi
-  outnam=coot-${outtag}-minimal_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`
-  out=$outnam.tar.gz
-  __dirs="lib libexec share"
-  [ -d lib64 ] && __dirs="$__dirs lib64"
+  package_basename=coot-${outtag}-minimal_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`
+  tarball_name=$package_basename.tar.gz
+  package_dirs="lib libexec share"
+  [ -d lib64 ] && package_dirs="$package_dirs lib64"
   if [ -f bin/fc-match ]; then
     printf "  including FontConfig binaries, fonts and cache:\n"
-    [ -d var/cache/fontconfig ] && __dirs="$__dirs var/cache/fontconfig"
-    __dirs="$__dirs etc `ls bin/fc-* 2>/dev/null`"
+    [ -d var/cache/fontconfig ] && package_dirs="$package_dirs var/cache/fontconfig"
+    package_dirs="$package_dirs etc `ls bin/fc-* 2>/dev/null`"
     make_font_dirs_and_files
     (
       FONTCONFIG_PATH="$PREFIX/etc/fonts"
@@ -2391,45 +2393,49 @@ package_coot_minimal () {
       PATH=$PREFIX/bin:$PATH
       export FONTCONFIG_PATH FONTCONFIG_FILE FONTCONFIG_CACHE XDG_CACHE_HOME LD_LIBRARY_PATH PATH
       unset FONTCONFIG_SYSROOT
-      fc-cache -rv 2>&1 | awk '{print "    ",$0}' | egrep -v " skipping| 0 fonts"
+      # indent each fc-cache line 5 spaces (was awk), drop the " skipping"/" 0 fonts" noise (| = OR)
+      fc-cache -rv 2>&1 | sed 's/^/     /' | grep -E -v " skipping| 0 fonts"
     )
   fi
-  mkdir -p __$$.tmp/$outnam || error
-  cp -ar $__dirs __$$.tmp/$outnam/. || error "copy-1 (see above)"
-  mkdir -p  __$$.tmp/$outnam/bin
-  cp -a bin/coot* bin/layla bin/pyrogen bin/python3* __$$.tmp/$outnam/bin/. || error "copy-2 (see above)"
+  # stage a throwaway copy under a PID-named temp dir ($$ = this shell's PID), so we
+  # can prune and strip it without touching the real install
+  staging_root="__$$.tmp"
+  staging_dir="$staging_root/$package_basename"
+  mkdir -p $staging_dir || error
+  cp -ar $package_dirs $staging_dir/. || error "copy-1 (see above)"
+  mkdir -p $staging_dir/bin
+  cp -a bin/coot* bin/layla bin/pyrogen bin/python3* $staging_dir/bin/. || error "copy-2 (see above)"
   if [ -x bin/fc-match ]; then
-    cp -a bin/fc-* __$$.tmp/$outnam/bin/. || error "copy-3 (see above)"
+    cp -a bin/fc-* $staging_dir/bin/. || error "copy-3 (see above)"
   fi
   (
-    cd __$$.tmp/$outnam || error
+    cd $staging_dir || error
 
     printf "\n preparing for minimal size ... "
-    find . -type f -name "*.[ai]" | xargs -r rm
-    find . -type f -name "*.la" | xargs -r rm
-    find share/locale -type d ! -name en | xargs -r rm -fr
-    find share -type f -name "*html" | grep -v coot | xargs -r rm
-    rm -fr share/man share/doc share/RDKit/Docs share/cmake*/Help share/cmake*/Modules
-    type strip >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-      egrep="egrep"
-      __c=`egrep --version 2>&1 | grep -c "egrep is obsolescent"`
-      [ $__c -ne 0 ] && egrep="grep -E" || egrep="egrep"
-      find lib* -name "*.so*" -type f | $egrep "so$|[0-9]$" | xargs -r -n 1 strip
-      find libexec -type f ! -name "*.*" | xargs -r -n 1 strip
-      find bin -type f -size +100k ! -name "*.*" | xargs -r -n 1 strip
+    find . -type f -name "*.[ai]" | xargs -r rm        # static libs (.a) and .i files ([ai] = a or i)
+    find . -type f -name "*.la" | xargs -r rm          # libtool archives
+    find share/locale -type d ! -name en | xargs -r rm -fr   # all locale dirs except "en"
+    find share -type f -name "*html" | grep -v coot | xargs -r rm   # stray *html, keep Coot's own (grep -v coot)
+    rm -fr share/man share/doc share/RDKit/Docs share/cmake*/Help share/cmake*/Modules   # docs/help trees
+    # strip symbols to shrink libraries/binaries, when `strip` is available
+    if type strip >/dev/null 2>&1; then
+      # .so files and versioned .so.N: name ends in "so" or in a digit ($ = end; | = OR)
+      find lib* -name "*.so*" -type f | grep -E "so$|[0-9]$" | xargs -r -n 1 strip
+      find libexec -type f ! -name "*.*" | xargs -r -n 1 strip          # libexec binaries (no dot in name)
+      find bin -type f -size +100k ! -name "*.*" | xargs -r -n 1 strip  # bin binaries >100k, no extension
     fi
     echo "done"
 
-    create_readme /$outnam
+    create_readme /$package_basename
     cd ../ || error
-    printf "\n packaging minimal Coot as $out ... "
-    tar -czf ../$out * > ../my_tar.log 2>&1 || error "see `dirname $PWD`/my_tar.log"
+    # now inside $staging_root; "*" is just the $package_basename dir; write tarball + log one level up
+    printf "\n packaging minimal Coot as $tarball_name ... "
+    tar -czf ../$tarball_name * > ../my_tar.log 2>&1 || error "see `dirname $PWD`/my_tar.log"
     echo "done"
   )
-  rm -fr __$$.tmp || error
+  rm -fr $staging_root || error
   printf "\n"
-  ls -l $out
+  ls -l $tarball_name
   printf "\n"
 }
 
