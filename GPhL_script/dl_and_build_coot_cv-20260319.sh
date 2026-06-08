@@ -574,7 +574,6 @@ case $COOT_VER in
 
        BOOST_VER=1.91.0
        PYGOBJECT_VER=3.56.3
-       FREEGLUT_VER=3.8.0
        RDKIT_VER=2026_03_2
        NUMPY_VER=2.4.3
 
@@ -963,9 +962,6 @@ build_pcre2 () {
 
 build_libffi () {
   build_with_configure libffi ${LIBFFI_VER}
-}
-build_freeglut () {
-  build_with_cmake freeglut ${FREEGLUT_VER} -DFREEGLUT_BUILD_DEMOS=OFF -DFREEGLUT_BUILD_STATIC_LIBS=OFF
 }
 # build_libdrm () {
 #   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
@@ -1912,12 +1908,7 @@ download_dependencies () {
   # Harfbuzz
   do_wget https://github.com/harfbuzz/harfbuzz/archive/refs/tags/${HARFBUZZ_VER}.tar.gz harfbuzz-${HARFBUZZ_VER}.tar.gz
 
-  for __p in libffi freeglut
-  do
-    __puc=`echo $__p | tr '[a-z]' '[A-Z]'`
-    eval "__v=\"\$${__puc}_VER\""  
-    do_wget https://github.com/${__p}/${__p}/releases/download/v${__v}/${__p}-${__v}.tar.gz
-  done
+  do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
 
   # # elfutils
   do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
