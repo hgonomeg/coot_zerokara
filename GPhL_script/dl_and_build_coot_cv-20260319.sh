@@ -1387,7 +1387,7 @@ do_wget () {
   if [ $# -ge 1 ]; then
     __max_retries=$1;shift
   else
-    __max_retries=3
+    __max_retries=8
   fi
 
   # Derive a short package name used in the log filename (my_get_<pkg>.log).
@@ -1411,7 +1411,7 @@ do_wget () {
       fedora-4[0-9]*) __wget_host_error_flag="";;
       *) __wget_host_error_flag="--retry-on-host-error";;
     esac
-    __wget_common_flags="--retry-connrefused --retry-on-http-error=503,429  $__wget_host_error_flag --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
+    __wget_common_flags="--retry-connrefused --retry-on-http-error=500,502,503,429  $__wget_host_error_flag --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
     printf "\n getting $__output_file ... "
 
     # --- Three-tier download strategy ---
@@ -1581,7 +1581,7 @@ initial_setup () {
     # so, we're overriding that to install into $PREFIX (via RUSTUP_HOME and CARGO_HOME)
     #
     # TODO: Clemens, PLEASE DO NOT CACHE rustup-init.sh in the contrib mirror
-    do_wget https://sh.rustup.rs rustup-init.sh 5
+    do_wget https://sh.rustup.rs rustup-init.sh 8
     chmod +x rustup-init.sh || error
     RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > $DEPS_DIR/rust/my_rust_install.log 2>&1 || error "see $DEPS_DIR/rust/my_rust_install.log"
   fi
@@ -1803,7 +1803,7 @@ download_dependencies () {
 
   ## This is some patch from the AUR. I don't know what it fixes
   ## But I guess we need it.
-  do_wget "https://aur.archlinux.org/cgit/aur.git/plain/ssm.pc.in?h=libssm" ssm.pc.in 5
+  do_wget "https://aur.archlinux.org/cgit/aur.git/plain/ssm.pc.in?h=libssm" ssm.pc.in 8
   cp -p ssm.pc.in libssm-${LIBSSM_VER}/ssm.pc.in || error
 
   # Libclipper
