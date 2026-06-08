@@ -452,16 +452,6 @@ fi
 
 export COOT_DIR
 
-# is that reliable?
-if [ "X$COOT_TAG$COOT_BRANCH" != "X" ]; then
-  case "$COOT_TAG$COOT_BRANCH" in
-    *0.9.*|*refinement*) COOT_VER=0.9;;
-    *)COOT_VER=1;;
-  esac
-else
-  COOT_VER=1
-fi
-
 if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
   # order matters - and some have to be done multiple times it seems
   # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
@@ -528,36 +518,15 @@ fi
 CMAKE_VER=4.3.1
 NINJA_VER=1.13.2
 
-case $COOT_VER in
-  1)   PYTHON_VER_MAJOR=3
-       PYTHON_VER_MINOR=14
-       PYTHON_VER_PATCH=5
+PYTHON_VER_MAJOR=3
+PYTHON_VER_MINOR=14
+PYTHON_VER_PATCH=5
 
-       BOOST_VER=1.91.0
-       PYGOBJECT_VER=3.56.3
-       RDKIT_VER=2026_03_2
-       NUMPY_VER=2.4.3
+BOOST_VER=1.91.0
+PYGOBJECT_VER=3.56.3
+RDKIT_VER=2026_03_2
+NUMPY_VER=2.4.3
 
-       ;;
-  0.9) PYTHON_VER_MAJOR=2
-       PYTHON_VER_MINOR=7
-       PYTHON_VER_PATCH=18
-
-       BOOST_VER=1.72.0
-       PYGOBJECT_VER=2.8.0
-       FREEGLUT_VER=2.4.0
-       RDKIT_VER=2018_09_3
-       NUMPY_VER=1.16.6
-
-       PILLOW_VER=6.2.2
-       PYGTK_VER=2.6.3
-       READLINE_VER=6.3
-       GOOCANVAS_VER=1.0.0
-       LIBGNOMECANVAS_VER=2.30.3
-       LIBART_VER=2.3.21
-       GTKGLEXT_VER=1.20
-       ;;
-esac
 PYTHON_VER="${PYTHON_VER_MAJOR}.${PYTHON_VER_MINOR}.${PYTHON_VER_PATCH}"
 
 LIBJPEG_VER=3.1.4.1
@@ -645,7 +614,6 @@ cat <<e
   os.................................... $os
 
   COOT_GIT ............................. $COOT_GIT
-  COOT_VER ............................. $COOT_VER
   COOT_TAG ............................. $COOT_TAG
   COOT_BRANCH .......................... $COOT_BRANCH
 
