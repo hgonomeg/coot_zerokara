@@ -2129,64 +2129,75 @@ EOF
 package_coot_prep () {
   cd $PREFIX || error
 
-  # fix scripts that have something hard-wired
+  # Step 1: make installed bin/ scripts relocatable by replacing the absolute
+  # build-time $PREFIX with the runtime `dirname $0`.
   printf "\n"
-  for __f in `grep -l "$PREFIX" bin/* 2>/dev/null | grep -v "kak$"`
+  # list bin/* scripts containing the literal $PREFIX path
+  for script_file in `grep -l "$PREFIX" bin/* 2>/dev/null`
   do
-    case `file $__f` in
+    # `file` reports "...ELF..." for binaries -> leave them alone
+    case `file $script_file` in
       *ELF*) continue;;
     esac
-    printf " # change PREFIX in $__f\n"
+    printf " # change PREFIX in $script_file\n"
+    # rewrite $PREFIX in its three contexts; "%" delimiter avoids escaping the "/"s
+    #   \$ = $PREFIX at end of line;  $PREFIX/ = before a sub-path;  $PREFIX" = before a quote
     sed -i -e "s%$PREFIX\$%\`dirname \$0\`%g" \
            -e "s%$PREFIX/%\`dirname \$0\`/%g" \
            -e "s%$PREFIX\"%\`dirname \$0\`\"%g" \
-           $__f
+           $script_file
   done
 
-  # copy binaries into libexec (so that wrapper system can find them)
-  for __f in `file bin/* 2>/dev/null | egrep " executable " | cut -f1 -d':'`
+  # Step 2: move executables behind libexec/ so the wrapper can exec them from there
+  # keep `file` lines containing " executable "; cut takes the path before the ":"
+  for bin_executable in `file bin/* 2>/dev/null | grep -E " executable " | cut -f1 -d':'`
   do
-    __f=`basename $__f`
-    if [ ! -x libexec/$__f ]; then
-      printf "\n # copy bin/$__f into libexec\n"
-      cp -p bin/$__f libexec/$__f
+    bin_executable=`basename $bin_executable`
+    if [ ! -x libexec/$bin_executable ]; then
+      printf "\n # copy bin/$bin_executable into libexec\n"
+      cp -p bin/$bin_executable libexec/$bin_executable
     fi
   done
 
-  # create links to wrapper system:
-  __nf=0
-  for __f in `file libexec/* 2>/dev/null | egrep " executable," | cut -f1 -d':'` coot-1:coot
+  # Step 3: for each libexec program, make bin/<exe_name> a symlink to the wrapper
+  # and add a (usually "coot-"-prefixed) alias shim. "coot-1:coot" is a manual pair.
+  #   exe_name   -> symlink to coot-wrapper.sh
+  #   alias_name -> small shim script that calls exe_name
+  wrapper_link_count=0
+  for libexec_entry in `file libexec/* 2>/dev/null | grep -E " executable," | cut -f1 -d':'` coot-1:coot
   do
-    case `basename $__f` in
-      gio*) continue;;
-      *:*)    __g=`echo $__f | cut -f2 -d':'`
-              __f=`echo $__f | cut -f1 -d':'`;;
-      coot-*) __g=`basename $__f`;;
-      *)      __g="coot-`basename $__f`";;
+    case `basename $libexec_entry` in
+      gio*) continue;;                                          # not a Coot program
+      *:*)    alias_name=`echo $libexec_entry | cut -f2 -d':'`  # "name:alias" pair
+              libexec_entry=`echo $libexec_entry | cut -f1 -d':'`;;
+      coot-*) alias_name=`basename $libexec_entry`;;            # already prefixed
+      *)      alias_name="coot-`basename $libexec_entry`";;     # add "coot-" prefix
     esac
-    __f=`basename $__f`
-    __f=${__f%-bin}
-    __g=${__g%-bin}
-    __g=${__g%-bin}
-    if [ ! -h bin/$__f ] || [ "X$__f" != "X$__g" ]; then
-      [ -f bin/$__g ] && mv bin/$__g bin/$__g.orig
-      [ -f bin/$__f ] && mv bin/$__f bin/$__f.orig
-      printf "\n # create bin/$__f link\n"
-      ln -sf coot-wrapper.sh bin/$__f && __nf=`expr $__nf + 1`
-      if [ ! -f bin/$__g ] && [ ! -h bin/$__g ]; then
-        printf "\n # create bin/$__g wrapper\n"
-        cat <<EOF > bin/$__g
+    exe_name=`basename $libexec_entry`
+    exe_name=${exe_name%-bin}        # strip trailing "-bin" (findwaters-bin -> findwaters)
+    alias_name=${alias_name%-bin}    # same for the alias
+    alias_name=${alias_name%-bin}    # twice, in case of a doubled "-bin-bin"
+    # act unless bin/<exe_name> is already a symlink and there's no distinct alias
+    if [ ! -h bin/$exe_name ] || [ "X$exe_name" != "X$alias_name" ]; then
+      # keep any pre-existing real files as *.orig
+      [ -f bin/$alias_name ] && mv bin/$alias_name bin/$alias_name.orig
+      [ -f bin/$exe_name ]   && mv bin/$exe_name   bin/$exe_name.orig
+      printf "\n # create bin/$exe_name link\n"
+      ln -sf coot-wrapper.sh bin/$exe_name && wrapper_link_count=`expr $wrapper_link_count + 1`
+      if [ ! -f bin/$alias_name ] && [ ! -h bin/$alias_name ]; then
+        printf "\n # create bin/$alias_name wrapper\n"
+        cat <<EOF > bin/$alias_name
 #!/bin/sh
-"\`dirname \$0\`/$__f" "\$@"
+"\`dirname \$0\`/$exe_name" "\$@"
 EOF
-        chmod +x bin/$__g
+        chmod +x bin/$alias_name
       fi
     else
-      printf "\n # bin/$__f already a link\n"
+      printf "\n # bin/$exe_name already a link\n"
     fi
   done
 
-  printf "\n ### NOTE: created $__nf symbolic links to generic wrapper tool\n"
+  printf "\n ### NOTE: created $wrapper_link_count symbolic links to generic wrapper tool\n"
 
 }
 
