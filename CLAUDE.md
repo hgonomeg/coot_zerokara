@@ -2,8 +2,8 @@
 
 ## What this is
 
-A single, self-contained POSIX **`/bin/sh`** script — `dl_and_build_coot_cv-<YYYYMMDD>.sh`
-(the filename carries a datestamp; treat it as the one and only build driver here) —
+A single, self-contained POSIX **`/bin/sh`** script — `GPhL_script/dl_and_build_coot_cv-<YYYYMMDD>.sh`
+(the filename carries a datestamp; this is the one and only active build driver) —
 that downloads, compiles, and packages [Coot](https://github.com/pemsley/coot)
 **1.x** together with its entire dependency stack, from source, into a single
 relocatable prefix. It is maintained by Global Phasing Ltd (GPhL); the generated
@@ -14,7 +14,45 @@ removed — the script now builds 1.x only. Do not reintroduce a `COOT_VER` swit
 0.9-era dependencies (gtkglext, libgnomecanvas, goocanvas, libart, pygtk, pillow,
 freeglut, etc.) unless explicitly asked.
 
-The companion `testing/` directory holds stale artifacts and is not relevant.
+## Repository layout
+
+This file (`CLAUDE.md`) lives at the repository root; everything it describes is the
+build script one level down, unless noted otherwise.
+
+- `GPhL_script/dl_and_build_coot_cv-<YYYYMMDD>.sh` — **the active script**, and the
+  subject of essentially all of this document. All section/line references below are
+  to this file.
+- `GPhL_script/testing/` — stale artifacts, not relevant.
+- `dl_and_build_coot_sharff.sh` (repo root) — the **legacy** build script being
+  replaced. It is kept only for reference during the ongoing refactor/extension work
+  and **will be deleted once that is finished**. Do not edit it or treat it as
+  authoritative; do not port its idioms into the active script unless explicitly asked.
+
+## Helper scripts (repo root)
+
+Two standalone helpers sit alongside this file. They are developer/CI tooling, not
+part of the build itself.
+
+- `check_arch_versions.sh` — a **`bash`** script that audits the build script's pinned
+  dependency versions against what Arch Linux currently ships. It carries an inline
+  `PKGLIST` heredoc of `pacman-package:SCRIPT_VAR:pinned-version` lines, queries each
+  with `pacman -Qi`, normalises both sides (strips pacman's epoch prefix and `-pkgrel`
+  suffix), and prints `MATCH` / `NEWER` / `NOT INSTALLED` per package. Use it to spot
+  dependencies that have fallen behind upstream. **Its `PKGLIST` is a hand-maintained
+  mirror of the `*_VER` block in the build script** — it must be kept in sync whenever
+  a dependency is added, removed, or version-bumped (see the add-dependency skill).
+  Run it on an Arch box: `./check_arch_versions.sh`.
+
+- `fetch_ci_logs.py` — a **Python 3** script (stdlib only; needs the `gh` CLI
+  authenticated, or a `GITHUB_TOKEN`) that pulls GitHub Actions build logs for offline
+  /AI triage. For each run it downloads the `build-logs-<distro>` artifacts (the
+  collected `my_*.log` files, unwrapping the nested ZIP→`.tar.zst`) plus each matrix
+  job's failing terminal output (`terminal_output.log`), into `./ci_logs/run_<id>_<conclusion>/<distro>/`
+  with a `SUMMARY.txt`. Defaults to recent **failed** runs; `-r <id>` / `-l` (latest) /
+  `-d <distro>` / `-n <max>` narrow it. The repo is hard-coded as `hgonomeg/coot_zerokara`
+  (override with `--repo`). The matrix-job name parsing assumes CI names jobs
+  `build (<distro>, …)`. Read `terminal_output.log` first, then drill into the
+  individual `my_*.log` files.
 
 ## How to run it
 
