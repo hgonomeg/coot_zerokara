@@ -2326,20 +2326,22 @@ EOF
 
 package_coot () {
   cd $PREFIX || error
+  # build a "<distro>-<version>" tag for the tarball name from os-release
   if [ -f /etc/os-release ]; then
+    # sed "s/ [^-]*-/-/g": keep only NAME's first word, e.g. "Red Hat Enterprise Linux-9.5" -> "Red-9.5"
     os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
   elif [ -f /etc/lsb-release ]; then
     os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
   else
     return
   fi
-  out=coot_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`.tar.gz
-  __dirs="lib libexec share"
-  [ -d lib64 ] && __dirs="$__dirs lib64"
+  tarball_name=coot_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`.tar.gz
+  package_dirs="lib libexec share"
+  [ -d lib64 ] && package_dirs="$package_dirs lib64"
   if [ -f bin/fc-match ]; then
     printf "  including FontConfig binaries, fonts and cache:\n"
-    [ -d var/cache/fontconfig ] && __dirs="$__dirs var/cache/fontconfig"
-    __dirs="$__dirs etc `ls bin/fc-* 2>/dev/null`"
+    [ -d var/cache/fontconfig ] && package_dirs="$package_dirs var/cache/fontconfig"
+    package_dirs="$package_dirs etc `ls bin/fc-* 2>/dev/null`"
     make_font_dirs_and_files
     (
       FONTCONFIG_PATH="$PREFIX/etc/fonts"
@@ -2350,15 +2352,16 @@ package_coot () {
       PATH=$PREFIX/bin:$PATH
       export FONTCONFIG_PATH FONTCONFIG_FILE FONTCONFIG_CACHE XDG_CACHE_HOME LD_LIBRARY_PATH PATH
       unset FONTCONFIG_SYSROOT
-      fc-cache -rv 2>&1 | awk '{print "    ",$0}' | egrep -v " skipping| 0 fonts"
+      # indent each fc-cache line 5 spaces (was awk), drop the " skipping"/" 0 fonts" noise (| = OR)
+      fc-cache -rv 2>&1 | sed 's/^/     /' | grep -E -v " skipping| 0 fonts"
     )
   fi
   create_readme
-  printf "\n packaging Coot as $out ... "
-  tar -czf $out bin/coot* bin/layla bin/pyrogen bin/python3* $__dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
+  printf "\n packaging Coot as $tarball_name ... "
+  tar -czf $tarball_name bin/coot* bin/layla bin/pyrogen bin/python3* $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
   echo "done"
   printf "\n   "
-  ls -l $out
+  ls -l $tarball_name
   printf "\n"
 }
 package_coot_minimal () {
