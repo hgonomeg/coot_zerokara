@@ -71,7 +71,7 @@ else
 fi
 
 usage () {
-  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distro]\n"
+  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distributable] [-os]\n"
   printf "\n  -h                     : this help message\n"
   printf "\n  -v                     : increase verbosity\n"
   printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
