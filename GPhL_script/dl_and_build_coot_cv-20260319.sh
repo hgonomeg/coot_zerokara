@@ -920,7 +920,7 @@ build_libdwarf () {
 }
 
 build_libbackward () {
-  build_with_cmake libbackward ${LIBBACKWARD_VER}
+  build_with_cmake libbackward ${LIBBACKWARD_VER} -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 }
 
 build_elfutils () {
