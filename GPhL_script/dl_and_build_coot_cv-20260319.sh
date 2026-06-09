@@ -506,6 +506,7 @@ BUILD_DEPENDENCIES="
     at_spi2_core
     wayland
     gtk
+    adwaita_icon_theme
     glycin
     pygobject
     fftw
@@ -573,6 +574,8 @@ GTK_VER_Major=4
 GTK_VER_Minor=22
 GTK_VER_Patch=4
 GTK_VER=${GTK_VER_Major}.${GTK_VER_Minor}.${GTK_VER_Patch}
+ADWAITA_ICON_THEME_VER_MAJOR=50
+ADWAITA_ICON_THEME_VER=${ADWAITA_ICON_THEME_VER_MAJOR}.0
 MMDB_VER=2.0.22
 OPENBLAS_VER=0.3.33
 GSL_VER=2.8
@@ -1192,6 +1195,12 @@ build_gtk () {
     -Dbuild-testsuite=false -Dbuild-examples=false -Dbuild-demos=false -Dprint-cups=disabled
 }
 
+# Adwaita icon theme — a pure data package (no compiled code). Meson here is just an
+# install orchestrator: it copies the pre-built icon tree out of the tarball, creates
+# X11 cursor-name symlinks, and runs gtk4-update-icon-cache as a post-install step.
+build_adwaita_icon_theme () {
+  build_with_meson adwaita-icon-theme ${ADWAITA_ICON_THEME_VER}
+}
 
 build_pygobject () {
   build_with_meson pygobject ${PYGOBJECT_VER} -Dtests=false
@@ -1795,6 +1804,9 @@ download_dependencies () {
   
   # Gtk
   do_wget https://download.gnome.org/sources/gtk/${GTK_VER_Major}.${GTK_VER_Minor}/gtk-${GTK_VER}.tar.xz
+
+  # Adwaita icon theme
+  do_wget https://download.gnome.org/sources/adwaita-icon-theme/${ADWAITA_ICON_THEME_VER_MAJOR}/adwaita-icon-theme-${ADWAITA_ICON_THEME_VER}.tar.xz
 
   # PyGObject
   do_wget https://github.com/GNOME/pygobject/archive/refs/tags/${PYGOBJECT_VER}.tar.gz pygobject-${PYGOBJECT_VER}.tar.gz
