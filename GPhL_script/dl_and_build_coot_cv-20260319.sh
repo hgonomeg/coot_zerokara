@@ -735,8 +735,9 @@ build_with_meson () {
     # Clean the build dir before a fresh meson setup; on a 2nd-pass build this also
     # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
+    [ "$btype" = "debug" ] && __meson_buildtype=debugoptimized || __meson_buildtype=release
     printf "  meson setup (see `mypwd`/my_meson_setup.log${MY_DONE_EXT}) ... "
-    meson setup --prefix=$PREFIX --buildtype=release $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
+    meson setup --prefix=$PREFIX --buildtype=${__meson_buildtype} $@ . $DEPS_DIR/${__p}-${__v} > my_meson_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_meson_setup.log${MY_DONE_EXT}"
     echo "done"
     cd $BUILD_DIR/$__p || error
     printf "  meson compile (see `mypwd`/my_meson_compile.log${MY_DONE_EXT}) ... "
@@ -847,9 +848,10 @@ build_with_cmake () {
     # Clean the build dir before a fresh cmake configure; on a 2nd-pass build this also
     # preserves the previous pass's logs (my_*.log -> my_*.log1, this pass -> my_*.log2).
     build_save_mylogs_and_rm
+    [ "$btype" = "debug" ] && __cmake_buildtype=RelWithDebInfo || __cmake_buildtype=Release
     printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
     cmake $DEPS_DIR/${__p}-${__v} \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=release $@ > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
+          -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=${__cmake_buildtype} $@ > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
     echo "done"
     printf "  cmake --build (see `mypwd`/my_cmake_build.log${MY_DONE_EXT}) ... "
     cmake --build . -j ${nthreads} > my_cmake_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_build.log${MY_DONE_EXT}"
@@ -1977,7 +1979,7 @@ build_coot () {
     printf " ### Coot: configure (see `mypwd`/my_configure.log) ... "
     [ $do_distributable -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
     case $btype in
-      debug) __opt="-g -O2";;
+      debug) __opt="-g -Og";;
       opt) __opt="-O3 -ffast-math";;
       *) __opt="";;
     esac
