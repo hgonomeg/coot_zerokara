@@ -1,32 +1,24 @@
-# GPhL_script — Coot from-source build script
+# dl_and_build_coot.sh — Coot from-source build script
 
 ## What this is
 
-A single, self-contained POSIX **`/bin/sh`** script — `GPhL_script/dl_and_build_coot_cv-<YYYYMMDD>.sh`
-(the filename carries a datestamp; this is the one and only active build driver) —
+A single, self-contained POSIX **`/bin/sh`** script — `dl_and_build_coot.sh`
+(at the repository root; this is the one and only active build driver) —
 that downloads, compiles, and packages [Coot](https://github.com/pemsley/coot)
 **1.x** together with its entire dependency stack, from source, into a single
 relocatable prefix. It is maintained by Global Phasing Ltd (GPhL); the generated
 README points users at `buster-develop@globalphasing.com`.
 
-It used to also support Coot **0.9** (Python 2 / GTK2 era). That support has been
-removed — the script now builds 1.x only. Do not reintroduce a `COOT_VER` switch or
-0.9-era dependencies (gtkglext, libgnomecanvas, goocanvas, libart, pygtk, pillow,
-freeglut, etc.) unless explicitly asked.
+The script builds Coot **1.x only**. Do not reintroduce 0.9-era (Python 2 / GTK2)
+dependencies — gtkglext, libgnomecanvas, goocanvas, libart, pygtk, pillow, freeglut,
+etc. — unless explicitly asked.
 
 ## Repository layout
 
-This file (`CLAUDE.md`) lives at the repository root; everything it describes is the
-build script one level down, unless noted otherwise.
+This file (`CLAUDE.md`) and the build script both live at the repository root.
 
-- `GPhL_script/dl_and_build_coot_cv-<YYYYMMDD>.sh` — **the active script**, and the
-  subject of essentially all of this document. All section/line references below are
-  to this file.
-- `GPhL_script/testing/` — stale artifacts, not relevant.
-- `dl_and_build_coot_sharff.sh` (repo root) — the **legacy** build script being
-  replaced. It is kept only for reference during the ongoing refactor/extension work
-  and **will be deleted once that is finished**. Do not edit it or treat it as
-  authoritative; do not port its idioms into the active script unless explicitly asked.
+- `dl_and_build_coot.sh` — **the active script**, and the subject of essentially all
+  of this document. All section/line references below are to this file.
 
 ## Helper scripts (repo root)
 
