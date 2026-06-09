@@ -2408,7 +2408,11 @@ collect_package_dirs () {
 package_coot () {
   cd $PREFIX || error
   os=`detect_os_tag` || return
-  tarball_name=coot_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`.tar.gz
+  case $btype in
+    debug) build_label=debug;;
+    *) build_label=release;;
+  esac
+  tarball_name=coot_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`.tar.gz
   collect_package_dirs
   create_readme
   printf "\n packaging Coot as $tarball_name ... "
@@ -2421,7 +2425,11 @@ package_coot () {
 package_coot_minimal () {
   cd $PREFIX || error
   os=`detect_os_tag` || return
-  package_basename=coot-${outtag}-minimal_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`
+  case $btype in
+    debug) build_label=debug;;
+    *) build_label=release;;
+  esac
+  package_basename=coot-${outtag}-minimal_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`
   tarball_name=$package_basename.tar.gz
   collect_package_dirs
   # stage a throwaway copy under a PID-named temp dir ($$ = this shell's PID), so we
