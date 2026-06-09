@@ -10,7 +10,7 @@ set -euo pipefail
 while IFS=: read -r pkg scriptvar scriptver; do
   [[ -z "$pkg" || "$pkg" == \#* ]] && continue
 
-  archver=$(pacman -Qi "$pkg" 2>/dev/null | awk '/^Version/ {print $3}' | head -1)
+  archver=$(pacman -Qi "$pkg" 2>/dev/null | awk '/^Version/ {print $3}' | head -1) || true
 
   if [[ -z "$archver" ]]; then
     printf "%-30s  %-35s  %-14s  %s\n" "$pkg" "$scriptvar" "$scriptver" "NOT INSTALLED"
@@ -34,16 +34,16 @@ glib2:GLIB_VER:2.88.1
 gobject-introspection:GOBJECT_INTROSPECTION_VER:1.86.0
 guile:GUILE_VER:3.0.11
 swig:SWIG_VER:4.4.1
-harfbuzz:HARFBUZZ_VER:14.2.0
+harfbuzz:HARFBUZZ_VER:14.2.1
 freetype2:FREETYPE_VER:2.14.3
-fontconfig:FONTCONFIG_VER:2.17.1
+fontconfig:FONTCONFIG_VER:2.18.1
 pixman:PIXMAN_VER:0.46.4
 libtiff:LIBTIFF_VER:4.7.1
 poppler:POPPLER_VER:26.05.0
 curl:CURL_VER:8.20.0
 cairo:CAIRO_VER:1.18.4
 pango:PANGO_VER:1.57.1
-librsvg:LIBRSVG_VER:2.62.2
+librsvg:LIBRSVG_VER:2.62.3
 highway:HIGHWAY_VER:1.4.0
 lcms2:LCMS2_VER:2.19.1
 libjxl:LIBJXL_VER:0.11.2
@@ -73,7 +73,7 @@ graphene:GRAPHENE_VER:1.10.8
 shared-mime-info:SMI_VER:2.4
 libffi:LIBFFI_VER:3.5.2
 python-gobject:PYGOBJECT_VER:3.56.3
-rdkit:RDKIT_VER:2026_03_2
+rdkit:RDKIT_VER:2026_03_3
 libdwarf:LIBDWARF_VER:2.3.1
 backward-cpp:LIBBACKWARD_VER:1.6
 PKGLIST
