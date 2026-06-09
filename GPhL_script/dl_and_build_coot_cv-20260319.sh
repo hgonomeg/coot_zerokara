@@ -885,7 +885,7 @@ build_glm () {
 }
 
 build_pcre2 () {
-  build_with_configure pcre2 ${PCRE2_VER} -enable-unicode --enable-jit --enable-pcre2-16 --enable-pcre2-32 --enable-pcre2grep-libz --enable-pcre2grep-libbz2 --disable-static
+  build_with_configure pcre2 ${PCRE2_VER} --enable-unicode --enable-jit --enable-pcre2-16 --enable-pcre2-32 --enable-pcre2grep-libz --enable-pcre2grep-libbz2 --disable-static
 }
 
 build_libffi () {
@@ -952,7 +952,7 @@ build_boost () {
     cd $BUILD_DIR/boost || error
 
     printf " ### bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
-    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python,random > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
+    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
     echo "done"
 
     if [ "X${GCC_COMMAND_EXT}" != "X" ]; then
@@ -1342,8 +1342,8 @@ build_libclipper () {
 }
 
 build_fftw () {
-  #FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --enable-openmp --enable-threads --with-gcc --with-gcc-ld"
-  FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --with-gcc --with-gcc-ld"
+  #FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --enable-openmp --enable-threads --with-gcc --with-gnu-ld"
+  FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --with-gcc --with-gnu-ld"
   if [ ! -f $BUILD_DIR/fftw/.my_done${MY_DONE_EXT} ]; then
     printf "\n ### building fftw with configure/make ... "
     rm -rf $BUILD_DIR/fftw
