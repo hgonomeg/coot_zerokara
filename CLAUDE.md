@@ -104,7 +104,7 @@ package_coot_minimal | package_coot   # tar up the result
 ### The dependency list and dispatcher
 - `$BUILD_DEPENDENCIES` is a whitespace-separated, **order-sensitive** list set near
   the top (overridable via the environment). Order matters and **some packages appear
-  more than once on purpose** (e.g. `glib`, `harfbuzz`, `cairo`, `gdk_pixbuf`,
+  more than once on purpose** (e.g. `glib`, `harfbuzz`, `gdk_pixbuf`,
   `glycin`) — the stack has circular-ish bootstrap needs.
 - `build_dependencies()` loops the list and `eval`s `build_<name>`. The **N-th**
   occurrence of a package calls `build_<name>`, `build_<name>2`, `build_<name>3`, …
