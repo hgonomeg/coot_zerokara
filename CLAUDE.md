@@ -161,15 +161,33 @@ A loop near the top picks the newest available GCC in `[GCC_VER_MIN, GCC_VER_CEI
 and sets `CC`/`CXX`/`FC` plus `GCC_COMPILER_VERSION` and `GCC_COMMAND_EXT`
 (e.g. `-13`). `GCC_COMMAND_EXT` is threaded into boost's toolset and fftw's `F77`.
 
-### The runtime wrapper
-`create_coot_wrapper()` emits `bin/coot-wrapper.sh` via a **single-quoted heredoc** —
-it is a *separate* script that ships in the tarball and is run by end users. It
-re-derives all `COOT_*`/`LD_LIBRARY_PATH`/`GUILE_LOAD_PATH`/`XDG_*`/fontconfig env
-vars **relative to its own location** so the install is relocatable, then execs the
-real binary from `libexec/`. `package_coot_prep` symlinks each Coot executable name to
-this wrapper. Note: the `error()`/`warning()`/`usage()` defined down at lines ~2505+
-are *inside that heredoc* — they belong to the wrapper, not the main script (which has
-its own `error`/`warning` at the top).
+### The runtime launcher (env + wrapper + symlinks)
+Three pieces, each emitted via a **single-quoted heredoc** / created at packaging time;
+all ship in the tarball and are relocatable (they derive the prefix from their own
+location). See `coot-wrapper-DESIGN.md` for the full rationale.
+
+- **`bin/coot-env.sh`** (`create_coot_env`) — the **single source of truth** for the
+  runtime environment. Sourceable by end users (`. bin/coot-env.sh`) and sourced by the
+  wrapper. Exports `LD_LIBRARY_PATH`, `PYTHONHOME`, all `COOT_*` data dirs, Guile, XDG,
+  bundled fontconfig, `GI_TYPELIB_PATH`. Deliberately does **not** set `LANG/LC_*` (so
+  sourcing it doesn't clobber a user's locale). This is also the chapi entry point:
+  `. bin/coot-env.sh; python3 -c 'import coot_headless_api'`.
+- **`bin/coot-wrapper.sh`** (`create_coot_wrapper`) — self-locates, sources
+  `coot-env.sh`, sets launch-only `LANG=C`, then **resolves the target by lookup**:
+  `libexec/$invoked_name` → `libexec/$invoked_name-bin` → the one alias `coot`→`coot-1`,
+  and execs it. Validation is **warnings-only** (never hard-fails). Keeps `--ldd`,
+  `--strace`, `--debug`, `-v`. (The old `eval` name-map, the Darwin/DYLD branch, and the
+  `--ccp4` stub were all removed.)
+- **`package_coot_prep`** — makes every Coot launcher in `bin/` a plain symlink to
+  `coot-wrapper.sh` (name = libexec binary minus a trailing `-bin`); also moves any
+  Coot-named ELF binary that landed in `bin/` (e.g. `coot-bfactan`, `coot-mmrrcc`) into
+  `libexec/` first. "Coot tool" = name matching `coot*`/`layla*`/`mini-rsr*` (so GTK
+  internals `gio*`/`at-spi*` are left alone). No shims, no `.orig` backups.
+
+Note: `bin/python3` and the other dependency tools (`cmake`, `gtk4-*`, `fc-*`, …) are
+**not** wrapped — they only work after `coot-env.sh` is sourced (their `$PREFIX` libs
+aren't on the default loader path). The `error()`/`warning()`/`usage()` inside the
+wrapper heredoc belong to the wrapper, not the main script.
 
 ## Conventions to follow when editing
 
