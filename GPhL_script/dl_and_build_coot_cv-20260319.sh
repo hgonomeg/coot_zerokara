@@ -638,80 +638,57 @@ e
 
 # -------------------------------------------------------------------------------------
 # Figure out the best available GCC version (highest preferred).
-# Three possible outcomes per iteration:
-#   * full versioned triple (g++-N, gcc-N, gfortran-N) found → set CC/CXX/FC explicitly
-#   * unversioned g++ IS this version (symlink points here) → use unversioned names
-#   * only g++-N found (siblings missing) → record version, let setup_build_env fill in the rest
+# We need all three frontends (C, C++, Fortran) at the same version.
+# If no version has all three, we fall back to the highest version that has at least
+# C and C++.  setup_build_env later sets CC/CXX/FC from GCC_COMMAND_EXT uniformly.
 GCC_VER_MIN=11      # oldest supported version
 GCC_VER_MAX=16      # newest tested/preferred version
 GCC_VER_CEILING=25  # scan up to this version; anything above GCC_VER_MAX is untested but allowed
+__gcc_fallback_ver=""
 for __gcc_ver in `seq $GCC_VER_CEILING -1 $GCC_VER_MIN`
 do
   type g++-${__gcc_ver} >/dev/null 2>&1
   if [ $? -eq 0 ]; then
+    # C++ compiler found — the matching C compiler must also exist.
     type gcc-${__gcc_ver} >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      error "C++ compiler (g++-${__gcc_ver}) found but the matching C compiler (gcc-${__gcc_ver}) is missing"
+    fi
+    type gfortran-${__gcc_ver} >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-      type gfortran-${__gcc_ver} >/dev/null 2>&1
-      if [ $? -eq 0 ]; then
-        # All three compilers present at this version — pick versioned vs unversioned name
-        # by comparing version strings. sed normalises "g++-13 ..." to "g++ ..." so the
-        # strings are comparable; if they still differ, the unversioned name points elsewhere.
-        if [ "X$CXX" = "X" ]; then
-          if [ "`g++-${__gcc_ver} --version 2>&1 | head -n 1 | sed "s/g++-${__gcc_ver}/g++/g"`" \
-               != "`g++ --version 2>&1 | head -n 1`" ]; then
-            export CXX="g++-${__gcc_ver}"
-          else
-            export CXX="g++"
-          fi
-        fi
-        if [ "X$CC" = "X" ]; then
-          if [ "`gcc-${__gcc_ver} --version 2>&1 | head -n 1 | sed "s/gcc-${__gcc_ver}/gcc/g"`" \
-               != "`gcc --version 2>&1 | head -n 1`" ]; then
-            export CC="gcc-${__gcc_ver}"
-          else
-            export CC="gcc"
-          fi
-        fi
-        if [ "X$FC" = "X" ]; then
-          if [ "`gfortran-${__gcc_ver} --version 2>&1 | head -n 1`" \
-               != "`gfortran --version 2>&1 | head -n 1`" ]; then
-            export FC="gfortran-${__gcc_ver}"
-          else
-            export FC="gfortran"
-          fi
-        fi
-        export GCC_COMPILER_VERSION=${__gcc_ver}
-        export GCC_COMMAND_EXT="-${__gcc_ver}"
-        break
-      else
-        echo " WARNING: although we found a C/C++ compiler (\"gcc-${__gcc_ver}\", \"g++-${__gcc_ver}\"), the Fortran compiler (\"gfortran-${__gcc_ver}\") is missing!"
+      export GCC_COMPILER_VERSION=${__gcc_ver}
+      export GCC_COMMAND_EXT="-${__gcc_ver}"
+      break
+    else
+      echo " WARNING: C and C++ compilers at version ${__gcc_ver} found, but Fortran compiler (gfortran-${__gcc_ver}) is missing!"
+      if [ "X$__gcc_fallback_ver" = "X" ]; then
+        __gcc_fallback_ver=${__gcc_ver}
       fi
     fi
   else
     type gcc-${__gcc_ver} >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-      echo " WARNING: although we found a C compiler (\"gcc-${__gcc_ver}\"), the C++ compiler (\"g++-${__gcc_ver}\") is missing!"
+      echo " WARNING: C compiler (gcc-${__gcc_ver}) found but C++ compiler (g++-${__gcc_ver}) is missing!"
     fi
   fi
   # Fallback: check whether the unversioned g++ happens to be this version.
   # grep -c " 13\." counts lines containing " 13." — the dot prevents matching e.g. " 130."
-  type g++ >/dev/null 2>&1
-  if [ $? -eq 0 ]; then
-    if [ `g++ --version 2>&1 | head -n1 | grep -c " ${__gcc_ver}\."` -eq 1 ]; then
-      export GCC_COMPILER_VERSION=${__gcc_ver}
-      export GCC_COMMAND_EXT=""
-      break
+  if [ "X$GCC_COMPILER_VERSION" = "X" ]; then
+    type g++ >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      if [ `g++ --version 2>&1 | head -n1 | grep -c " ${__gcc_ver}\."` -eq 1 ]; then
+        export GCC_COMPILER_VERSION=${__gcc_ver}
+        export GCC_COMMAND_EXT=""
+        break
+      fi
     fi
   fi
-  # Last resort: g++-N exists but its siblings were missing — record version and move on;
-  # setup_build_env will set CC/CXX/FC individually using GCC_COMMAND_EXT.
-  type g++-${__gcc_ver} >/dev/null 2>&1
-  if [ $? -eq 0 ]; then
-    export GCC_COMPILER_VERSION=${__gcc_ver}
-    export GCC_COMMAND_EXT="-${__gcc_ver}"
-    break
-  fi
 done
+# If no version had the full triple, fall back to the highest version that has C and C++.
+if [ "X$GCC_COMPILER_VERSION" = "X" ] && [ "X$__gcc_fallback_ver" != "X" ]; then
+  export GCC_COMPILER_VERSION=${__gcc_fallback_ver}
+  export GCC_COMMAND_EXT="-${__gcc_fallback_ver}"
+fi
 [ "X$GCC_COMPILER_VERSION" = "X" ] && error "no working gcc/g++ found in version range $GCC_VER_MIN–$GCC_VER_CEILING"
 printf "\n ### Compiler version found/used = $GCC_COMPILER_VERSION\n\n"
 if [ $GCC_COMPILER_VERSION -gt $GCC_VER_MAX ]; then
