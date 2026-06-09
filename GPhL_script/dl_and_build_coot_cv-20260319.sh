@@ -75,7 +75,7 @@ usage () {
   printf "\n  -h                     : this help message\n"
   printf "\n  -v                     : increase verbosity\n"
   printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
-  printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs etc)\n"
+  printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs, full refmac monomer library etc)\n"
   printf "\n  -minimaltar            : create \"minimal\" tarball at the end (including only the essential files)\n"
   printf "\n  -distributable         : build binaries for distribution (default is to tune for local machine/CPU)\n"
   printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
@@ -871,7 +871,8 @@ build_libjpeg () {
   build_with_cmake libjpeg-turbo ${LIBJPEG_VER} \
     -DCMAKE_INSTALL_LIBDIR=$PREFIX/lib \
     -DENABLE_STATIC=OFF \
-    -DWITH_JAVA=OFF
+    -DWITH_JAVA=OFF \
+    -DWITH_TESTS=OFF
 }
 
 build_libunistring () {
@@ -879,7 +880,7 @@ build_libunistring () {
 }
 
 build_gc () {
-  build_with_configure gc ${GC_VER}
+  build_with_configure gc ${GC_VER} --enable-cplusplus --disable-static
 }
 
 build_glm () {
@@ -891,13 +892,13 @@ build_pcre2 () {
 }
 
 build_libffi () {
-  build_with_configure libffi ${LIBFFI_VER}
+  build_with_configure libffi ${LIBFFI_VER} --disable-static --disable-multi-os-directory
 }
 # build_libdrm () {
 #   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
 # }
 build_wayland () {
-  build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false
+  build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false -Ddtd_validation=false
 }
 build_waylandprotocols () {
   build_with_meson wayland-protocols ${WAYLANDPROTOCOLS_VER}
@@ -921,14 +922,14 @@ build_elfutils () {
 # First pass without introspection: glib's own .gir files need gobject-introspection,
 # which needs glib.  Second pass (after gobject-introspection) enables .gir generation.
 build_glib () {
-  build_with_meson glib ${GLIB_VER} -Dintrospection=disabled
+  build_with_meson glib ${GLIB_VER} -Dintrospection=disabled -Dtests=false -Dglib_debug=disabled
 }
 build_glib2 () {
-  build_with_meson glib ${GLIB_VER} -Dintrospection=enabled
+  build_with_meson glib ${GLIB_VER} -Dintrospection=enabled -Dtests=false -Dglib_debug=disabled
 }
 
 build_gobject_introspection () {
-  build_with_meson gobject_introspection ${GOBJECT_INTROSPECTION_VER}
+  build_with_meson gobject_introspection ${GOBJECT_INTROSPECTION_VER} -Dtests=false
   if [ -d $PREFIX/share/gir-1.0 ]; then
     for __f in GObject-2.0.gir GLib-2.0.gir Gio-2.0.gir GModule-2.0.gir
     do
@@ -954,7 +955,7 @@ build_boost () {
     cd $BUILD_DIR/boost || error
 
     printf " ### bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
-    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
+    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python,stacktrace > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
     echo "done"
 
     if [ "X${GCC_COMMAND_EXT}" != "X" ]; then
@@ -972,7 +973,7 @@ build_boost () {
 }
 
 build_libepoxy () {
-  build_with_meson libepoxy ${LIBEPOXY_VER}
+  build_with_meson libepoxy ${LIBEPOXY_VER} -Dtests=false
 }
 
 # Harfbuzz auto-detects freetype, cairo, fontconfig, and glib (all feature=auto).
@@ -985,11 +986,11 @@ build_harfbuzz2 () {
 }
 
 build_graphene () {
-  build_with_meson graphene ${GRAPHENE_VER} -Dgtk_doc=false
+  build_with_meson graphene ${GRAPHENE_VER} -Dgtk_doc=false -Dtests=false -Dinstalled_tests=false
 }
 
 build_freetype () {
-  build_with_cmake freetype ${FREETYPE_VER} -DBUILD_SHARED_LIBS=true
+  build_with_cmake freetype ${FREETYPE_VER} -DBUILD_SHARED_LIBS=true -DFT_ENABLE_ERROR_STRINGS=ON
 }
 
 build_fontconfig () {
@@ -1021,12 +1022,18 @@ build_pixman () {
 build_poppler () {
   build_with_cmake poppler ${POPPLER_VER} -DENABLE_NSS3=OFF \
   -DENABLE_GPGME=OFF -DBUILD_GTK_TESTS=OFF -DBUILD_QT5_TESTS=OFF \
-  -DBUILD_QT6_TESTS=OFF -DENABLE_BOOST=ON -DENABLE_QT5=OFF -DENABLE_QT6=OFF \
+  -DBUILD_QT6_TESTS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_MANUAL_TESTS=OFF \
+  -DENABLE_BOOST=ON -DENABLE_QT5=OFF -DENABLE_QT6=OFF \
   -DENABLE_LIBOPENJPEG=none -DENABLE_LCMS=OFF -DENABLE_LIBCURL=ON -DENABLE_DCTDECODER=libjpeg
 }
 
 build_curl () {
-    build_with_cmake curl ${CURL_VER}
+    build_with_cmake curl ${CURL_VER} \
+      -DBUILD_TESTING=OFF \
+      -DBUILD_LIBCURL_DOCS=OFF \
+      -DBUILD_MISC_DOCS=OFF \
+      -DENABLE_CURL_MANUAL=OFF \
+      -DPICKY_COMPILER=OFF
 }
 
 build_tiff() {
@@ -1071,11 +1078,11 @@ build_cairo () {
 }
 
 build_pango () {
-  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled
+  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled -Dbuild-testsuite=false -Dbuild-examples=false
 }
 
 build_smi () {
-  build_with_meson shared-mime-info ${SMI_VER}
+  build_with_meson shared-mime-info ${SMI_VER} -Dbuild-tests=false
 }
 
 # librsvg dropped autotools (autogen.sh/configure) for a Meson build in the 2.59+ series.
@@ -1180,7 +1187,7 @@ build_gdk_pixbuf2 () {
 }
 
 build_at_spi2_core () {
-  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER}
+  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER} -Duse_systemd=false
 }
 
 build_gtk () {
@@ -1191,7 +1198,7 @@ build_gtk () {
 
 
 build_pygobject () {
-  build_with_meson pygobject ${PYGOBJECT_VER}
+  build_with_meson pygobject ${PYGOBJECT_VER} -Dtests=false
 }
 
 build_maeparser () {
@@ -1209,7 +1216,8 @@ build_coordgen() {
 
 build_eigen () {
   build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
-          -DEIGEN_BUILD_TESTING=OFF
+          -DEIGEN_BUILD_TESTING=OFF \
+          -DEIGEN_BUILD_DEMOS=OFF
 }
 
 build_libogg () {
@@ -1226,6 +1234,8 @@ build_rdkit () {
   -DRDK_BUILD_INCHI_SUPPORT=ON \
   -DRDK_INSTALL_COMIC_FONTS=OFF \
   -DRDK_INSTALL_INTREE=OFF \
+  -DRDK_BUILD_CPP_TESTS=OFF \
+  -DRDK_INSTALL_STATIC_LIBS=OFF \
   -DRDK_USE_BOOST_SERIALIZATION=ON -DRDK_USE_BOOST_STACKTRACE=ON
 }
 
