@@ -1186,7 +1186,10 @@ build_gdk_pixbuf2 () {
 }
 
 build_at_spi2_core () {
-  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER} # this breaks things, I think: -Duse_systemd=false
+  # -Ddefault_bus=dbus-daemon keeps needs_systemd=false even when dbus-broker-launch is
+  # present (Rocky/RHEL), so libsystemd becomes optional; if absent, dbus_broker_arg is
+  # simply cleared and the build proceeds without systemd-devel on any distro.
+  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER} -Ddefault_bus=dbus-daemon
 }
 
 build_gtk () {
