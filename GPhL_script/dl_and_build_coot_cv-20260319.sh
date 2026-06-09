@@ -488,7 +488,6 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
     tiff
     curl
     poppler
-    cairo
     highway
     lcms2
     libjxl
@@ -917,7 +916,8 @@ build_elfutils () {
 #  build_with_configure expat ${EXPAT_VER} --disable-static
 # }
 
-# see https://docs.gtk.org/glib/building.html
+# First pass without introspection: glib's own .gir files need gobject-introspection,
+# which needs glib.  Second pass (after gobject-introspection) enables .gir generation.
 build_glib () {
   build_with_meson glib ${GLIB_VER} -Dintrospection=disabled
 }
@@ -973,7 +973,8 @@ build_libepoxy () {
   build_with_meson libepoxy ${LIBEPOXY_VER}
 }
 
-# not sure if we really need to build harfbuzz twice ...
+# Harfbuzz auto-detects freetype, cairo, fontconfig, and glib (all feature=auto).
+# Pass 1 lacks freetype/cairo; pass 2 finds them and enables those backends.
 build_harfbuzz () {
   build_with_meson harfbuzz ${HARFBUZZ_VER} -Dtests=disabled -Dcpp_std=c++17
 }
@@ -1061,11 +1062,9 @@ build_tiff() {
   fi
 }
 
-# not sure if we really need to build twice ...
+# Cairo's features are all auto-detected and every dependency is already built
+# before this point — a single pass is sufficient, no circular bootstrap needed.
 build_cairo () {
-  build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled
-}
-build_cairo2 () {
   build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled
 }
 
