@@ -87,6 +87,14 @@ usage () {
   printf "\n  -patch <file>               : Coot patch file\n"
   printf "\n  -no_chapi                   : Do not build Coot headless API\n"
 
+  printf "\n Build-phase selectors (mutually exclusive; with none of these the whole build runs):\n"
+  printf "\n  -download-only              : only download the toolchain + dependency sources (NOT Coot), then stop\n"
+  printf "\n  -toolchain-only             : only build the bootstrap toolchain (Python, CMake, Ninja, Rust), then stop\n"
+  printf "\n  -deps-only                  : only build the dependency stack, then stop\n"
+  printf "\n  -coot-stage-only            : only download+build Coot (+chapi) and package, then stop\n"
+  printf "\n                                (for caching CI: run -download-only, -toolchain-only, -deps-only in the\n"
+  printf "\n                                 same dir to populate+cache the prefix, then -coot-stage-only after restore)\n"
+
   printf "\n Influential environment variables (override the defaults when set):\n"
   printf "\n  COOT_GIT             : Coot git repository URL (default = https://github.com/pemsley/coot)\n"
   printf "\n  CC / CXX / FC / F77  : C / C++ / Fortran compilers (default = newest gcc/g++/gfortran in the supported range)\n"
@@ -118,6 +126,7 @@ patch_file=""
 no_chapi=0
 btype="opt"
 do_clean=0
+stage=all   # which build phase to run; a -*-only flag narrows this to a single phase
 while [ $# -gt 0 ]
 do
    case $1 in
@@ -134,6 +143,11 @@ do
     -branch) branch=$2;outtag=$branch;shift;;
     -debug) btype="debug";;
     -no_chapi) no_chapi=1;;
+    # Build-phase selectors: each runs exactly one phase and they do not chain.
+    -download-only)   [ "$stage" = all ] || error "only one -*-only phase flag allowed"; stage=download;;
+    -toolchain-only)  [ "$stage" = all ] || error "only one -*-only phase flag allowed"; stage=toolchain;;
+    -deps-only)       [ "$stage" = all ] || error "only one -*-only phase flag allowed"; stage=deps;;
+    -coot-stage-only) [ "$stage" = all ] || error "only one -*-only phase flag allowed"; stage=coot;;
     -patch)
       [ ! -f "$2" ] && error "file for -patch command not found = \"$2\""
       case "$2" in
@@ -1515,23 +1529,56 @@ do_wget () {
   return 0
 }
 
-initial_setup () {
-  
-  mkdir -p $PREFIX    || error
+# download_toolchain — fetch (only) the bootstrap toolchain sources: Python, CMake,
+# Ninja and the rustup installer. Pure downloads via do_wget, no compilation, so the
+# whole download phase can run up-front before anything is built (this is what the
+# -download-only phase calls). Mirrors download_dependencies. Safe to run standalone or
+# repeatedly: do_wget is idempotent and skips anything already present.
+download_toolchain () {
   mkdir -p $DEPS_DIR  || error
   mkdir -p $BUILD_DIR || error
 
-#  install_dependencies_with_distro_package_manager
-  
-  cd $DEPS_DIR || error
-
   # Some distros ship ancient python. We need a fairly new version of pip and python.
+  cd $DEPS_DIR || error
   do_wget https://www.python.org/ftp/python/${PYTHON_VER}/Python-${PYTHON_VER}.tar.xz
   if [ -d Python-${PYTHON_VER} ] && [ ! -d python-${PYTHON_VER} ]; then
     mv Python-${PYTHON_VER} python-${PYTHON_VER} && \
       ln -s python-${PYTHON_VER} Python-${PYTHON_VER} || error
   fi
-  
+
+  # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
+  mkdir -p $BUILD_DIR/cmakebuild || error
+  cd $BUILD_DIR/cmakebuild || error
+  do_wget https://github.com/Kitware/CMake/archive/refs/tags/v${CMAKE_VER}.tar.gz
+
+  # Newer Ninja
+  mkdir -p $BUILD_DIR/ninjabuild || error
+  cd $BUILD_DIR/ninjabuild || error
+  do_wget https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VER}.tar.gz
+
+  # Rust installer (rustup-init.sh). Only the bootstrap script is fetched here; the
+  # actual rustup/cargo-c install stays in initial_setup (it writes to CARGO_HOME).
+  # TODO: Clemens, PLEASE DO NOT CACHE rustup-init.sh in the contrib mirror
+  mkdir -p $DEPS_DIR/rust || error
+  cd $DEPS_DIR/rust || error
+  if [ ! -f rustup-init.sh ]; then
+    do_wget https://sh.rustup.rs rustup-init.sh 8
+    chmod +x rustup-init.sh || error
+  fi
+
+  cd $PREFIX || error
+}
+
+initial_setup () {
+
+  mkdir -p $PREFIX    || error
+  mkdir -p $DEPS_DIR  || error
+  mkdir -p $BUILD_DIR || error
+
+  # Ensure the toolchain sources are present. No-op when the -download-only phase
+  # already fetched them; this keeps -toolchain-only self-contained.
+  download_toolchain || error
+
   cd $PREFIX || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
@@ -1551,13 +1598,11 @@ initial_setup () {
 
   # python3 -m pip install meson numpy
 
-  # Newer CMake
+  # Newer CMake (source fetched + unpacked by download_toolchain)
   if [ ! -f $BUILD_DIR/cmakebuild/.my_done ]; then
     printf "\n ### building newer CMake\n"
-    mkdir $BUILD_DIR/cmakebuild || error
+    mkdir -p $BUILD_DIR/cmakebuild || error
     cd $BUILD_DIR/cmakebuild || error
-
-    do_wget https://github.com/Kitware/CMake/archive/refs/tags/v${CMAKE_VER}.tar.gz
     cd CMake-${CMAKE_VER} || error
 
     printf "   bootstrapping CMake ... "
@@ -1577,12 +1622,11 @@ initial_setup () {
     touch $BUILD_DIR/cmakebuild/.my_done
   fi
 
-  # Newer Ninja
+  # Newer Ninja (source fetched + unpacked by download_toolchain)
   if [ ! -f $BUILD_DIR/ninjabuild/.my_done ]; then
     printf "\n ### building newer Ninja\n"
-    mkdir $BUILD_DIR/ninjabuild || error
+    mkdir -p $BUILD_DIR/ninjabuild || error
     cd $BUILD_DIR/ninjabuild || error
-    do_wget https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VER}.tar.gz
     cd ninja-${NINJA_VER} || error
 
     printf "   running cmake ... "
@@ -1602,19 +1646,16 @@ initial_setup () {
     touch $BUILD_DIR/ninjabuild/.my_done
   fi
 
-  mkdir -p $DEPS_DIR/rust || error
-  cd $DEPS_DIR/rust || error
-  if [ ! -f rustup-init.sh ]; then
+  # Rust for librsvg (rustup-init.sh is fetched by download_toolchain). rustup installs
+  # into $HOME by default; we override that to $PREFIX via RUSTUP_HOME and CARGO_HOME.
+  # Guard on the installed cargo binary (not the presence of the installer script, which
+  # download_toolchain already put in place).
+  if [ ! -x $CARGO_HOME/bin/cargo ]; then
     printf "\n### Installing RUST (into CARGO_HOME=$CARGO_HOME, RUSTUP_HOME=$RUSTUP_HOME)\n"
-    # Rust for librsvg - this tries to install it into $HOME by default
-    # so, we're overriding that to install into $PREFIX (via RUSTUP_HOME and CARGO_HOME)
-    #
-    # TODO: Clemens, PLEASE DO NOT CACHE rustup-init.sh in the contrib mirror
-    do_wget https://sh.rustup.rs rustup-init.sh 8
-    chmod +x rustup-init.sh || error
+    cd $DEPS_DIR/rust || error
     RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > $DEPS_DIR/rust/my_rust_install.log 2>&1 || error "see $DEPS_DIR/rust/my_rust_install.log"
+    cd $PREFIX || error
   fi
-  cd $PREFIX || error
 
   # librsvg's Meson build drives cargo-c (cargo cbuild / cinstall) to produce the C-ABI
   # library plus its .pc file and headers; rustup does not ship it, so install the
@@ -2496,24 +2537,11 @@ package_coot_minimal () {
   printf "\n"
 }
 
-setup_all_and_build_coot () {
-  setup_build_env || error
-  initial_setup || error
+# download_all — the whole download phase: every toolchain + dependency source, fetched
+# up front (before anything is built). Deliberately does NOT download Coot itself.
+download_all () {
+  download_toolchain    || error
   download_dependencies || error
-  build_dependencies || error
-  cat <<e
-
-########################################################################
-### Now for the real thing: Coot
-########################################################################
-
-e
-  download_coot || error
-  build_coot || error
-  if [ $no_chapi -eq 0 ]; then
-    build_chapi || error
-  fi
-  complete_coot || error
 }
 create_coot_wrapper () {
   cd $PREFIX || error
@@ -2708,23 +2736,65 @@ EOF
   fi
 }
 
-printf "\n################## setup_all_and_build_coot ################## \n\n"
-setup_all_and_build_coot || error
-printf "\n####################### handling fonts ####################### \n\n"
-extract_fonts || error
-printf "\n###################### package_coot_prep ##################### \n\n"
-package_coot_prep        || error
-printf "\n#################### create_coot_wrapper ##################### \n\n"
-create_coot_wrapper      || error
-printf "\n###################### create_coot_env ###################### \n\n"
-create_coot_env          || error
-if [ $do_minimaltar -eq 1 ]; then
-  printf "\n#################### package_coot_minimal #################### \n\n"
-  package_coot_minimal   || error
-else
-  printf "\n######################## package_coot ######################## \n\n"
-  package_coot           || error
-fi
+# -------------------------------------------------------------------------------------
+# Phase dispatch. The build is divided into four ordered phases; $stage selects which to
+# run ("all" = the whole thing, the default; a -*-only flag narrows it to one). The
+# split lets Coot's CI build+cache the dependency stack (download/toolchain/deps) without
+# Coot, then build Coot alone against the restored cache (-coot-stage-only).
+# setup_build_env runs first regardless: every phase needs its env vars + $PREFIX/bin.
+# -------------------------------------------------------------------------------------
+setup_build_env || error
+
+case $stage in all|download)
+  printf "\n##################### download (sources) ##################### \n\n"
+  download_all || error
+  ;;
+esac
+
+case $stage in all|toolchain)
+  printf "\n###################### toolchain build ###################### \n\n"
+  initial_setup || error
+  ;;
+esac
+
+case $stage in all|deps)
+  printf "\n#################### dependency build ###################### \n\n"
+  build_dependencies || error
+  ;;
+esac
+
+case $stage in all|coot)
+  cat <<e
+
+########################################################################
+### Now for the real thing: Coot
+########################################################################
+
+e
+  download_coot || error
+  build_coot    || error
+  if [ $no_chapi -eq 0 ]; then
+    build_chapi || error
+  fi
+  complete_coot || error
+  printf "\n####################### handling fonts ####################### \n\n"
+  extract_fonts || error
+  printf "\n###################### package_coot_prep ##################### \n\n"
+  package_coot_prep        || error
+  printf "\n#################### create_coot_wrapper ##################### \n\n"
+  create_coot_wrapper      || error
+  printf "\n###################### create_coot_env ###################### \n\n"
+  create_coot_env          || error
+  if [ $do_minimaltar -eq 1 ]; then
+    printf "\n#################### package_coot_minimal #################### \n\n"
+    package_coot_minimal   || error
+  else
+    printf "\n######################## package_coot ######################## \n\n"
+    package_coot           || error
+  fi
+  ;;
+esac
+
 cat <<EOF
 
 ########################################################################

@@ -75,32 +75,59 @@ to land** — all downloads, builds and the install prefix are created in `$PWD`
   (default is a minimal tarball — the bundled ~115-monomer set ships either way)
 - `-debug` / `-clean` / `-distributable` / `-noninteractive`
 - `-patch <file>` — apply a patch to the Coot tree before building
+- **Build-phase selectors** (mutually exclusive; none given = run the whole build):
+  `-download-only`, `-toolchain-only`, `-deps-only`, `-coot-stage-only` — run just one
+  of the four phases and stop (see "Top-level control flow"). For caching CI: run
+  `-download-only` → `-toolchain-only` → `-deps-only` in the same dir to populate and
+  cache the prefix, then `-coot-stage-only` after restoring it. Passing two selectors is
+  an error.
 
 Supported distros: AlmaLinux, Arch, Debian, Fedora, openSUSE, Rocky, Ubuntu
 (detected from `/etc/os-release` etc.).
 
 ## Top-level control flow
 
-Everything is functions until the very bottom of the file, which is the actual
-driver:
+Everything is functions until the very bottom of the file, which is the actual driver.
+The driver is a **four-phase dispatch** keyed on `$stage` (set by the `-*-only` flags;
+default `all`). The OS-package install block near the top runs unconditionally *before*
+the dispatch, so wget/dev-libs are present in every phase. `setup_build_env` also runs
+first, unconditionally (every phase needs its env vars + `$PREFIX/bin` on PATH).
 
 ```
-setup_all_and_build_coot   # the big one, see below
-  ├─ setup_build_env       # PKG_CONFIG_*, LD_*, CC/CXX/FC, PYTHONPATH …
-  ├─ initial_setup         # build a fresh Python, pip-install meson/ninja deps,
-  │                        #   build newer CMake + Ninja, install Rust + cargo-c
-  ├─ download_dependencies # do_wget every dependency tarball into $DEPS_DIR
-  ├─ build_dependencies    # iterate $BUILD_DEPENDENCIES, call build_<name>
-  ├─ download_coot         # git clone the requested tag/branch
-  ├─ build_coot            # autogen → configure (writes+runs my_configure.sh) → make → install
-  ├─ build_chapi           # (unless -no_chapi) cmake build of the headless API
-  └─ complete_coot         # fetch reference-structures (+ full monomer library if -fulltar)
-extract_fonts              # unpack bundled Inter/JetBrains/DejaVu/Noto fonts
-package_coot_prep          # move stray Coot ELF into libexec; bin/ → coot-wrapper.sh symlinks
-create_coot_wrapper        # emit bin/coot-wrapper.sh   (see "runtime launcher" below)
-create_coot_env            # emit bin/coot-env.sh       (sourceable full env)
+setup_build_env            # always: PKG_CONFIG_*, LD_*, CC/CXX/FC, PYTHONPATH …
+
+# phase 1 — download   (stage = all | download)
+download_all
+  ├─ download_toolchain    # do_wget Python, CMake, Ninja, rustup-init.sh (NO build)
+  └─ download_dependencies # do_wget every dependency tarball into $DEPS_DIR
+                           #   — NB: neither downloads Coot itself
+
+# phase 2 — toolchain  (stage = all | toolchain)
+initial_setup             # calls download_toolchain first (idempotent), then BUILDS:
+                          #   fresh Python, pip meson/etc, newer CMake + Ninja,
+                          #   install Rust + cargo-c
+
+# phase 3 — deps       (stage = all | deps)
+build_dependencies        # iterate $BUILD_DEPENDENCIES, call build_<name>
+
+# phase 4 — coot       (stage = all | coot)
+download_coot             # git clone the requested tag/branch
+build_coot                # autogen → configure (writes+runs my_configure.sh) → make → install
+build_chapi               # (unless -no_chapi) cmake build of the headless API
+complete_coot             # fetch reference-structures (+ full monomer library if -fulltar)
+extract_fonts             # unpack bundled Inter/JetBrains/DejaVu/Noto fonts
+package_coot_prep         # move stray Coot ELF into libexec; bin/ → coot-wrapper.sh symlinks
+create_coot_wrapper       # emit bin/coot-wrapper.sh   (see "runtime launcher" below)
+create_coot_env           # emit bin/coot-env.sh       (sourceable full env)
 package_coot_minimal | package_coot   # tar up the result
 ```
+
+A `-*-only` flag runs exactly one phase and stops; with none, all four run in order
+(identical to the old linear behaviour, except **all downloads now happen up front** in
+phase 1 instead of being interleaved with the toolchain build). The phases are designed
+so Coot's own CI can build + cache the dependency stack (phases 1–3, no Coot) and then
+build Coot alone against the restored cache (`-coot-stage-only`). The old single
+`setup_all_and_build_coot` wrapper is gone — the driver owns orchestration.
 
 ## Key concepts an editor must understand
 
