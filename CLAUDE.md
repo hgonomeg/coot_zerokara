@@ -181,7 +181,7 @@ and sets `CC`/`CXX`/`FC` plus `GCC_COMPILER_VERSION` and `GCC_COMMAND_EXT`
 ### The runtime launcher (env + wrapper + symlinks)
 Three pieces, each emitted via a **single-quoted heredoc** / created at packaging time;
 all ship in the tarball and are relocatable (they derive the prefix from their own
-location). See `coot-wrapper-DESIGN.md` for the full rationale.
+location).
 
 - **`bin/coot-env.sh`** (`create_coot_env`) — the **single source of truth** for the
   runtime environment. Sourceable by end users (`. bin/coot-env.sh`) and sourced by the
