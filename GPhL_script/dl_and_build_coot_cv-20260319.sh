@@ -40,28 +40,6 @@ error () {
 warning () {
   [ $# -eq 0 ] && printf "\n WARNING: see above\n\n" || printf "\n WARNING: $@\n\n"
 }
-usage () {
-  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distro]\n"
-  printf "\n  -h                     : this help message\n"
-  printf "\n  -v                     : increase verbosity\n"
-  printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
-  printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs etc)\n"
-  printf "\n  -distro                : build binaries for distribution (default is to tune for local machine/CPU)\n"
-  printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
-  printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
-  printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
-  printf "\n  -branch <branch>       : Coot branch (default = \"$COOT_BRANCH\")\n"
-  printf "\n  -patch <file>          : Coot patch file\n"
-
-  printf "\n Tested on:\n"
-  printf "   AlmaLinux 8.10 and 9.5 (todo: test again)\n"
-  printf "   Arch Linux (20260402)\n"
-  printf "   Debian 13\n"
-  printf "   Fedora Linux 43 and 44\n"
-  printf "   openSUSE Leap 15 (todo: test again)\n"
-  printf "   Rocky Linux 9.3\n"
-  printf "   Ubuntu 24.04 and 26.04\n"
-}
 
 case `uname` in
   Linux) true;;
@@ -71,50 +49,6 @@ esac
 # save current environment
 env | sort > .env_start || error
 umask 022
-
-## -------------------------------------------------------------------------------
-## Command-line arguments
-## -------------------------------------------------------------------------------
-iverb=0
-nthreads=`nproc --all`
-do_minimaltar=1
-do_distro=0
-do_noninteractive=0
-do_os=0
-tag=""
-branch=""
-COOT_TAG="main"
-COOT_BRANCH=""
-patch_file=""
-btype="opt"
-do_clean=0
-while [ $# -gt 0 ]
-do
-   case $1 in
-    -h|-help|--help)usage;exit 0;;
-    -v)iverb=`expr $iverb + 1`;;
-    -nthreads)nthreads=$2;shift;;
-    -minimaltar)do_minimaltar=1;;
-    -fulltar)do_minimaltar=0;;
-    -distr*)do_distro=1;;
-    -clean*) do_clean=1;;
-    -[oO][sS]) do_os=1;;
-    -noninteractive) do_noninteractive=1;;
-    -tag) tag=$2;outtag=${tag#Release-};shift;;
-    -branch) branch=$2;outtag=$branch;shift;;
-    -debug) btype="debug";;
-    -patch)
-      [ ! -f "$2" ] && error "file for -patch command not found = \"$2\""
-      case "$2" in
-        /*) patch_file=$2;;
-        *) patch_file=`pwd`/$2;;
-      esac
-      shift
-      ;;
-    *) error "unknown argument = \"$1\"";;
-  esac
-  shift
-done
 
 if [ -f /etc/os-release ]; then
   os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
@@ -135,6 +69,77 @@ elif [ -f /etc/centos-release ]; then
 else
   warning "Could not determine operating system distro/version!"
 fi
+
+usage () {
+  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distributable] [-os]\n"
+  printf "\n  -h                     : this help message\n"
+  printf "\n  -v                     : increase verbosity\n"
+  printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
+  printf "\n  -fulltar               : create \"full\" tarball at the end (static libs, docs, full refmac monomer library etc); default is a minimal tarball\n"
+  printf "\n  -distributable         : build binaries for distribution (default is to tune for local machine/CPU)\n"
+  printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
+  printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
+  printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
+  printf "\n  -branch <branch>       : Coot branch (default = \"$COOT_BRANCH\")\n"
+  printf "\n  -debug                 : Do debug build\n"
+  printf "\n  -clean                 : Run make clean after building\n"
+  printf "\n  -patch <file>          : Coot patch file\n"
+  printf "\n  -no_chapi              : Do not build Coot headless API\n"
+
+  printf "\n Tested on:\n"
+  printf "   AlmaLinux 8.10 and 9.5 (todo: test again)\n"
+  printf "   Arch Linux (20260402)\n"
+  printf "   Debian 13\n"
+  printf "   Fedora Linux 43 and 44\n"
+  printf "   openSUSE Leap 15 (todo: test again)\n"
+  printf "   Rocky Linux 9.3\n"
+  printf "   Ubuntu 24.04 and 26.04\n"
+}
+
+## -------------------------------------------------------------------------------
+## Command-line arguments
+## -------------------------------------------------------------------------------
+iverb=0
+nthreads=`nproc --all`
+do_minimaltar=1   # default: build a minimal tarball; -fulltar flips this to 0
+do_distributable=0
+do_noninteractive=0
+do_os=0
+tag=""
+branch=""
+COOT_TAG="main"
+COOT_BRANCH=""
+patch_file=""
+no_chapi=0
+btype="opt"
+do_clean=0
+while [ $# -gt 0 ]
+do
+   case $1 in
+    -h|-help|--help)usage;exit 0;;
+    -v)iverb=`expr $iverb + 1`;;
+    -nthreads)nthreads=$2;shift;;
+    -fulltar)do_minimaltar=0;;
+    -distributable)do_distributable=1;;
+    -clean) do_clean=1;;
+    -[oO][sS]) do_os=1;;
+    -noninteractive) do_noninteractive=1;;
+    -tag) tag=$2;outtag=${tag#Release-};shift;;
+    -branch) branch=$2;outtag=$branch;shift;;
+    -debug) btype="debug";;
+    -no_chapi) no_chapi=1;;
+    -patch)
+      [ ! -f "$2" ] && error "file for -patch command not found = \"$2\""
+      case "$2" in
+        /*) patch_file=$2;;
+        *) patch_file=`pwd`/$2;;
+      esac
+      shift
+      ;;
+    *) error "unknown argument = \"$1\"";;
+  esac
+  shift
+done
 
 ## -------------------------------------------------------------------------------
 ## OS-specific packages etc
@@ -223,6 +228,7 @@ if [ $do_os -eq 1 ]; then
              docbook-xsl-stylesheets \
              bc \
              gperf \
+             file \
              gettext-tools \
              libpsl-devel \
              glibc-locale \
@@ -285,7 +291,6 @@ if [ $do_os -eq 1 ]; then
             expat-devel \
             dbus-devel \
             libmount-devel \
-            elfutils-libelf-devel \
             readline-devel \
             ncurses-devel \
             sqlite-devel \
@@ -356,12 +361,12 @@ if [ $do_os -eq 1 ]; then
               git \
               flex \
               gperf \
+              file \
               gperftools-devel \
               $__toolsets \
               blas-devel \
               dbus-devel \
               libmount-devel \
-              elfutils-libelf-devel \
               readline-devel \
               ncurses-devel \
               sqlite-devel \
@@ -386,7 +391,7 @@ if [ $do_os -eq 1 ]; then
     debian*|ubuntu*)
         $sudo apt-get update || error
         $sudo apt-get -y install \
-          git wget build-essential gfortran gettext pkg-config bison flex make automake gperf vim xmlto libtool-bin \
+          git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
           libdbus-1-dev libmount-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
           libssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
           libxcb-glx0-dev \
@@ -406,7 +411,7 @@ if [ $do_os -eq 1 ]; then
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
-            dbus util-linux-libs expat libffi elfutils libxml2 readline \
+            dbus util-linux-libs expat libffi libxml2 readline \
             openssl ncurses sqlite lzo xz bzip2 libpng brotli \
             libxcb \
             mesa \
@@ -447,112 +452,64 @@ fi
 
 export COOT_DIR
 
-# is that reliable?
-if [ "X$COOT_TAG$COOT_BRANCH" != "X" ]; then
-  case "$COOT_TAG$COOT_BRANCH" in
-    *0.9.*|*refinement*) COOT_VER=0.9;;
-    *)COOT_VER=1;;
-  esac
-else
-  COOT_VER=1
-fi
-
 if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
-  case $COOT_VER in
-    1)
-         # order matters - and some have to be done multiple times it seems
-         # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
-         BUILD_DEPENDENCIES="
-           pcre2
-           glib
-           gobject_introspection
-           libunistring
-           gc
-           glm
-           libffi
-           guile
-           swig
-           eigen
-           libepoxy
-           boost
-           glib
-           graphene
-           harfbuzz
-           freetype
-           fontconfig
-           libogg
-           libvorbis
-           libjpeg
-           pixman
-           cairo
-           harfbuzz
-           pango
-           smi
-           gdk_pixbuf
-           librsvg
-           tiff
-           curl
-           poppler
-           cairo
-           highway
-           lcms2
-           libjxl
-           libcap
-           bubblewrap
-           glycin
-           gdk_pixbuf
-           at_spi2_core
-           wayland
-           gtk
-           glycin
-           pygobject
-           fftw
-           maeparser
-           coordgen
-           rdkit
-           mmdb2
-           gsl
-           gemmi
-           libccp4
-           libssm
-           libclipper"
-           ;;
-    0.9)
-         # order matters - and some have to be done multiple times it seems
-         # todo: readline is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
-         BUILD_DEPENDENCIES="
-           libccp4
-           mmdb2
-           libssm
-           fftw
-           libclipper
-           freeglut
-           gtkglext
-           libart
-           libgnomecanvas
-           goocanvas
-           readline
-           pygobject
-           pygtk
-           boost
-           numpy
-           pillow
-           rdkit
-           biscuit
-           gmp
-           libtool
-           guile
-           greg
-           guilegtk
-           guilegui
-           guilelib
-           libidn
-           curl
-           clustalw
-           libgd
-           raster3d"
-         ;;
-    esac
+  # order matters - and some have to be done multiple times it seems
+  # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
+  BUILD_DEPENDENCIES="
+    elfutils
+    libdwarf
+    pcre2
+    glib
+    gobject_introspection
+    libunistring
+    gc
+    glm
+    libffi
+    guile
+    swig
+    eigen
+    libepoxy
+    boost
+    glib
+    graphene
+    harfbuzz
+    freetype
+    fontconfig
+    libogg
+    libvorbis
+    libjpeg
+    pixman
+    cairo
+    harfbuzz
+    pango
+    smi
+    gdk_pixbuf
+    librsvg
+    tiff
+    curl
+    poppler
+    highway
+    lcms2
+    libjxl
+    libcap
+    bubblewrap
+    glycin
+    gdk_pixbuf
+    at_spi2_core
+    wayland
+    gtk
+    glycin
+    pygobject
+    fftw
+    maeparser
+    coordgen
+    rdkit
+    mmdb2
+    gsl
+    gemmi
+    libccp4
+    libssm
+    libclipper"
 fi
 # -------------------------------------------------------------------------------------
 
@@ -560,48 +517,26 @@ fi
 CMAKE_VER=4.3.1
 NINJA_VER=1.13.2
 
-case $COOT_VER in
-  1)   PYTHON_VER_MAJOR=3
-       PYTHON_VER_MINOR=14
-       PYTHON_VER_PATCH=5
+PYTHON_VER_MAJOR=3
+PYTHON_VER_MINOR=14
+PYTHON_VER_PATCH=5
 
-       BOOST_VER=1.91.0
-       PYGOBJECT_VER=3.54.5
-       FREEGLUT_VER=3.8.0
-       RDKIT_VER=2026_03_2
-       NUMPY_VER=2.4.3
+BOOST_VER=1.91.0
+PYGOBJECT_VER=3.56.3
+RDKIT_VER=2026_03_2
+NUMPY_VER=2.4.3
 
-       ;;
-  0.9) PYTHON_VER_MAJOR=2
-       PYTHON_VER_MINOR=7
-       PYTHON_VER_PATCH=18
-
-       BOOST_VER=1.72.0
-       PYGOBJECT_VER=2.8.0
-       FREEGLUT_VER=2.4.0
-       RDKIT_VER=2018_09_3
-       NUMPY_VER=1.16.6
-
-       PILLOW_VER=6.2.2
-       PYGTK_VER=2.6.3
-       READLINE_VER=6.3
-       GOOCANVAS_VER=1.0.0
-       LIBGNOMECANVAS_VER=2.30.3
-       LIBART_VER=2.3.21
-       GTKGLEXT_VER=1.20
-       ;;
-esac
 PYTHON_VER="${PYTHON_VER_MAJOR}.${PYTHON_VER_MINOR}.${PYTHON_VER_PATCH}"
 
-LIBJPEG_VER=3.1.3
-GLIB_VER=2.86.4
+LIBJPEG_VER=3.1.4.1
+GLIB_VER=2.88.1
 GOBJECT_INTROSPECTION_VER_MM=1.86
 GOBJECT_INTROSPECTION_VER=${GOBJECT_INTROSPECTION_VER_MM}.0
 GUILE_VER=3.0.11
-SWIG_VER=4.4.0
+SWIG_VER=4.4.1
 LIBEPOXY_VER=1.5.10
 GRAPHENE_VER=1.10.8
-HARFBUZZ_VER=13.2.1
+HARFBUZZ_VER=14.2.0
 FREETYPE_VER=2.14.3
 FONTCONFIG_VER=2.17.1
 FONTS_INTER_VER=4.1
@@ -609,8 +544,8 @@ FONTS_JETBRAINS_VER=2.304
 FONTS_DEJAVU_VER=2.37
 PIXMAN_VER=0.46.4
 LIBTIFF_VER=4.7.1
-POPPLER_VER=26.03.0
-CURL_VER=8.19.0
+POPPLER_VER=26.05.0
+CURL_VER=8.20.0
 CAIRO_VER=1.18.4
 PANGO_VER_MM=1.57
 PANGO_VER=${PANGO_VER_MM}.1
@@ -632,9 +567,7 @@ GTK_VER_Patch=4
 GTK_VER=${GTK_VER_Major}.${GTK_VER_Minor}.${GTK_VER_Patch}
 MMDB_VER=2.0.22
 GSL_VER=2.8
-#GEMMI_VER=0.6.3
 GEMMI_VER=0.7.5
-#LIBCCP4_VER=6.5.1
 LIBCCP4_VER=8.0.0
 LIBSSM_VER=1.4
 LIBCLIPPER_VER_PRE=2.1
@@ -643,19 +576,21 @@ LIBCLIPPER_VER=${LIBCLIPPER_VER_PRE}.${LIBCLIPPER_VER_PATCH}
 FFTW_VER=2.1.5
 # LIBUNISTRING_VER=1.4
 LIBUNISTRING_VER=1.2
-GC_VER=8.2.8
+GC_VER=8.2.12
 GLM_VER=1.0.3
 PCRE2_VER=10.47
 LIBFFI_VER=3.5.2
 BOOST_VER_=`echo $BOOST_VER | tr . _`
-WAYLAND_VER=1.24.0
-WAYLANDPROTOCOLS_VER=1.47
+WAYLAND_VER=1.25.0
+WAYLANDPROTOCOLS_VER=1.48
 # EXPAT_VER=2.7.5
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
 EIGEN_VER=5.0.1
 LIBOGG_VER=1.3.6
 LIBVORBIS_VER=1.3.7
+ELFUTILS_VER=0.195
+LIBDWARF_VER=2.3.1
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -678,7 +613,6 @@ cat <<e
   os.................................... $os
 
   COOT_GIT ............................. $COOT_GIT
-  COOT_VER ............................. $COOT_VER
   COOT_TAG ............................. $COOT_TAG
   COOT_BRANCH .......................... $COOT_BRANCH
 
@@ -935,7 +869,8 @@ build_libjpeg () {
   build_with_cmake libjpeg-turbo ${LIBJPEG_VER} \
     -DCMAKE_INSTALL_LIBDIR=$PREFIX/lib \
     -DENABLE_STATIC=OFF \
-    -DWITH_JAVA=OFF
+    -DWITH_JAVA=OFF \
+    -DWITH_TESTS=OFF
 }
 
 build_libunistring () {
@@ -943,7 +878,7 @@ build_libunistring () {
 }
 
 build_gc () {
-  build_with_configure gc ${GC_VER}
+  build_with_configure gc ${GC_VER} --enable-cplusplus --disable-static
 }
 
 build_glm () {
@@ -951,27 +886,29 @@ build_glm () {
 }
 
 build_pcre2 () {
-  build_with_configure pcre2 ${PCRE2_VER} -enable-unicode --enable-jit --enable-pcre2-16 --enable-pcre2-32 --enable-pcre2grep-libz --enable-pcre2grep-libbz2 --disable-static
+  build_with_configure pcre2 ${PCRE2_VER} --enable-unicode --enable-jit --enable-pcre2-16 --enable-pcre2-32 --enable-pcre2grep-libz --enable-pcre2grep-libbz2 --disable-static
 }
 
 build_libffi () {
-  build_with_configure libffi ${LIBFFI_VER}
-}
-build_freeglut () {
-  build_with_cmake freeglut ${FREEGLUT_VER} -DFREEGLUT_BUILD_DEMOS=OFF -DFREEGLUT_BUILD_STATIC_LIBS=OFF
+  build_with_configure libffi ${LIBFFI_VER} --disable-static --disable-multi-os-directory
 }
 # build_libdrm () {
 #   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
 # }
 build_wayland () {
-  build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false
+  build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false -Ddtd_validation=false
 }
 build_waylandprotocols () {
   build_with_meson wayland-protocols ${WAYLANDPROTOCOLS_VER}
 }
-# build_elfutils () {
-#   build_with_configure elfutils ${ELFUTILS_VER} --disable-debuginfod
-# }
+
+build_libdwarf () {
+  build_with_meson libdwarf ${LIBDWARF_VER}
+}
+
+build_elfutils () {
+  build_with_configure elfutils ${ELFUTILS_VER} --disable-debuginfod
+}
 
 # build_libvdpau () {
 #   build_with_meson libvdpau ${LIBVDPAU_VER}
@@ -980,16 +917,17 @@ build_waylandprotocols () {
 #  build_with_configure expat ${EXPAT_VER} --disable-static
 # }
 
-# see https://docs.gtk.org/glib/building.html
+# First pass without introspection: glib's own .gir files need gobject-introspection,
+# which needs glib.  Second pass (after gobject-introspection) enables .gir generation.
 build_glib () {
-  build_with_meson glib ${GLIB_VER} -Dintrospection=disabled
+  build_with_meson glib ${GLIB_VER} -Dintrospection=disabled -Dtests=false -Dglib_debug=disabled
 }
 build_glib2 () {
-  build_with_meson glib ${GLIB_VER} -Dintrospection=enabled
+  build_with_meson glib ${GLIB_VER} -Dintrospection=enabled -Dtests=false -Dglib_debug=disabled
 }
 
 build_gobject_introspection () {
-  build_with_meson gobject_introspection ${GOBJECT_INTROSPECTION_VER}
+  build_with_meson gobject_introspection ${GOBJECT_INTROSPECTION_VER} -Dtests=false
   if [ -d $PREFIX/share/gir-1.0 ]; then
     for __f in GObject-2.0.gir GLib-2.0.gir Gio-2.0.gir GModule-2.0.gir
     do
@@ -1015,7 +953,7 @@ build_boost () {
     cd $BUILD_DIR/boost || error
 
     printf " ### bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
-    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python,random > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
+    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python,stacktrace > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
     echo "done"
 
     if [ "X${GCC_COMMAND_EXT}" != "X" ]; then
@@ -1033,10 +971,11 @@ build_boost () {
 }
 
 build_libepoxy () {
-  build_with_meson libepoxy ${LIBEPOXY_VER}
+  build_with_meson libepoxy ${LIBEPOXY_VER} -Dtests=false
 }
 
-# not sure if we really need to build harfbuzz twice ...
+# Harfbuzz auto-detects freetype, cairo, fontconfig, and glib (all feature=auto).
+# Pass 1 lacks freetype/cairo; pass 2 finds them and enables those backends.
 build_harfbuzz () {
   build_with_meson harfbuzz ${HARFBUZZ_VER} -Dtests=disabled -Dcpp_std=c++17
 }
@@ -1045,11 +984,11 @@ build_harfbuzz2 () {
 }
 
 build_graphene () {
-  build_with_meson graphene ${GRAPHENE_VER} -Dgtk_doc=false
+  build_with_meson graphene ${GRAPHENE_VER} -Dgtk_doc=false -Dtests=false -Dinstalled_tests=false
 }
 
 build_freetype () {
-  build_with_cmake freetype ${FREETYPE_VER} -DBUILD_SHARED_LIBS=true
+  build_with_cmake freetype ${FREETYPE_VER} -DBUILD_SHARED_LIBS=true -DFT_ENABLE_ERROR_STRINGS=ON
 }
 
 build_fontconfig () {
@@ -1081,12 +1020,18 @@ build_pixman () {
 build_poppler () {
   build_with_cmake poppler ${POPPLER_VER} -DENABLE_NSS3=OFF \
   -DENABLE_GPGME=OFF -DBUILD_GTK_TESTS=OFF -DBUILD_QT5_TESTS=OFF \
-  -DBUILD_QT6_TESTS=OFF -DENABLE_BOOST=ON -DENABLE_QT5=OFF -DENABLE_QT6=OFF \
+  -DBUILD_QT6_TESTS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_MANUAL_TESTS=OFF \
+  -DENABLE_BOOST=ON -DENABLE_QT5=OFF -DENABLE_QT6=OFF \
   -DENABLE_LIBOPENJPEG=none -DENABLE_LCMS=OFF -DENABLE_LIBCURL=ON -DENABLE_DCTDECODER=libjpeg
 }
 
 build_curl () {
-    build_with_cmake curl ${CURL_VER}
+    build_with_cmake curl ${CURL_VER} \
+      -DBUILD_TESTING=OFF \
+      -DBUILD_LIBCURL_DOCS=OFF \
+      -DBUILD_MISC_DOCS=OFF \
+      -DENABLE_CURL_MANUAL=OFF \
+      -DPICKY_COMPILER=OFF
 }
 
 build_tiff() {
@@ -1124,20 +1069,18 @@ build_tiff() {
   fi
 }
 
-# not sure if we really need to build twice ...
+# Cairo's features are all auto-detected and every dependency is already built
+# before this point — a single pass is sufficient, no circular bootstrap needed.
 build_cairo () {
-  build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled
-}
-build_cairo2 () {
   build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled
 }
 
 build_pango () {
-  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled
+  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled -Dbuild-testsuite=false -Dbuild-examples=false
 }
 
 build_smi () {
-  build_with_meson shared-mime-info ${SMI_VER}
+  build_with_meson shared-mime-info ${SMI_VER} -Dbuild-tests=false
 }
 
 # librsvg dropped autotools (autogen.sh/configure) for a Meson build in the 2.59+ series.
@@ -1233,16 +1176,16 @@ build_glycin2 () {
 
 # gdk_pixbuf is a dependency of glycin, so it needs to be built first before (and without) glycin
 build_gdk_pixbuf () {
-  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=disabled
+  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dinstalled_tests=false -Dglycin=disabled
 }
 
 # Gets rebuilt after glycin, so that glycin support is included.
 build_gdk_pixbuf2 () {
-  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dman=false -Dglycin=enabled
+  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dinstalled_tests=false -Dglycin=enabled
 }
 
 build_at_spi2_core () {
-  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER}
+  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER} -Duse_systemd=false
 }
 
 build_gtk () {
@@ -1253,7 +1196,7 @@ build_gtk () {
 
 
 build_pygobject () {
-  build_with_meson pygobject ${PYGOBJECT_VER}
+  build_with_meson pygobject ${PYGOBJECT_VER} -Dtests=false
 }
 
 build_maeparser () {
@@ -1271,7 +1214,8 @@ build_coordgen() {
 
 build_eigen () {
   build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
-          -DEIGEN_BUILD_TESTING=OFF
+          -DEIGEN_BUILD_TESTING=OFF \
+          -DEIGEN_BUILD_DEMOS=OFF
 }
 
 build_libogg () {
@@ -1288,6 +1232,8 @@ build_rdkit () {
   -DRDK_BUILD_INCHI_SUPPORT=ON \
   -DRDK_INSTALL_COMIC_FONTS=OFF \
   -DRDK_INSTALL_INTREE=OFF \
+  -DRDK_BUILD_CPP_TESTS=OFF \
+  -DRDK_INSTALL_STATIC_LIBS=OFF \
   -DRDK_USE_BOOST_SERIALIZATION=ON -DRDK_USE_BOOST_STACKTRACE=ON
 }
 
@@ -1406,8 +1352,8 @@ build_libclipper () {
 }
 
 build_fftw () {
-  #FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --enable-openmp --enable-threads --with-gcc --with-gcc-ld"
-  FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --with-gcc --with-gcc-ld"
+  #FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --enable-openmp --enable-threads --with-gcc --with-gnu-ld"
+  FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --with-gcc --with-gnu-ld"
   if [ ! -f $BUILD_DIR/fftw/.my_done${MY_DONE_EXT} ]; then
     printf "\n ### building fftw with configure/make ... "
     rm -rf $BUILD_DIR/fftw
@@ -1450,7 +1396,7 @@ do_wget () {
   if [ $# -ge 1 ]; then
     __max_retries=$1;shift
   else
-    __max_retries=3
+    __max_retries=8
   fi
 
   # Derive a short package name used in the log filename (my_get_<pkg>.log).
@@ -1474,7 +1420,7 @@ do_wget () {
       fedora-4[0-9]*) __wget_host_error_flag="";;
       *) __wget_host_error_flag="--retry-on-host-error";;
     esac
-    __wget_common_flags="--retry-connrefused --retry-on-http-error=503,429  $__wget_host_error_flag --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
+    __wget_common_flags="--retry-connrefused --retry-on-http-error=500,502,503,429  $__wget_host_error_flag --waitretry=2 --read-timeout=30 --timeout=45 -t 5"
     printf "\n getting $__output_file ... "
 
     # --- Three-tier download strategy ---
@@ -1644,7 +1590,7 @@ initial_setup () {
     # so, we're overriding that to install into $PREFIX (via RUSTUP_HOME and CARGO_HOME)
     #
     # TODO: Clemens, PLEASE DO NOT CACHE rustup-init.sh in the contrib mirror
-    do_wget https://sh.rustup.rs rustup-init.sh 5
+    do_wget https://sh.rustup.rs rustup-init.sh 8
     chmod +x rustup-init.sh || error
     RUSTUP_INIT_SKIP_PATH_CHECK=yes ./rustup-init.sh --profile default -y --no-modify-path > $DEPS_DIR/rust/my_rust_install.log 2>&1 || error "see $DEPS_DIR/rust/my_rust_install.log"
   fi
@@ -1670,6 +1616,10 @@ setup_build_env () {
   export CMAKE_PREFIX_PATH="$PREFIX"
   export GI_TYPELIB_PATH="$PREFIX/lib/girepository-1.0:$PREFIX/lib64/girepository-1.0"
   export CMAKE_BUILD_PARALLEL_LEVEL=${nthreads}
+  # Make cargo's crates.io downloads resilient to transient registry/HTTP2 hiccups
+  # (e.g. the "[16] Error in the HTTP2 framing layer" seen in CI). Applies to every
+  # cargo invocation in this run: cargo-c install and librsvg's cargo cbuild.
+  export CARGO_NET_RETRY=20
 
   # GCC_COMMAND_EXT is an optional version suffix set in the distro config (e.g. "-13" → gcc-13).
   # Only set CC/CXX/FC/F77 when the caller hasn't already provided them.
@@ -1680,7 +1630,7 @@ setup_build_env () {
   if [ "X$CC" = "X" ]; then
     CC=gcc${GCC_COMMAND_EXT}
     type $CC  2>&1 | sed "s/^/ # CC  : /" || error
-    [ $do_distro -eq 1 ] && CC="$CC -mtune=generic" || CC="$CC -march=native -mtune=native"
+    [ $do_distributable -eq 1 ] && CC="$CC -mtune=generic" || CC="$CC -march=native -mtune=native"
   fi
   export CC
   echo " # CC=\"$CC\""
@@ -1688,7 +1638,7 @@ setup_build_env () {
   if [ "X$CXX" = "X" ]; then
     CXX=g++${GCC_COMMAND_EXT}
     type $CXX 2>&1 | sed "s/^/ # CXX : /" || error
-    [ $do_distro -eq 1 ] && CXX="$CXX -mtune=generic" || CXX="$CXX -march=native -mtune=native"
+    [ $do_distributable -eq 1 ] && CXX="$CXX -mtune=generic" || CXX="$CXX -march=native -mtune=native"
   fi
   export CXX
   echo " # CXX=\"$CXX\""
@@ -1696,7 +1646,7 @@ setup_build_env () {
   if [ "X$FC" = "X" ]; then
     FC=gfortran${GCC_COMMAND_EXT}
     type $FC  2>&1 | sed "s/^/ # FC  : /" || error
-    [ $do_distro -eq 1 ] && FC="$FC -mtune=generic" || FC="$FC -march=native -mtune=native"
+    [ $do_distributable -eq 1 ] && FC="$FC -mtune=generic" || FC="$FC -march=native -mtune=native"
   fi
   export FC
   echo " # FC=\"$FC\""
@@ -1734,8 +1684,7 @@ additional_build_env_setup () {
 
 
 #TODO:
-# * JPEG for poppler (and tiff)
-# * curl, libbackward
+# * libbackward
 
 download_dependencies () {
   cd $DEPS_DIR || error
@@ -1867,7 +1816,7 @@ download_dependencies () {
 
   ## This is some patch from the AUR. I don't know what it fixes
   ## But I guess we need it.
-  do_wget "https://aur.archlinux.org/cgit/aur.git/plain/ssm.pc.in?h=libssm" ssm.pc.in 5
+  do_wget "https://aur.archlinux.org/cgit/aur.git/plain/ssm.pc.in?h=libssm" ssm.pc.in 8
   cp -p ssm.pc.in libssm-${LIBSSM_VER}/ssm.pc.in || error
 
   # Libclipper
@@ -1878,7 +1827,8 @@ download_dependencies () {
   do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz
 
   # gc
-  do_wget https://www.hboehm.info/gc/gc_source/gc-${GC_VER}.tar.gz gc-${GC_VER}.tar.gz 10
+  # hboehm.info only carries tarballs up to 8.2.8; newer releases are on GitHub.
+  do_wget https://github.com/bdwgc/bdwgc/releases/download/v${GC_VER}/gc-${GC_VER}.tar.gz gc-${GC_VER}.tar.gz 10
 
   # expat
   # do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER}| sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.gz
@@ -1900,16 +1850,13 @@ download_dependencies () {
   # Harfbuzz
   do_wget https://github.com/harfbuzz/harfbuzz/archive/refs/tags/${HARFBUZZ_VER}.tar.gz harfbuzz-${HARFBUZZ_VER}.tar.gz
 
-  for __p in libffi freeglut
-  do
-    __puc=`echo $__p | tr '[a-z]' '[A-Z]'`
-    eval "__v=\"\$${__puc}_VER\""  
-    do_wget https://github.com/${__p}/${__p}/releases/download/v${__v}/${__p}-${__v}.tar.gz
-  done
+  do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
 
   # # elfutils
-  # do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
+  do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
 
+  # libdwarf
+  do_wget https://github.com/davea42/libdwarf-code/releases/download/v${LIBDWARF_VER}/libdwarf-${LIBDWARF_VER}.tar.xz
 
   # Shared-mime-info
   do_wget https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/${SMI_VER}/shared-mime-info-${SMI_VER}.tar.gz
@@ -2020,7 +1967,7 @@ build_coot () {
   #--with-libdw --with-backward
   if [ ! -f .my_configure_done ]; then
     printf " ### Coot: configure (see `mypwd`/my_configure.log) ... "
-    [ $do_distro -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
+    [ $do_distributable -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
     case $btype in
       opt) __opt="-g -O3 -ffast-math";;
       *) __opt="";;
@@ -2044,6 +1991,7 @@ CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequ
             --with-rdkit-prefix=\$PREFIX \\
             --with-boost=\$PREFIX \\
             --with-gemmi=\$PREFIX \\
+            --with-libdw=\$PREFIX \\
             --with-boost-thread=boost_thread \\
             --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}"
 EOF
@@ -2059,6 +2007,7 @@ EOF
                 --with-rdkit-prefix=$PREFIX \
                 --with-boost=$PREFIX \
                 --with-gemmi=$PREFIX \
+                --with-libdw=$PREFIX \
                 --with-boost-thread=boost_thread \
                 --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}" \
                 > my_configure.log 2>&1 || error "see `mypwd`/my_configure.log"
@@ -2122,12 +2071,76 @@ EOF
   fi
 }
 
+build_chapi () {
+cat << EOF
+
+
+########################################################################
+### Building Chapi
+########################################################################
+EOF
+  cd $COOT_BUILD_DIR
+  # Do we need this here?
+  additional_build_env_setup
+  mkdir -p chapi-build && cd chapi-build || error
+  # Todo: make sure we do it in a way consistent with how we build Coot (e.g. build type, build flags, etc.)
+  if [ ! -f .my_cmake_done ]; then
+    printf " ### Chapi: cmake (see `mypwd`/my_chapi_cmake.log) ... "
+    cmake -S .. -DCMAKE_INSTALL_PREFIX=$PREFIX > my_chapi_cmake.log 2>&1 \
+    || error "see `mypwd`/my_chapi_cmake.log"
+    echo "done"
+    touch .my_cmake_done
+    rm -f .my_make_done
+  fi
+  if [ ! -f .my_make_done ]; then
+    printf " ### Chapi: make (see `mypwd`/my_chapi_make.log) ... "
+    make -j ${nthreads} > my_chapi_make.log 2>&1 || error "see `mypwd`/my_chapi_make.log"
+    echo "done"
+    touch .my_make_done
+    do_cleans="`pwd` $do_cleans"
+  fi
+  if [ ! -f .my_install_done ]; then
+    printf " ### Chapi: install (see `mypwd`/my_chapi_install.log) ... "
+    make install > my_chapi_install.log 2>&1 || error "see `mypwd`/my_chapi_install.log"
+    echo "done"
+    touch .my_install_done
+  fi
+
+}
+
 complete_coot () {
   # get reference structures:
   if [ ! -d $PREFIX/share/coot/reference-structures ]; then
     cd $PREFIX/share/coot || error
     do_wget https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/dependencies/reference-structures.tar.gz || error
     rm -f reference-structures.tar.gz || error
+  fi
+
+  # Full refmac/CCP4 monomer (geometry) library -- only for full tarballs (-fulltar).
+  # Coot's "make install" already bundles a minimal (~115-monomer) set at
+  # share/coot/lib/data/monomers; here we overlay the complete dictionary so chapi/Coot
+  # has restraints for arbitrary ligands. The runtime COOT_REFMAC_LIB_DIR points at
+  # share/coot/lib, i.e. Coot looks under <that>/data/monomers.
+  #
+  # The tarball's top dir is "monomers/", but that dir already exists (the bundled set),
+  # so do_wget would skip unpacking it in place. We therefore unpack into a private temp
+  # dir and merge its contents over the bundled set. Idempotency stamp lives in
+  # $BUILD_DIR (not under share/) so it is not shipped in the tarball; we cannot guard on
+  # mon_lib_list.cif because the bundled minimal set already provides that file.
+  if [ $do_minimaltar -eq 0 ] && [ ! -f $BUILD_DIR/.my_full_monomers_done ]; then
+    printf "\n ### fetching the full refmac monomer library (~36 MB) ...\n"
+    mkdir -p $PREFIX/share/coot/lib/data/monomers || error
+    __monomers_tmp=$PREFIX/share/coot/lib/.monomers_dl.$$
+    rm -rf $__monomers_tmp
+    mkdir -p $__monomers_tmp || error
+    cd $__monomers_tmp || error
+    do_wget https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/dependencies/refmac-monomer-library.tar.gz || error
+    # do_wget unpacked ./monomers/ here; merge its contents over the bundled set
+    # ("monomers/." copies the directory's contents, including any dotfiles)
+    cp -a monomers/. $PREFIX/share/coot/lib/data/monomers/ || error
+    cd $PREFIX/share/coot/lib || error
+    rm -rf $__monomers_tmp || error
+    touch $BUILD_DIR/.my_full_monomers_done || error
   fi
 }
 
@@ -2150,70 +2163,104 @@ or
   setenv PATH "DIR$1/bin:\$PATH"   # tcsh/csh
 
 (replacing DIR with the correct directory name).
+
+You can then run Coot and its tools, e.g.:
+
+  coot
+  findwaters --help
+
+------------------------------------------------------------------------
+Using the headless API (Chapi) from the bundled Python
+------------------------------------------------------------------------
+
+This build ships its own Python together with the "coot_headless_api"
+module (a.k.a. Chapi). To use it, source the bundled environment file
+once in your shell:
+
+  . DIR$1/bin/coot-env.sh            # bash/sh/dash/zsh/ksh
+
+then use the bundled python3, from any directory:
+
+  python3 -c 'import coot_headless_api as chapi; print(chapi)'
+
+coot-env.sh auto-detects the install location (override by setting
+COOT_PREFIX) and exports PYTHONHOME, LD_LIBRARY_PATH and the COOT_* data
+directories, so that "import coot_headless_api" just works.
 EOF
 }
 
 package_coot_prep () {
   cd $PREFIX || error
 
-  # fix scripts that have something hard-wired
+  # Step 1: make installed bin/ scripts relocatable by replacing the absolute
+  # build-time $PREFIX with the runtime `dirname $0`.
   printf "\n"
-  for __f in `grep -l "$PREFIX" bin/* 2>/dev/null | grep -v "kak$"`
+  # list bin/* scripts containing the literal $PREFIX path
+  for script_file in `grep -l "$PREFIX" bin/* 2>/dev/null`
   do
-    case `file $__f` in
+    # `file` reports "...ELF..." for binaries -> leave them alone
+    case `file $script_file` in
       *ELF*) continue;;
     esac
-    printf " # change PREFIX in $__f\n"
+    printf " # change PREFIX in $script_file\n"
+    # rewrite $PREFIX in its three contexts; "%" delimiter avoids escaping the "/"s
+    #   \$ = $PREFIX at end of line;  $PREFIX/ = before a sub-path;  $PREFIX" = before a quote
     sed -i -e "s%$PREFIX\$%\`dirname \$0\`%g" \
            -e "s%$PREFIX/%\`dirname \$0\`/%g" \
            -e "s%$PREFIX\"%\`dirname \$0\`\"%g" \
-           $__f
+           $script_file
   done
 
-  # copy binaries into libexec (so that wrapper system can find them)
-  for __f in `file bin/* 2>/dev/null | egrep " executable " | cut -f1 -d':'`
+  # Step 2: move executables behind libexec/ so the wrapper can exec them from there
+  # keep `file` lines containing " executable "; cut takes the path before the ":"
+  for bin_executable in `file bin/* 2>/dev/null | grep -E " executable " | cut -f1 -d':'`
   do
-    __f=`basename $__f`
-    if [ ! -x libexec/$__f ]; then
-      printf "\n # copy bin/$__f into libexec\n"
-      cp -p bin/$__f libexec/$__f
+    bin_executable=`basename $bin_executable`
+    if [ ! -x libexec/$bin_executable ]; then
+      printf "\n # copy bin/$bin_executable into libexec\n"
+      cp -p bin/$bin_executable libexec/$bin_executable
     fi
   done
 
-  # create links to wrapper system:
-  __nf=0
-  for __f in `file libexec/* 2>/dev/null | egrep " executable," | cut -f1 -d':'` coot-1:coot
+  # Step 3: for each libexec program, make bin/<exe_name> a symlink to the wrapper
+  # and add a (usually "coot-"-prefixed) alias shim. "coot-1:coot" is a manual pair.
+  #   exe_name   -> symlink to coot-wrapper.sh
+  #   alias_name -> small shim script that calls exe_name
+  wrapper_link_count=0
+  for libexec_entry in `file libexec/* 2>/dev/null | grep -E " executable," | cut -f1 -d':'` coot-1:coot
   do
-    case `basename $__f` in
-      gio*) continue;;
-      *:*)    __g=`echo $__f | cut -f2 -d':'`
-              __f=`echo $__f | cut -f1 -d':'`;;
-      coot-*) __g=`basename $__f`;;
-      *)      __g="coot-`basename $__f`";;
+    case `basename $libexec_entry` in
+      gio*) continue;;                                          # not a Coot program
+      *:*)    alias_name=`echo $libexec_entry | cut -f2 -d':'`  # "name:alias" pair
+              libexec_entry=`echo $libexec_entry | cut -f1 -d':'`;;
+      coot-*) alias_name=`basename $libexec_entry`;;            # already prefixed
+      *)      alias_name="coot-`basename $libexec_entry`";;     # add "coot-" prefix
     esac
-    __f=`basename $__f`
-    __f=${__f%-bin}
-    __g=${__g%-bin}
-    __g=${__g%-bin}
-    if [ ! -h bin/$__f ] || [ "X$__f" != "X$__g" ]; then
-      [ -f bin/$__g ] && mv bin/$__g bin/$__g.orig
-      [ -f bin/$__f ] && mv bin/$__f bin/$__f.orig
-      printf "\n # create bin/$__f link\n"
-      ln -sf coot-wrapper.sh bin/$__f && __nf=`expr $__nf + 1`
-      if [ ! -f bin/$__g ] && [ ! -h bin/$__g ]; then
-        printf "\n # create bin/$__g wrapper\n"
-        cat <<EOF > bin/$__g
+    exe_name=`basename $libexec_entry`
+    exe_name=${exe_name%-bin}        # strip trailing "-bin" (findwaters-bin -> findwaters)
+    alias_name=${alias_name%-bin}    # same for the alias
+    alias_name=${alias_name%-bin}    # twice, in case of a doubled "-bin-bin"
+    # act unless bin/<exe_name> is already a symlink and there's no distinct alias
+    if [ ! -h bin/$exe_name ] || [ "X$exe_name" != "X$alias_name" ]; then
+      # keep any pre-existing real files as *.orig
+      [ -f bin/$alias_name ] && mv bin/$alias_name bin/$alias_name.orig
+      [ -f bin/$exe_name ]   && mv bin/$exe_name   bin/$exe_name.orig
+      printf "\n # create bin/$exe_name link\n"
+      ln -sf coot-wrapper.sh bin/$exe_name && wrapper_link_count=`expr $wrapper_link_count + 1`
+      if [ ! -f bin/$alias_name ] && [ ! -h bin/$alias_name ]; then
+        printf "\n # create bin/$alias_name wrapper\n"
+        cat <<EOF > bin/$alias_name
 #!/bin/sh
-"\`dirname \$0\`/$__f" "\$@"
+"\`dirname \$0\`/$exe_name" "\$@"
 EOF
-        chmod +x bin/$__g
+        chmod +x bin/$alias_name
       fi
     else
-      printf "\n # bin/$__f already a link\n"
+      printf "\n # bin/$exe_name already a link\n"
     fi
   done
 
-  printf "\n ### NOTE: created $__nf symbolic links to generic wrapper tool\n"
+  printf "\n ### NOTE: created $wrapper_link_count symbolic links to generic wrapper tool\n"
 
 }
 
@@ -2340,22 +2387,28 @@ EOF
 EOF
 }
 
-package_coot () {
-  cd $PREFIX || error
+# Echo a "<distro>-<version>" tag (for tarball names) from os-release / lsb-release.
+# Returns 1 if the distro can't be determined, so callers can `|| return`.
+detect_os_tag () {
   if [ -f /etc/os-release ]; then
-    os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
+    # sed "s/ [^-]*-/-/g": keep only NAME's first word, e.g. "Red Hat Enterprise Linux-9.5" -> "Red-9.5"
+    (. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")
   elif [ -f /etc/lsb-release ]; then
-    os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
+    (. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})
   else
-    return
+    return 1
   fi
-  out=coot_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`.tar.gz
-  __dirs="lib libexec share"
-  [ -d lib64 ] && __dirs="$__dirs lib64"
+}
+
+# Set $package_dirs to the install subdirs to ship, adding FontConfig (and rebuilding
+# its cache) when present. Runs in the current directory, i.e. the $PREFIX install tree.
+collect_package_dirs () {
+  package_dirs="lib libexec share"
+  [ -d lib64 ] && package_dirs="$package_dirs lib64"
   if [ -f bin/fc-match ]; then
     printf "  including FontConfig binaries, fonts and cache:\n"
-    [ -d var/cache/fontconfig ] && __dirs="$__dirs var/cache/fontconfig"
-    __dirs="$__dirs etc `ls bin/fc-* 2>/dev/null`"
+    [ -d var/cache/fontconfig ] && package_dirs="$package_dirs var/cache/fontconfig"
+    package_dirs="$package_dirs etc `ls bin/fc-* 2>/dev/null`"
     make_font_dirs_and_files
     (
       FONTCONFIG_PATH="$PREFIX/etc/fonts"
@@ -2366,83 +2419,77 @@ package_coot () {
       PATH=$PREFIX/bin:$PATH
       export FONTCONFIG_PATH FONTCONFIG_FILE FONTCONFIG_CACHE XDG_CACHE_HOME LD_LIBRARY_PATH PATH
       unset FONTCONFIG_SYSROOT
-      fc-cache -rv 2>&1 | awk '{print "    ",$0}' | egrep -v " skipping| 0 fonts"
+      # indent each fc-cache line 5 spaces (was awk), drop the " skipping"/" 0 fonts" noise (| = OR)
+      fc-cache -rv 2>&1 | sed 's/^/     /' | grep -E -v " skipping| 0 fonts"
     )
   fi
+}
+
+package_coot () {
+  cd $PREFIX || error
+  os=`detect_os_tag` || return
+  tarball_name=coot_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`.tar.gz
+  collect_package_dirs
   create_readme
-  printf "\n packaging Coot as $out ... "
-  tar -czf $out bin/coot* bin/layla bin/pyrogen bin/python3* $__dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
+  printf "\n packaging Coot as $tarball_name ... "
+  tar -czf $tarball_name bin/coot* bin/layla bin/pyrogen bin/python3* $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
   echo "done"
   printf "\n   "
-  ls -l $out
+  ls -l $tarball_name
   printf "\n"
 }
 package_coot_minimal () {
   cd $PREFIX || error
-  if [ -f /etc/os-release ]; then
-    os=`(. /etc/os-release ; echo "$NAME-${VERSION_ID}" | sed "s/ [^-]*-/-/g")`
-  elif [ -f /etc/lsb-release ]; then
-    os=`(. /etc/lsb-release ; echo ${DISTRIB_ID}-${DISTRIB_RELEASE})`
-  else
-    return
-  fi
-  outnam=coot-${outtag}-minimal_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`
-  out=$outnam.tar.gz
-  __dirs="lib libexec share"
-  [ -d lib64 ] && __dirs="$__dirs lib64"
-  if [ -f bin/fc-match ]; then
-    printf "  including FontConfig binaries, fonts and cache:\n"
-    [ -d var/cache/fontconfig ] && __dirs="$__dirs var/cache/fontconfig"
-    __dirs="$__dirs etc `ls bin/fc-* 2>/dev/null`"
-    make_font_dirs_and_files
-    (
-      FONTCONFIG_PATH="$PREFIX/etc/fonts"
-      FONTCONFIG_FILE="$PREFIX/etc/fonts/fonts.conf"
-      FONTCONFIG_CACHE="$PREFIX/var/cache/fontconfig"
-      XDG_CACHE_HOME="$PREFIX/var/cache"
-      LD_LIBRARY_PATH="$PREFIX/lib64:$PREFIX/lib"
-      PATH=$PREFIX/bin:$PATH
-      export FONTCONFIG_PATH FONTCONFIG_FILE FONTCONFIG_CACHE XDG_CACHE_HOME LD_LIBRARY_PATH PATH
-      unset FONTCONFIG_SYSROOT
-      fc-cache -rv 2>&1 | awk '{print "    ",$0}' | egrep -v " skipping| 0 fonts"
-    )
-  fi
-  mkdir -p __$$.tmp/$outnam || error
-  cp -ar $__dirs __$$.tmp/$outnam/. || error "copy-1 (see above)"
-  mkdir -p  __$$.tmp/$outnam/bin
-  cp -a bin/coot* bin/layla bin/pyrogen bin/python3* __$$.tmp/$outnam/bin/. || error "copy-2 (see above)"
+  os=`detect_os_tag` || return
+  package_basename=coot-${outtag}-minimal_${os}_`uname -m`_`date +%Y%m%d_%H%M%S`
+  tarball_name=$package_basename.tar.gz
+  collect_package_dirs
+  # stage a throwaway copy under a PID-named temp dir ($$ = this shell's PID), so we
+  # can prune and strip it without touching the real install
+  staging_root="__$$.tmp"
+  staging_dir="$staging_root/$package_basename"
+  mkdir -p $staging_dir || error
+  cp -ar $package_dirs $staging_dir/. || error "copy-1 (see above)"
+  mkdir -p $staging_dir/bin
+  cp -a bin/coot* bin/layla bin/pyrogen bin/python3* $staging_dir/bin/. || error "copy-2 (see above)"
   if [ -x bin/fc-match ]; then
-    cp -a bin/fc-* __$$.tmp/$outnam/bin/. || error "copy-3 (see above)"
+    cp -a bin/fc-* $staging_dir/bin/. || error "copy-3 (see above)"
   fi
   (
-    cd __$$.tmp/$outnam || error
+    cd $staging_dir || error
 
-    printf "\n preparing for minimal size ... "
-    find . -type f -name "*.[ai]" | xargs -r rm
+    printf "\n preparing for minimal size ...\n"
+    printf "   removing static libraries and intermediates (*.a, *.i) ...\n"
+    find . -type f -name "*.[ai]" | xargs -r rm        # [ai] = a or i
+    printf "   removing libtool archives (*.la) ...\n"
     find . -type f -name "*.la" | xargs -r rm
+    printf "   removing non-English locales ...\n"
     find share/locale -type d ! -name en | xargs -r rm -fr
-    find share -type f -name "*html" | grep -v coot | xargs -r rm
-    rm -fr share/man share/doc share/RDKit/Docs share/cmake*/Help share/cmake*/Modules
-    type strip >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-      egrep="egrep"
-      __c=`egrep --version 2>&1 | grep -c "egrep is obsolescent"`
-      [ $__c -ne 0 ] && egrep="grep -E" || egrep="egrep"
-      find lib* -name "*.so*" -type f | $egrep "so$|[0-9]$" | xargs -r -n 1 strip
-      find libexec -type f ! -name "*.*" | xargs -r -n 1 strip
-      find bin -type f -size +100k ! -name "*.*" | xargs -r -n 1 strip
+    printf "   removing stray HTML docs (keeping Coot's own) ...\n"
+    find share -type f -name "*html" | grep -v coot | xargs -r rm   # grep -v coot = exclude Coot's docs
+    rm -fr share/man share/doc share/RDKit/Docs share/cmake*/Help share/cmake*/Modules   # docs/help trees
+    # strip symbols to shrink libraries/binaries, when `strip` is available
+    if type strip >/dev/null 2>&1; then
+      printf "   stripping shared libraries ...\n"
+      # .so files and versioned .so.N: name ends in "so" or in a digit ($ = end; | = OR)
+      find lib* -name "*.so*" -type f | grep -E "so$|[0-9]$" | xargs -r -n 1 strip
+      printf "   stripping libexec binaries ...\n"
+      find libexec -type f ! -name "*.*" | xargs -r -n 1 strip          # ! -name "*.*" = no dot in name
+      printf "   stripping bin binaries ...\n"
+      find bin -type f -size +100k ! -name "*.*" | xargs -r -n 1 strip  # >100k, no extension
     fi
     echo "done"
 
-    create_readme /$outnam
+    create_readme /$package_basename
     cd ../ || error
-    printf "\n packaging minimal Coot as $out ... "
-    tar -czf ../$out * > ../my_tar.log 2>&1 || error "see `dirname $PWD`/my_tar.log"
+    # now inside $staging_root; "*" is just the $package_basename dir; write tarball + log one level up
+    printf "\n packaging minimal Coot as $tarball_name ... "
+    tar -czf ../$tarball_name * > ../my_tar.log 2>&1 || error "see `dirname $PWD`/my_tar.log"
     echo "done"
   )
-  rm -fr __$$.tmp || error
+  rm -fr $staging_root || error
   printf "\n"
-  ls -l $out
+  ls -l $tarball_name
   printf "\n"
 }
 
@@ -2460,6 +2507,9 @@ setup_all_and_build_coot () {
 e
   download_coot || error
   build_coot || error
+  if [ $no_chapi -eq 0 ]; then
+    build_chapi || error
+  fi
   complete_coot || error
 }
 create_coot_wrapper () {
@@ -2513,15 +2563,18 @@ LC_NUMERIC=C
 export LANG LC_ALL LC_NUMERIC
 
 # -----------------------------------------------------------------------------------
-# information about this script:
+# figure out how we were invoked and where we live:
+#   self_path    = absolute path to this script ($PWD-prefixed if a relative path was used)
+#   invoked_name = the command name the user typed (coot, findwaters, python3, ...)
+#   root_dir     = the install prefix (our dir, with a trailing /bin stripped off)
 case "$0" in
-  /*) iamfull="$0";;
-  *) iamfull="`pwd`/$0";;
+  /*) self_path="$0";;
+  *) self_path="`pwd`/$0";;
 esac
-iam=`basename "$iamfull"`
-rdir=`dirname "$iamfull"`
-case "$rdir" in
-  */bin) rdir=`dirname "$rdir"`;;
+invoked_name=`basename "$self_path"`
+root_dir=`dirname "$self_path"`
+case "$root_dir" in
+  */bin) root_dir=`dirname "$root_dir"`;;
 esac
 
 # -----------------------------------------------------------------------------------
@@ -2538,7 +2591,7 @@ note () {
 }
 usage () {
   printf "\n"
-  printf " USAGE: $iam [-h] [-v] [--ldd|--debug|--strace] ... $@\n"
+  printf " USAGE: $invoked_name [-h] [-v] [--ldd|--debug|--strace] ... $@\n"
   printf "\n"
 }
 
@@ -2563,14 +2616,14 @@ do
 done
 
 # -----------------------------------------------------------------------------------
-# check required commands
-ne=0
-for exe in awk sed
+# check the text-processing commands this wrapper relies on (sed and cut)
+error_count=0
+for required_cmd in sed cut
 do
-  type $exe >/dev/null 2>&1
-  [ $? -ne 0 ] && warning "command \"$exe\" not found" && ne=`expr $ne + 1`
+  type $required_cmd >/dev/null 2>&1
+  [ $? -ne 0 ] && warning "command \"$required_cmd\" not found" && error_count=`expr $error_count + 1`
 done
-[ $ne -gt 0 ] && error "some required commands not found - see above"
+[ $error_count -gt 0 ] && error "some required commands not found - see above"
 
 # -----------------------------------------------------------------------------------
 # are we running on a supported platform?
@@ -2582,11 +2635,11 @@ case `uname` in
     # -------------------------------------------------------------------------------
     # LD_LIBRARY_PATH settings:  
     vars="$vars LD_LIBRARY_PATH"
-    for sdir in lib lib64 lib/x86_64-linux-gnu/
+    for subdir in lib lib64 lib/x86_64-linux-gnu/
     do
-      [ ! -d $rdir/$sdir ] && continue
-      [ "X$LD_LIBRARY_PATH" = "X" ] && LD_LIBRARY_PATH="$rdir/$sdir" && continue
-      LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$rdir/$sdir"
+      [ ! -d $root_dir/$subdir ] && continue
+      [ "X$LD_LIBRARY_PATH" = "X" ] && LD_LIBRARY_PATH="$root_dir/$subdir" && continue
+      LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$root_dir/$subdir"
     done
     [ "X$LD_LIBRARY_PATH" != "X" ] && export LD_LIBRARY_PATH
 
@@ -2598,22 +2651,22 @@ case `uname` in
     # -------------------------------------------------------------------------------
     # DYLD_LIBRARY_PATH settings:  
     vars="$vars DYLD_LIBRARY_PATH"
-    for sdir in lib
+    for subdir in lib
     do
-      [ ! -d $rdir/$sdir ] && continue
-      [ "X$DYLD_LIBRARY_PATH" = "X" ] && DYLD_LIBRARY_PATH="$rdir/$sdir" && continue
-      DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:$rdir/$sdir"
+      [ ! -d $root_dir/$subdir ] && continue
+      [ "X$DYLD_LIBRARY_PATH" = "X" ] && DYLD_LIBRARY_PATH="$root_dir/$subdir" && continue
+      DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:$root_dir/$subdir"
     done
     [ "X$DYLD_LIBRARY_PATH" != "X" ] && export DYLD_LIBRARY_PATH
 
     ;;
 
-  *) error "$iam doesn't support OS \"`uname`\"";;
+  *) error "$invoked_name doesn't support OS \"`uname`\"";;
 esac
 
 # -----------------------------------------------------------------------------------
 # set variables
-COOT_PREFIX="$rdir"
+COOT_PREFIX="$root_dir"
 
 PYTHONHOME="$COOT_PREFIX"
 export PYTHONHOME
@@ -2648,15 +2701,24 @@ if [ -d "$COOT_PREFIX/share/coot/reference-structures" ]; then
   COOT_REF_STRUCTS="$COOT_PREFIX/share/coot/reference-structures"
   vars="$vars COOT_REF_STRUCTS"
 fi
-for __e in coot-1 Coot coot
+# Build a name -> binary map so one wrapper can serve many tools: each entry defines a
+# shell variable "<key>_exe" holding the path of the real libexec binary.
+
+# the main Coot binary: first of coot-1/Coot/coot that exists in libexec/
+for main_candidate in coot-1 Coot coot
 do
-  [ ! -x "$COOT_PREFIX/libexec/$__e" ] && continue
-  __ee=`echo $__e | tr '[A-Z]' '[a-z]' | sed "s%-%%g"`
-  eval "${__ee}_exe=\"\$COOT_PREFIX/libexec/\$__e\""
-  eval "${__ee%1}_exe=\"\$COOT_PREFIX/libexec/\$__e\""
+  [ ! -x "$COOT_PREFIX/libexec/$main_candidate" ] && continue
+  # name_key: lowercased, hyphens removed, so it is a valid shell var name (coot-1 -> coot1)
+  name_key=`echo $main_candidate | tr '[A-Z]' '[a-z]' | sed "s%-%%g"`
+  eval "${name_key}_exe=\"\$COOT_PREFIX/libexec/\$main_candidate\""
+  # also register the variant with a trailing "1" stripped (coot1 -> coot), so "coot" resolves
+  eval "${name_key%1}_exe=\"\$COOT_PREFIX/libexec/\$main_candidate\""
   break
 done
-for exe in coot-density-score-by-residue-bin \
+# the other tools: a hand-listed set plus every executable found in libexec/
+# (file ... | grep -E " executable " keeps executables; cut takes the path before ":";
+#  sed "s%.*/%%g" strips the directory, leaving the bare filename)
+for tool_name in coot-density-score-by-residue-bin \
            coot-ligand-validation-bin \
            coot-make-ligands-db \
            coot-identify-protein-bin \
@@ -2664,16 +2726,17 @@ for exe in coot-density-score-by-residue-bin \
            findwaters-bin \
            identify-protein-bin \
            mini-rsr-bin \
-           `file "$COOT_PREFIX/libexec"/* 2>/dev/null | egrep " executable " | cut -f1 -d':' | sed "s%.*/%%g"`
+           `file "$COOT_PREFIX/libexec"/* 2>/dev/null | grep -E " executable " | cut -f1 -d':' | sed "s%.*/%%g"`
 do
-  [ ! -x "$COOT_PREFIX/libexec/$exe" ] && [ ! -x "$COOT_PREFIX/libexec/coot-$exe" ] && continue
-  # with and without coot- prefix:
-  e=`echo "${exe%-bin}" | sed "s/-//g"`
-  eval "${e}_exe=\"\$COOT_PREFIX/libexec/$exe\""
-  case "$e" in
+  [ ! -x "$COOT_PREFIX/libexec/$tool_name" ] && [ ! -x "$COOT_PREFIX/libexec/coot-$tool_name" ] && continue
+  # tool_key: name without a trailing "-bin" and with hyphens removed (valid var name)
+  tool_key=`echo "${tool_name%-bin}" | sed "s/-//g"`
+  eval "${tool_key}_exe=\"\$COOT_PREFIX/libexec/$tool_name\""
+  # also register it under a "coot"-prefixed key, unless it already starts with coot
+  case "$tool_key" in
     coot*) continue;;
   esac
-  eval "coot${e}_exe=\"\$COOT_PREFIX/libexec/$exe\""
+  eval "coot${tool_key}_exe=\"\$COOT_PREFIX/libexec/$tool_name\""
 done
 
 export GUILE_WARN_DEPRECATED=no
@@ -2711,81 +2774,86 @@ fi
 
 # GI_TYPELIB_PATH settings:  
 vars="$vars GI_TYPELIB_PATH"
-for sdir in lib/girepository-1.0 lib64/girepository-1.0 lib/x86_64-linux-gnu/girepository-1.0
+for subdir in lib/girepository-1.0 lib64/girepository-1.0 lib/x86_64-linux-gnu/girepository-1.0
 do
-  [ ! -d $rdir/$sdir ] && continue
-  [ "X$GI_TYPELIB_PATH" = "X" ] && GI_TYPELIB_PATH="$rdir/$sdir" && continue
-  GI_TYPELIB_PATH="${GI_TYPELIB_PATH}:$rdir/$sdir"
+  [ ! -d $root_dir/$subdir ] && continue
+  [ "X$GI_TYPELIB_PATH" = "X" ] && GI_TYPELIB_PATH="$root_dir/$subdir" && continue
+  GI_TYPELIB_PATH="${GI_TYPELIB_PATH}:$root_dir/$subdir"
 done
 [ "X$GI_TYPELIB_PATH" != "X" ] && export GI_TYPELIB_PATH
 
 # -----------------------------------------------------------------------------------
 # do we have all variables set?
-ne=0
-for var in $vars
+error_count=0
+for var_name in $vars
 do
-  eval "val=\"\$$var\""
-  [ "X$val" = "X" ] && warning "no value given for variable $var" && ne=`expr $ne + 1`
+  eval "var_value=\"\$$var_name\""
+  [ "X$var_value" = "X" ] && warning "no value given for variable $var_name" && error_count=`expr $error_count + 1`
 done
-[ $ne -gt 0 ] && error "some required settings missing - see above"
+[ $error_count -gt 0 ] && error "some required settings missing - see above"
 
 # -----------------------------------------------------------------------------------
 # additional checks (*PATH/*DIR variables should point to directories)
-ne=0
-for var in $vars
+error_count=0
+for var_name in $vars
 do
-  case "$var" in
+  case "$var_name" in
     *PATH|*DIR)
-      eval "val=\"\$$var\""
-      for dir in `echo "$val" | sed "s/:/ /g"`
+      eval "var_value=\"\$$var_name\""
+      # sed "s/:/ /g" splits a colon-separated PATH-style value into individual entries
+      for path_entry in `echo "$var_value" | sed "s/:/ /g"`
       do
-        [ ! -d "$dir" ] && warning "directory/entry \"$dir\" ($var) not found" && ne=`expr $ne + 1`
+        [ ! -d "$path_entry" ] && warning "directory/entry \"$path_entry\" ($var_name) not found" && error_count=`expr $error_count + 1`
       done
       ;;
   esac
 done
-[ $ne -gt 0 ] && error "some defined directories not found - see above"
+[ $error_count -gt 0 ] && error "some defined directories not found - see above"
 
 # -----------------------------------------------------------------------------------
-# report all settings
+# report all settings (dot-leader aligned) when -v was given
 if [ $iverb -gt 0 ]; then
   printf "\n"
-  for var in $vars
+  dot_leaders="............................................................"   # 60 dots
+  for var_name in $vars
   do
-    eval "val=\"\$$var\""
-    echo "$val" | awk -v var="$var" 'BEGIN{for(i=1;i<=60;i++) x=x "."}{
-      printf(" %s %s %s\n",var,substr(x,1,(length(x)-length(var))),$0)
-    }' 
+    eval "var_value=\"\$$var_name\""
+    # pad the name with dots out to a 60-char column, then the value (replaces an awk
+    # doing the same): join name + dots and cut to 60 chars
+    label=`printf '%s %s' "$var_name" "$dot_leaders" | cut -c1-60`
+    printf " %s %s\n" "$label" "$var_value"
   done
   printf "\n"
 fi
 
 # -----------------------------------------------------------------------------------
-# now actual run it:
+# resolve which real binary to run (from how we were invoked) and launch it
 if [ $do_ccp4 -eq 0 ]; then
-  e=`echo "${iam%-bin}" | cut -f1 -d'-'`
-  eval "exe=\"\$${e}_exe\""
-  [ "X$exe" = "X" ] && error "executable to run \"$iam\" not defined"
-  [ ! -f "$exe" ] && error "executable \"$exe\" not found"
-  [ ! -x "$exe" ] && error "executable \"$exe\" not executable"
+  # lookup_key: invoked name without "-bin", up to the first "-" (e.g. coot-1 -> coot)
+  lookup_key=`echo "${invoked_name%-bin}" | cut -f1 -d'-'`
+  eval "target_exe=\"\$${lookup_key}_exe\""
+  [ "X$target_exe" = "X" ] && error "executable to run \"$invoked_name\" not defined"
+  [ ! -f "$target_exe" ] && error "executable \"$target_exe\" not found"
+  [ ! -x "$target_exe" ] && error "executable \"$target_exe\" not executable"
 
   # various options for debugging/running:
   if [ $do_ldd -eq 1 ]; then
-    ldd "$exe"
+    ldd "$target_exe"
   elif [ $do_strace -eq 1 ]; then
     type strace >/dev/null 2>&1 || error "no \"strace\" command found"
-    strace "$exe" "$@"
+    strace "$target_exe" "$@"
   else
     if [ $do_debug -eq 1 ]; then
       printf "\n\n"
-      echo " ### Running: \"$exe\" \"$@\"\n"
+      echo " ### Running: \"$target_exe\" \"$@\"\n"
       printf "\n"
       fc-match -v monospace 2>/dev/null | grep file
       fc-match -v serif 2>/dev/null | grep file
       fc-match -v sans 2>/dev/null | grep file
-      "$exe" "$@" || error
+      "$target_exe" "$@" || error
     else
-      "$exe" "$@" 2>&1 | sed "s%Usage:[ ]*[^ ]*%Usage: $iam%g" || error
+      # rewrite the program's own "Usage: <prog>" line to show the name the user typed
+      "$target_exe" "$@" 2>&1 | sed "s%Usage:[ ]*[^ ]*%Usage: $invoked_name%g" || error
     fi
   fi
 else
@@ -2798,6 +2866,70 @@ EOF
   fi
 }
 
+# Emit bin/coot-env.sh: a *sourceable* env file so users can drive the bundled Python
+# (e.g. `python3 -c 'import coot_headless_api'`) from their own shell. Named coot-env.sh
+# so it is picked up by the "bin/coot*" glob in package_coot{,_minimal}. Written via a
+# single-quoted heredoc so it self-derives the prefix at runtime (stays relocatable).
+create_coot_env () {
+  cd $PREFIX || error
+  if [ ! -f bin/coot-env.sh ]; then
+    cat <<'EOF' > bin/coot-env.sh
+#!/bin/sh
+# coot-env.sh — source this to use the tarball-shipped Coot and its bundled Python
+# from your own shell. After sourcing, the shipped python3 can import the headless
+# API:   python3 -c 'import coot_headless_api'
+#
+# Usage (sh/bash/zsh/ksh):
+#     . /path/to/coot/bin/coot-env.sh
+#
+# The install location is auto-detected; override by setting COOT_PREFIX beforehand.
+
+# --- locate the install prefix (the dir above this script's bin/) ---
+if [ "X${COOT_PREFIX:-}" = "X" ]; then
+  # this file is *sourced*, so $0 is unreliable; find our own path per shell
+  if [ -n "${BASH_SOURCE:-}" ]; then
+    _coot_self=${BASH_SOURCE}            # bash
+  elif [ -n "${ZSH_VERSION:-}" ]; then
+    _coot_self=${(%):-%x}                # zsh: %x = path of the sourced file
+  else
+    _coot_self=$0                        # other shells: best effort
+  fi
+  _coot_bindir=$(cd "$(dirname "$_coot_self")" && pwd)
+  COOT_PREFIX=$(dirname "$_coot_bindir") # bin/ -> install root
+  unset _coot_self _coot_bindir
+fi
+
+if [ ! -d "$COOT_PREFIX/lib" ]; then
+  echo "coot-env.sh: COOT_PREFIX=\"$COOT_PREFIX\" does not look like a Coot install" >&2
+  echo "  (set COOT_PREFIX to the unpacked tarball root and re-source)" >&2
+  return 1 2>/dev/null || exit 1
+fi
+export COOT_PREFIX
+
+# --- core runtime env (mirrors what coot-wrapper.sh sets up) ---
+PATH="$COOT_PREFIX/bin:$PATH"; export PATH
+# ${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} appends the caller's existing value, but the
+# ":+" form expands to ":$LD_LIBRARY_PATH" only when it is already set & non-empty,
+# and to nothing otherwise. That avoids leaving a dangling ":" (an empty path entry,
+# which the loader treats as the current directory "." — a correctness/security trap)
+# when LD_LIBRARY_PATH was previously unset.
+LD_LIBRARY_PATH="$COOT_PREFIX/lib64:$COOT_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; export LD_LIBRARY_PATH
+# PYTHONHOME makes the shipped python3 find its own stdlib + site-packages (where
+# coot_headless_api lives); no PYTHONPATH needed.
+PYTHONHOME="$COOT_PREFIX"; export PYTHONHOME
+
+# --- Coot data directories (so chapi finds dictionaries/structures at runtime) ---
+[ -d "$COOT_PREFIX/share/coot" ]                       && { COOT_DATA_DIR="$COOT_PREFIX/share/coot"; export COOT_DATA_DIR; }
+[ -d "$COOT_PREFIX/share/coot/scheme" ]                && { COOT_SCHEME_DIR="$COOT_PREFIX/share/coot/scheme"; export COOT_SCHEME_DIR; }
+[ -f "$COOT_PREFIX/share/coot/standard-residues.pdb" ] && { COOT_STANDARD_RESIDUES="$COOT_PREFIX/share/coot/standard-residues.pdb"; export COOT_STANDARD_RESIDUES; }
+[ -d "$COOT_PREFIX/share/coot/reference-structures" ]  && { COOT_REF_STRUCTS="$COOT_PREFIX/share/coot/reference-structures"; export COOT_REF_STRUCTS; }
+# monomer/dictionary library (only if the user hasn't pointed at a CCP4 one)
+[ "X${CLIBD_MON:-}" = "X" ] && [ -d "$COOT_PREFIX/share/coot/lib" ] && { COOT_REFMAC_LIB_DIR="$COOT_PREFIX/share/coot/lib"; export COOT_REFMAC_LIB_DIR; }
+EOF
+    chmod +x bin/coot-env.sh
+  fi
+}
+
 printf "\n################## setup_all_and_build_coot ################## \n\n"
 setup_all_and_build_coot || error
 printf "\n####################### handling fonts ####################### \n\n"
@@ -2806,6 +2938,8 @@ printf "\n###################### package_coot_prep ##################### \n\n"
 package_coot_prep        || error
 printf "\n#################### create_coot_wrapper ##################### \n\n"
 create_coot_wrapper      || error
+printf "\n###################### create_coot_env ###################### \n\n"
+create_coot_env          || error
 if [ $do_minimaltar -eq 1 ]; then
   printf "\n#################### package_coot_minimal #################### \n\n"
   package_coot_minimal   || error

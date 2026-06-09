@@ -4,11 +4,13 @@ A skill for correctly adding new dependencies to build automation scripts, with 
 
 ## Overview
 
-Adding a build dependency requires four coordinated components:
+Adding a build dependency requires five coordinated components:
 1. **Version declaration** - Specify the exact release version
 2. **Dependency list** - Add to build order before dependents
 3. **Build function** - Define how to compile the package
 4. **Download recipe** - Fetch the source from upstream
+5. **Arch version mirror** - Add the package to `check_arch_versions.sh` (repo root)
+   so the version-audit helper keeps tracking it
 
 Each must be verified against the upstream project before merging.
 
@@ -219,6 +221,35 @@ build_libjxl () {
 
 **Pattern:** Comment header, then `do_wget` with URL and output filename.
 
+### Part E: Mirror the version in the Arch audit helper
+**File:** `check_arch_versions.sh` at the **repository root** (not the build script).
+
+This helper compares the build script's pinned `*_VER` values against what Arch Linux
+currently ships. It keeps its own hand-maintained list in an inline `PKGLIST` heredoc,
+so a new dependency is invisible to it until you add a line. Append one line to that
+heredoc in the form:
+
+```
+arch-package-name:SCRIPT_VAR:pinned-version
+```
+
+```bash
+# Example, matching LIBJXL_VER=0.11.2 in the build script:
+libjxl:LIBJXL_VER:0.11.2
+```
+
+**Rules:**
+- The **first** field is the *pacman* package name (e.g. `gtk4`, `gdk-pixbuf2`,
+  `python-gobject`) — it often differs from the build-script package name. Confirm it
+  with `pacman -Ss` / the Arch package site if unsure.
+- The **second** field is the exact `*_VER` variable name you declared in Part A.
+- The **third** field is the literal pinned version (same value as the `*_VER`).
+- If the package genuinely has no Arch counterpart, skip it — but note that in your
+  summary so the omission is intentional, not forgotten.
+
+**Keep it in sync on every change, not just additions:** when you *bump* a version,
+update the third field here too; when you *remove* a dependency, delete its line.
+
 ---
 
 ## Step 5: Verify System Package Dependencies
@@ -255,11 +286,12 @@ Before committing:
 - [ ] **Build options verified** - Checked actual source for exact option names
 - [ ] **Download URL tested** - `curl -I <URL>` returns 2xx or 3xx status
 - [ ] **Dependency order correct** - Dependencies listed before dependents
-- [ ] **All four components added:**
+- [ ] **All five components added:**
   - [ ] Version declaration (VER variable)
   - [ ] BUILD_DEPENDENCIES entry
   - [ ] Build function
   - [ ] do_wget call
+  - [ ] `check_arch_versions.sh` PKGLIST line (or noted as having no Arch package)
 - [ ] **Follows script conventions:**
   - [ ] Naming matches existing packages
   - [ ] Indentation consistent
