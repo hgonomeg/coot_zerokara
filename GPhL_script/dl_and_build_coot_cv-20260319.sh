@@ -2103,6 +2103,33 @@ complete_coot () {
     do_wget https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/dependencies/reference-structures.tar.gz || error
     rm -f reference-structures.tar.gz || error
   fi
+
+  # Full refmac/CCP4 monomer (geometry) library -- only for full tarballs (-fulltar).
+  # Coot's "make install" already bundles a minimal (~115-monomer) set at
+  # share/coot/lib/data/monomers; here we overlay the complete dictionary so chapi/Coot
+  # has restraints for arbitrary ligands. The runtime COOT_REFMAC_LIB_DIR points at
+  # share/coot/lib, i.e. Coot looks under <that>/data/monomers.
+  #
+  # The tarball's top dir is "monomers/", but that dir already exists (the bundled set),
+  # so do_wget would skip unpacking it in place. We therefore unpack into a private temp
+  # dir and merge its contents over the bundled set. Idempotency stamp lives in
+  # $BUILD_DIR (not under share/) so it is not shipped in the tarball; we cannot guard on
+  # mon_lib_list.cif because the bundled minimal set already provides that file.
+  if [ $do_minimaltar -eq 0 ] && [ ! -f $BUILD_DIR/.my_full_monomers_done ]; then
+    printf "\n ### fetching the full refmac monomer library (~36 MB) ...\n"
+    mkdir -p $PREFIX/share/coot/lib/data/monomers || error
+    __monomers_tmp=$PREFIX/share/coot/lib/.monomers_dl.$$
+    rm -rf $__monomers_tmp
+    mkdir -p $__monomers_tmp || error
+    cd $__monomers_tmp || error
+    do_wget https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/dependencies/refmac-monomer-library.tar.gz || error
+    # do_wget unpacked ./monomers/ here; merge its contents over the bundled set
+    # ("monomers/." copies the directory's contents, including any dotfiles)
+    cp -a monomers/. $PREFIX/share/coot/lib/data/monomers/ || error
+    cd $PREFIX/share/coot/lib || error
+    rm -rf $__monomers_tmp || error
+    touch $BUILD_DIR/.my_full_monomers_done || error
+  fi
 }
 
 create_readme () {
