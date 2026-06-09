@@ -969,8 +969,9 @@ build_boost () {
       sed -i "s/gcc${GCC_COMMAND_EXT}/gcc/g" project-config.jam || error
     fi
 
+    [ "$btype" = "debug" ] && __boost_debug="debug-symbols=on" || __boost_debug=""
     printf " ### building boost (see `mypwd`/my_build.log${MY_DONE_EXT}) ... "
-    BOOST_BUILD_PATH=. ./b2 link=shared variant=release threading=multi runtime-link=shared install --prefix=${PREFIX} > my_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_build.log${MY_DONE_EXT}"
+    BOOST_BUILD_PATH=. ./b2 link=shared variant=release threading=multi runtime-link=shared ${__boost_debug} install --prefix=${PREFIX} > my_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_build.log${MY_DONE_EXT}"
     echo "done"
 
     cd $BUILD_DIR || error
