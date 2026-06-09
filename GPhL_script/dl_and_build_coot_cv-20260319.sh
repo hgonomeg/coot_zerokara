@@ -2523,15 +2523,18 @@ LC_NUMERIC=C
 export LANG LC_ALL LC_NUMERIC
 
 # -----------------------------------------------------------------------------------
-# information about this script:
+# figure out how we were invoked and where we live:
+#   self_path    = absolute path to this script ($PWD-prefixed if a relative path was used)
+#   invoked_name = the command name the user typed (coot, findwaters, python3, ...)
+#   root_dir     = the install prefix (our dir, with a trailing /bin stripped off)
 case "$0" in
-  /*) iamfull="$0";;
-  *) iamfull="`pwd`/$0";;
+  /*) self_path="$0";;
+  *) self_path="`pwd`/$0";;
 esac
-iam=`basename "$iamfull"`
-rdir=`dirname "$iamfull"`
-case "$rdir" in
-  */bin) rdir=`dirname "$rdir"`;;
+invoked_name=`basename "$self_path"`
+root_dir=`dirname "$self_path"`
+case "$root_dir" in
+  */bin) root_dir=`dirname "$root_dir"`;;
 esac
 
 # -----------------------------------------------------------------------------------
@@ -2548,7 +2551,7 @@ note () {
 }
 usage () {
   printf "\n"
-  printf " USAGE: $iam [-h] [-v] [--ldd|--debug|--strace] ... $@\n"
+  printf " USAGE: $invoked_name [-h] [-v] [--ldd|--debug|--strace] ... $@\n"
   printf "\n"
 }
 
@@ -2573,14 +2576,14 @@ do
 done
 
 # -----------------------------------------------------------------------------------
-# check required commands
-ne=0
-for exe in awk sed
+# check the text-processing commands this wrapper relies on (sed and cut)
+error_count=0
+for required_cmd in sed cut
 do
-  type $exe >/dev/null 2>&1
-  [ $? -ne 0 ] && warning "command \"$exe\" not found" && ne=`expr $ne + 1`
+  type $required_cmd >/dev/null 2>&1
+  [ $? -ne 0 ] && warning "command \"$required_cmd\" not found" && error_count=`expr $error_count + 1`
 done
-[ $ne -gt 0 ] && error "some required commands not found - see above"
+[ $error_count -gt 0 ] && error "some required commands not found - see above"
 
 # -----------------------------------------------------------------------------------
 # are we running on a supported platform?
@@ -2592,11 +2595,11 @@ case `uname` in
     # -------------------------------------------------------------------------------
     # LD_LIBRARY_PATH settings:  
     vars="$vars LD_LIBRARY_PATH"
-    for sdir in lib lib64 lib/x86_64-linux-gnu/
+    for subdir in lib lib64 lib/x86_64-linux-gnu/
     do
-      [ ! -d $rdir/$sdir ] && continue
-      [ "X$LD_LIBRARY_PATH" = "X" ] && LD_LIBRARY_PATH="$rdir/$sdir" && continue
-      LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$rdir/$sdir"
+      [ ! -d $root_dir/$subdir ] && continue
+      [ "X$LD_LIBRARY_PATH" = "X" ] && LD_LIBRARY_PATH="$root_dir/$subdir" && continue
+      LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$root_dir/$subdir"
     done
     [ "X$LD_LIBRARY_PATH" != "X" ] && export LD_LIBRARY_PATH
 
@@ -2608,22 +2611,22 @@ case `uname` in
     # -------------------------------------------------------------------------------
     # DYLD_LIBRARY_PATH settings:  
     vars="$vars DYLD_LIBRARY_PATH"
-    for sdir in lib
+    for subdir in lib
     do
-      [ ! -d $rdir/$sdir ] && continue
-      [ "X$DYLD_LIBRARY_PATH" = "X" ] && DYLD_LIBRARY_PATH="$rdir/$sdir" && continue
-      DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:$rdir/$sdir"
+      [ ! -d $root_dir/$subdir ] && continue
+      [ "X$DYLD_LIBRARY_PATH" = "X" ] && DYLD_LIBRARY_PATH="$root_dir/$subdir" && continue
+      DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:$root_dir/$subdir"
     done
     [ "X$DYLD_LIBRARY_PATH" != "X" ] && export DYLD_LIBRARY_PATH
 
     ;;
 
-  *) error "$iam doesn't support OS \"`uname`\"";;
+  *) error "$invoked_name doesn't support OS \"`uname`\"";;
 esac
 
 # -----------------------------------------------------------------------------------
 # set variables
-COOT_PREFIX="$rdir"
+COOT_PREFIX="$root_dir"
 
 PYTHONHOME="$COOT_PREFIX"
 export PYTHONHOME
@@ -2658,15 +2661,24 @@ if [ -d "$COOT_PREFIX/share/coot/reference-structures" ]; then
   COOT_REF_STRUCTS="$COOT_PREFIX/share/coot/reference-structures"
   vars="$vars COOT_REF_STRUCTS"
 fi
-for __e in coot-1 Coot coot
+# Build a name -> binary map so one wrapper can serve many tools: each entry defines a
+# shell variable "<key>_exe" holding the path of the real libexec binary.
+
+# the main Coot binary: first of coot-1/Coot/coot that exists in libexec/
+for main_candidate in coot-1 Coot coot
 do
-  [ ! -x "$COOT_PREFIX/libexec/$__e" ] && continue
-  __ee=`echo $__e | tr '[A-Z]' '[a-z]' | sed "s%-%%g"`
-  eval "${__ee}_exe=\"\$COOT_PREFIX/libexec/\$__e\""
-  eval "${__ee%1}_exe=\"\$COOT_PREFIX/libexec/\$__e\""
+  [ ! -x "$COOT_PREFIX/libexec/$main_candidate" ] && continue
+  # name_key: lowercased, hyphens removed, so it is a valid shell var name (coot-1 -> coot1)
+  name_key=`echo $main_candidate | tr '[A-Z]' '[a-z]' | sed "s%-%%g"`
+  eval "${name_key}_exe=\"\$COOT_PREFIX/libexec/\$main_candidate\""
+  # also register the variant with a trailing "1" stripped (coot1 -> coot), so "coot" resolves
+  eval "${name_key%1}_exe=\"\$COOT_PREFIX/libexec/\$main_candidate\""
   break
 done
-for exe in coot-density-score-by-residue-bin \
+# the other tools: a hand-listed set plus every executable found in libexec/
+# (file ... | grep -E " executable " keeps executables; cut takes the path before ":";
+#  sed "s%.*/%%g" strips the directory, leaving the bare filename)
+for tool_name in coot-density-score-by-residue-bin \
            coot-ligand-validation-bin \
            coot-make-ligands-db \
            coot-identify-protein-bin \
@@ -2674,16 +2686,17 @@ for exe in coot-density-score-by-residue-bin \
            findwaters-bin \
            identify-protein-bin \
            mini-rsr-bin \
-           `file "$COOT_PREFIX/libexec"/* 2>/dev/null | egrep " executable " | cut -f1 -d':' | sed "s%.*/%%g"`
+           `file "$COOT_PREFIX/libexec"/* 2>/dev/null | grep -E " executable " | cut -f1 -d':' | sed "s%.*/%%g"`
 do
-  [ ! -x "$COOT_PREFIX/libexec/$exe" ] && [ ! -x "$COOT_PREFIX/libexec/coot-$exe" ] && continue
-  # with and without coot- prefix:
-  e=`echo "${exe%-bin}" | sed "s/-//g"`
-  eval "${e}_exe=\"\$COOT_PREFIX/libexec/$exe\""
-  case "$e" in
+  [ ! -x "$COOT_PREFIX/libexec/$tool_name" ] && [ ! -x "$COOT_PREFIX/libexec/coot-$tool_name" ] && continue
+  # tool_key: name without a trailing "-bin" and with hyphens removed (valid var name)
+  tool_key=`echo "${tool_name%-bin}" | sed "s/-//g"`
+  eval "${tool_key}_exe=\"\$COOT_PREFIX/libexec/$tool_name\""
+  # also register it under a "coot"-prefixed key, unless it already starts with coot
+  case "$tool_key" in
     coot*) continue;;
   esac
-  eval "coot${e}_exe=\"\$COOT_PREFIX/libexec/$exe\""
+  eval "coot${tool_key}_exe=\"\$COOT_PREFIX/libexec/$tool_name\""
 done
 
 export GUILE_WARN_DEPRECATED=no
@@ -2721,81 +2734,86 @@ fi
 
 # GI_TYPELIB_PATH settings:  
 vars="$vars GI_TYPELIB_PATH"
-for sdir in lib/girepository-1.0 lib64/girepository-1.0 lib/x86_64-linux-gnu/girepository-1.0
+for subdir in lib/girepository-1.0 lib64/girepository-1.0 lib/x86_64-linux-gnu/girepository-1.0
 do
-  [ ! -d $rdir/$sdir ] && continue
-  [ "X$GI_TYPELIB_PATH" = "X" ] && GI_TYPELIB_PATH="$rdir/$sdir" && continue
-  GI_TYPELIB_PATH="${GI_TYPELIB_PATH}:$rdir/$sdir"
+  [ ! -d $root_dir/$subdir ] && continue
+  [ "X$GI_TYPELIB_PATH" = "X" ] && GI_TYPELIB_PATH="$root_dir/$subdir" && continue
+  GI_TYPELIB_PATH="${GI_TYPELIB_PATH}:$root_dir/$subdir"
 done
 [ "X$GI_TYPELIB_PATH" != "X" ] && export GI_TYPELIB_PATH
 
 # -----------------------------------------------------------------------------------
 # do we have all variables set?
-ne=0
-for var in $vars
+error_count=0
+for var_name in $vars
 do
-  eval "val=\"\$$var\""
-  [ "X$val" = "X" ] && warning "no value given for variable $var" && ne=`expr $ne + 1`
+  eval "var_value=\"\$$var_name\""
+  [ "X$var_value" = "X" ] && warning "no value given for variable $var_name" && error_count=`expr $error_count + 1`
 done
-[ $ne -gt 0 ] && error "some required settings missing - see above"
+[ $error_count -gt 0 ] && error "some required settings missing - see above"
 
 # -----------------------------------------------------------------------------------
 # additional checks (*PATH/*DIR variables should point to directories)
-ne=0
-for var in $vars
+error_count=0
+for var_name in $vars
 do
-  case "$var" in
+  case "$var_name" in
     *PATH|*DIR)
-      eval "val=\"\$$var\""
-      for dir in `echo "$val" | sed "s/:/ /g"`
+      eval "var_value=\"\$$var_name\""
+      # sed "s/:/ /g" splits a colon-separated PATH-style value into individual entries
+      for path_entry in `echo "$var_value" | sed "s/:/ /g"`
       do
-        [ ! -d "$dir" ] && warning "directory/entry \"$dir\" ($var) not found" && ne=`expr $ne + 1`
+        [ ! -d "$path_entry" ] && warning "directory/entry \"$path_entry\" ($var_name) not found" && error_count=`expr $error_count + 1`
       done
       ;;
   esac
 done
-[ $ne -gt 0 ] && error "some defined directories not found - see above"
+[ $error_count -gt 0 ] && error "some defined directories not found - see above"
 
 # -----------------------------------------------------------------------------------
-# report all settings
+# report all settings (dot-leader aligned) when -v was given
 if [ $iverb -gt 0 ]; then
   printf "\n"
-  for var in $vars
+  dot_leaders="............................................................"   # 60 dots
+  for var_name in $vars
   do
-    eval "val=\"\$$var\""
-    echo "$val" | awk -v var="$var" 'BEGIN{for(i=1;i<=60;i++) x=x "."}{
-      printf(" %s %s %s\n",var,substr(x,1,(length(x)-length(var))),$0)
-    }' 
+    eval "var_value=\"\$$var_name\""
+    # pad the name with dots out to a 60-char column, then the value (replaces an awk
+    # doing the same): join name + dots and cut to 60 chars
+    label=`printf '%s %s' "$var_name" "$dot_leaders" | cut -c1-60`
+    printf " %s %s\n" "$label" "$var_value"
   done
   printf "\n"
 fi
 
 # -----------------------------------------------------------------------------------
-# now actual run it:
+# resolve which real binary to run (from how we were invoked) and launch it
 if [ $do_ccp4 -eq 0 ]; then
-  e=`echo "${iam%-bin}" | cut -f1 -d'-'`
-  eval "exe=\"\$${e}_exe\""
-  [ "X$exe" = "X" ] && error "executable to run \"$iam\" not defined"
-  [ ! -f "$exe" ] && error "executable \"$exe\" not found"
-  [ ! -x "$exe" ] && error "executable \"$exe\" not executable"
+  # lookup_key: invoked name without "-bin", up to the first "-" (e.g. coot-1 -> coot)
+  lookup_key=`echo "${invoked_name%-bin}" | cut -f1 -d'-'`
+  eval "target_exe=\"\$${lookup_key}_exe\""
+  [ "X$target_exe" = "X" ] && error "executable to run \"$invoked_name\" not defined"
+  [ ! -f "$target_exe" ] && error "executable \"$target_exe\" not found"
+  [ ! -x "$target_exe" ] && error "executable \"$target_exe\" not executable"
 
   # various options for debugging/running:
   if [ $do_ldd -eq 1 ]; then
-    ldd "$exe"
+    ldd "$target_exe"
   elif [ $do_strace -eq 1 ]; then
     type strace >/dev/null 2>&1 || error "no \"strace\" command found"
-    strace "$exe" "$@"
+    strace "$target_exe" "$@"
   else
     if [ $do_debug -eq 1 ]; then
       printf "\n\n"
-      echo " ### Running: \"$exe\" \"$@\"\n"
+      echo " ### Running: \"$target_exe\" \"$@\"\n"
       printf "\n"
       fc-match -v monospace 2>/dev/null | grep file
       fc-match -v serif 2>/dev/null | grep file
       fc-match -v sans 2>/dev/null | grep file
-      "$exe" "$@" || error
+      "$target_exe" "$@" || error
     else
-      "$exe" "$@" 2>&1 | sed "s%Usage:[ ]*[^ ]*%Usage: $iam%g" || error
+      # rewrite the program's own "Usage: <prog>" line to show the name the user typed
+      "$target_exe" "$@" 2>&1 | sed "s%Usage:[ ]*[^ ]*%Usage: $invoked_name%g" || error
     fi
   fi
 else
