@@ -75,8 +75,7 @@ usage () {
   printf "\n  -h                     : this help message\n"
   printf "\n  -v                     : increase verbosity\n"
   printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
-  printf "\n  -fulltar               : create \"full\" tarball at the end (including various static libs, docs, full refmac monomer library etc)\n"
-  printf "\n  -minimaltar            : create \"minimal\" tarball at the end (including only the essential files)\n"
+  printf "\n  -fulltar               : create \"full\" tarball at the end (static libs, docs, full refmac monomer library etc); default is a minimal tarball\n"
   printf "\n  -distributable         : build binaries for distribution (default is to tune for local machine/CPU)\n"
   printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
   printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
@@ -102,7 +101,7 @@ usage () {
 ## -------------------------------------------------------------------------------
 iverb=0
 nthreads=`nproc --all`
-do_minimaltar=1
+do_minimaltar=1   # default: build a minimal tarball; -fulltar flips this to 0
 do_distributable=0
 do_noninteractive=0
 do_os=0
@@ -120,7 +119,6 @@ do
     -h|-help|--help)usage;exit 0;;
     -v)iverb=`expr $iverb + 1`;;
     -nthreads)nthreads=$2;shift;;
-    -minimaltar)do_minimaltar=1;;
     -fulltar)do_minimaltar=0;;
     -distributable)do_distributable=1;;
     -clean) do_clean=1;;

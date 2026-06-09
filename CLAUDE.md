@@ -65,7 +65,7 @@ to land** — all downloads, builds and the install prefix are created in `$PWD`
 - `-os` — install the distro's system packages first (needs root/sudo; per-distro
   package lists live in the big `case` near the top)
 - `-no_chapi` — skip the headless "Chapi" Python API build
-- `-debug` / `-clean` / `-distributable` / `-minimaltar` / `-fulltar` / `-noninteractive`
+- `-debug` / `-clean` / `-distributable` / `-fulltar` (default is a minimal tarball) / `-noninteractive`
 - `-patch <file>` — apply a patch to the Coot tree before building
 
 Supported distros: AlmaLinux, Arch, Debian, Fedora, openSUSE, Rocky, Ubuntu
