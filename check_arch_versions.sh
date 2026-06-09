@@ -74,4 +74,5 @@ libffi:LIBFFI_VER:3.5.2
 python-gobject:PYGOBJECT_VER:3.56.3
 rdkit:RDKIT_VER:2026_03_2
 libdwarf:LIBDWARF_VER:2.3.1
+backward-cpp:LIBBACKWARD_VER:1.6
 PKGLIST

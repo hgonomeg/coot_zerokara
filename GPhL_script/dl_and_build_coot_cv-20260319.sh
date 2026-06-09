@@ -464,6 +464,7 @@ export COOT_DIR
 BUILD_DEPENDENCIES="
     elfutils
     libdwarf
+    libbackward
     pcre2
     glib
     gobject_introspection
@@ -596,6 +597,7 @@ LIBOGG_VER=1.3.6
 LIBVORBIS_VER=1.3.7
 ELFUTILS_VER=0.195
 LIBDWARF_VER=2.3.1
+LIBBACKWARD_VER=1.6
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -912,6 +914,10 @@ build_waylandprotocols () {
 
 build_libdwarf () {
   build_with_meson libdwarf ${LIBDWARF_VER}
+}
+
+build_libbackward () {
+  build_with_cmake libbackward ${LIBBACKWARD_VER}
 }
 
 build_elfutils () {
@@ -1869,6 +1875,13 @@ download_dependencies () {
   # libdwarf
   do_wget https://github.com/davea42/libdwarf-code/releases/download/v${LIBDWARF_VER}/libdwarf-${LIBDWARF_VER}.tar.xz
 
+  # backward-cpp (stacktrace library for debug builds)
+  do_wget https://github.com/bombela/backward-cpp/archive/refs/tags/v${LIBBACKWARD_VER}.tar.gz backward-cpp-${LIBBACKWARD_VER}.tar.gz
+  if [ -d backward-cpp-${LIBBACKWARD_VER} ] && [ ! -d libbackward-${LIBBACKWARD_VER} ]; then
+    mv backward-cpp-${LIBBACKWARD_VER} libbackward-${LIBBACKWARD_VER} && \
+      ln -s libbackward-${LIBBACKWARD_VER} backward-cpp-${LIBBACKWARD_VER} || error
+  fi
+
   # Shared-mime-info
   do_wget https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/${SMI_VER}/shared-mime-info-${SMI_VER}.tar.gz
   
@@ -1975,7 +1988,8 @@ build_coot () {
     touch .my_autogen_done
     rm -f .my_configure_done
   fi
-  #--with-libdw --with-backward
+  # libdw is always passed; backward (stacktrace) is conditional on -debug
+  [ "$btype" = "debug" ] && __with_backward="--with-backward" || __with_backward=""
   if [ ! -f .my_configure_done ]; then
     printf " ### Coot: configure (see `mypwd`/my_configure.log) ... "
     [ $do_distributable -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
@@ -2003,6 +2017,7 @@ CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequ
             --with-boost=\$PREFIX \\
             --with-gemmi=\$PREFIX \\
             --with-libdw=\$PREFIX \\
+            ${__with_backward} \\
             --with-boost-thread=boost_thread \\
             --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}"
 EOF
