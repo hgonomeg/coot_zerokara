@@ -1185,7 +1185,7 @@ build_gdk_pixbuf2 () {
 }
 
 build_at_spi2_core () {
-  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER} -Duse_systemd=false
+  build_with_meson at-spi2-core ${AT_SPI2_CORE_VER} # this breaks things, I think: -Duse_systemd=false
 }
 
 build_gtk () {
