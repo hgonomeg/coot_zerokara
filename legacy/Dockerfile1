@@ -1,4 +1,0 @@
-FROM ubuntu:focal
-COPY dl_and_build_coot.sh /
-COPY dl_and_build_coot.ubuntu.sh /dl_and_build_coot.image-specific.sh
-RUN bin/bash -c 'source /dl_and_build_coot.sh && initial_setup'
