@@ -62,8 +62,9 @@ to land** — all downloads, builds and the install prefix are created in `$PWD`
 
 - `-nthreads N` — parallelism (default: all cores)
 - `-tag <tag>` / `-branch <branch>` — which Coot to build (default tag `main`)
-- `-os` — install the distro's system packages first (needs root/sudo; per-distro
-  package lists live in the big `case` near the top)
+- `-use-os-package-manager` / `-no-use-os-package-manager` — install (or skip) the
+  distro's system packages first; **installing is the default now** (needs root/sudo;
+  per-distro package lists live in the big `case` near the top)
 - `-no_chapi` — skip the headless "Chapi" Python API build
 - `-debug` / `-clean` / `-distributable` / `-fulltar` (default is a minimal tarball) / `-noninteractive`
 - `-patch <file>` — apply a patch to the Coot tree before building
@@ -102,8 +103,8 @@ package_coot_minimal | package_coot   # tar up the result
 - `$COOT_BUILD_DIR` (`$PREFIX/$COOT_DIR`) — the cloned Coot source tree
 
 ### The dependency list and dispatcher
-- `$BUILD_DEPENDENCIES` is a whitespace-separated, **order-sensitive** list set near
-  the top (overridable via the environment). Order matters and **some packages appear
+- `$BUILD_DEPENDENCIES` is a whitespace-separated, **order-sensitive** list set
+  unconditionally near the top (fixed; not user-overridable). Order matters and **some packages appear
   more than once on purpose** (e.g. `glib`, `harfbuzz`, `gdk_pixbuf`,
   `glycin`) — the stack has circular-ish bootstrap needs.
 - `build_dependencies()` loops the list and `eval`s `build_<name>`. The **N-th**

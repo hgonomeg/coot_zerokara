@@ -71,20 +71,25 @@ else
 fi
 
 usage () {
-  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distributable] [-os]\n"
-  printf "\n  -h                     : this help message\n"
-  printf "\n  -v                     : increase verbosity\n"
-  printf "\n  -nthreads <N>          : set number of threads to use (where possible); default = use all\n"
-  printf "\n  -fulltar               : create \"full\" tarball at the end (static libs, docs, full refmac monomer library etc); default is a minimal tarball\n"
-  printf "\n  -distributable         : build binaries for distribution (default is to tune for local machine/CPU)\n"
-  printf "\n  -os                    : install OS-provided packages deemed necessary (if possible)\n"
-  printf "\n  -noninteractive        : do not interactively ask for confirmation\n"
-  printf "\n  -tag <tag>             : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
-  printf "\n  -branch <branch>       : Coot branch (default = \"$COOT_BRANCH\")\n"
-  printf "\n  -debug                 : Do debug build\n"
-  printf "\n  -clean                 : Run make clean after building\n"
-  printf "\n  -patch <file>          : Coot patch file\n"
-  printf "\n  -no_chapi              : Do not build Coot headless API\n"
+  printf "\n USAGE: `basename $0` [-h] [-v] [-nthreads <N>] [-fulltar] [-distributable] [-no-use-os-package-manager]\n"
+  printf "\n  -h                          : this help message\n"
+  printf "\n  -v                          : increase verbosity\n"
+  printf "\n  -nthreads <N>               : set number of threads to use (where possible); default = use all\n"
+  printf "\n  -fulltar                    : create \"full\" tarball at the end (static libs, docs, full refmac monomer library etc); default is a minimal tarball\n"
+  printf "\n  -distributable              : build binaries for distribution (default is to tune for local machine/CPU)\n"
+  printf "\n  -use-os-package-manager     : install required OS packages via the system package manager (DEFAULT; needs root/sudo)\n"
+  printf "\n  -no-use-os-package-manager  : do NOT install OS packages\n"
+  printf "\n  -noninteractive             : do not interactively ask for confirmation\n"
+  printf "\n  -tag <tag>                  : Coot tag (for specific release; default = \"$COOT_TAG\")\n"
+  printf "\n  -branch <branch>            : Coot branch (default = \"$COOT_BRANCH\")\n"
+  printf "\n  -debug                      : Do debug build\n"
+  printf "\n  -clean                      : Run make clean after building\n"
+  printf "\n  -patch <file>               : Coot patch file\n"
+  printf "\n  -no_chapi                   : Do not build Coot headless API\n"
+
+  printf "\n Influential environment variables (override the defaults when set):\n"
+  printf "\n  COOT_GIT             : Coot git repository URL (default = https://github.com/pemsley/coot)\n"
+  printf "\n  CC / CXX / FC / F77  : C / C++ / Fortran compilers (default = newest gcc/g++/gfortran in the supported range)\n"
 
   printf "\n Tested on:\n"
   printf "   AlmaLinux 8.10 and 9.5 (todo: test again)\n"
@@ -104,7 +109,7 @@ nthreads=`nproc --all`
 do_minimaltar=1   # default: build a minimal tarball; -fulltar flips this to 0
 do_distributable=0
 do_noninteractive=0
-do_os=0
+do_os=1   # default: install OS packages via the system package manager (-no-use-os-package-manager to skip)
 tag=""
 branch=""
 COOT_TAG="main"
@@ -122,7 +127,8 @@ do
     -fulltar)do_minimaltar=0;;
     -distributable)do_distributable=1;;
     -clean) do_clean=1;;
-    -[oO][sS]) do_os=1;;
+    -use-os-package-manager) do_os=1;;
+    -no-use-os-package-manager) do_os=0;;
     -noninteractive) do_noninteractive=1;;
     -tag) tag=$2;outtag=${tag#Release-};shift;;
     -branch) branch=$2;outtag=$branch;shift;;
@@ -452,10 +458,10 @@ fi
 
 export COOT_DIR
 
-if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
-  # order matters - and some have to be done multiple times it seems
-  # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
-  BUILD_DEPENDENCIES="
+# Fixed dependency build list (NOT user-overridable). Order matters - and some packages
+# must be built more than once (see the numbered build_<name> variants).
+# todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
+BUILD_DEPENDENCIES="
     elfutils
     libdwarf
     pcre2
@@ -510,7 +516,6 @@ if [ "X$BUILD_DEPENDENCIES" = "X" ]; then
     libccp4
     libssm
     libclipper"
-fi
 # -------------------------------------------------------------------------------------
 
 # versions of all external packages/dependencies:
