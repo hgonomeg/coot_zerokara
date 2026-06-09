@@ -240,6 +240,7 @@ if [ $do_os -eq 1 ]; then
              openal-soft-devel \
              libseccomp-devel \
              libzstd-devel \
+             doxygen \
              || error
       # openSUSE, ever so helpful, ships a stale fixincludes bits/floatn.h that
       # shadows glibc's good one and breaks <tgmath.h>. Nuke it so gcc sees the real header.
@@ -317,6 +318,7 @@ if [ $do_os -eq 1 ]; then
             openal-soft-devel \
             libseccomp-devel \
             libzstd-devel \
+            doxygen \
             || error
       ;;
     fedora*)
@@ -389,7 +391,8 @@ if [ $do_os -eq 1 ]; then
               glibc-gconv-extra \
               openal-soft-devel \
               libseccomp-devel \
-              libzstd-devel
+              libzstd-devel \
+              doxygen
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
@@ -409,6 +412,7 @@ if [ $do_os -eq 1 ]; then
           libopenal-dev \
           libseccomp-dev \
           libzstd-dev \
+          doxygen \
           bc || error
       ;;
     arch*)
@@ -423,7 +427,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils libpsl bc openal libseccomp zstd || error
+            inetutils libpsl bc openal libseccomp zstd doxygen || error
       ;;
     *) error "unsupported OS!";;
   esac
