@@ -36,6 +36,9 @@ jobs:
     container:
       image: ${{ matrix.container }}
 
+    env:
+      COOT_GIT: https://github.com/hgonomeg/coot
+
     steps:
       - name: Install git, tar, zstd
         run: |
@@ -51,11 +54,28 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Build Coot
+      # Full from-scratch build (no caching) run as four phases, one step each. Phase 1
+      # installs the OS packages; later phases reuse them via -no-use-os-package-manager.
+      - name: Download sources
         run: |
           mkdir -p $GITHUB_WORKSPACE/coot-build
           cd $GITHUB_WORKSPACE/coot-build
-          COOT_GIT=https://github.com/hgonomeg/coot bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -use-os-package-manager -distributable -noninteractive
+          bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -use-os-package-manager -distributable -noninteractive -download-only
+
+      - name: Build toolchain
+        run: |
+          cd $GITHUB_WORKSPACE/coot-build
+          bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -toolchain-only
+
+      - name: Build dependencies
+        run: |
+          cd $GITHUB_WORKSPACE/coot-build
+          bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -deps-only
+
+      - name: Build Coot
+        run: |
+          cd $GITHUB_WORKSPACE/coot-build
+          bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -coot-stage-only
 
       - name: Collect build logs on failure
         if: failure()

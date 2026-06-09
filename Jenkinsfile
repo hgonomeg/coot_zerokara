@@ -9,6 +9,9 @@ pipeline {
     options {
         buildDiscarder(logRotator(numToKeepStr: '50', artifactNumToKeepStr: '30'))
     }
+    environment {
+        COOT_GIT = 'https://github.com/hgonomeg/coot'
+    }
     // todo: change this to a matrix, going over multiple distros
     stages {
         stage('Set build info') {
@@ -24,29 +27,47 @@ pipeline {
                 }
             }
         }
-        stage('Run script') {
+        // Full from-scratch build (no caching) run as the script's four phases, one stage
+        // each. The first stage installs the OS packages; later stages reuse them via
+        // -no-use-os-package-manager. Each sh re-sources the gcc-toolset enable script.
+        stage('Download sources') {
             steps {
                sh 'mkdir -p ./coot-build'
-               sh '. /opt/rh/gcc-toolset-15/enable; cd ./coot-build; echo now, the real build...; ls -alh; ls -alh ..; COOT_GIT=https://github.com/hgonomeg/coot bash ../dl_and_build_coot.sh -use-os-package-manager -distributable -noninteractive'
+               sh '. /opt/rh/gcc-toolset-15/enable; cd ./coot-build; bash ../dl_and_build_coot.sh -use-os-package-manager -distributable -noninteractive -download-only'
+            }
+        }
+        stage('Build toolchain') {
+            steps {
+               sh '. /opt/rh/gcc-toolset-15/enable; cd ./coot-build; bash ../dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -toolchain-only'
+            }
+        }
+        stage('Build dependencies') {
+            steps {
+               sh '. /opt/rh/gcc-toolset-15/enable; cd ./coot-build; bash ../dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -deps-only'
+            }
+        }
+        stage('Build Coot') {
+            steps {
+               sh '. /opt/rh/gcc-toolset-15/enable; cd ./coot-build; bash ../dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -coot-stage-only'
                archiveArtifacts artifacts: 'coot-build/coot-*.tar.gz', fingerprint: true
             }
-            post {
-                failure {
-                    echo "Build failed"
-                }
-                always {
-                    archiveArtifacts artifacts: 'coot-build/*.log*', fingerprint: true, allowEmptyArchive: true
-                    archiveArtifacts artifacts: 'coot-build/build/*.log*', fingerprint: true, allowEmptyArchive: true
-                    archiveArtifacts artifacts: 'coot-build/deps/*.log*', fingerprint: true, allowEmptyArchive: true
-                    archiveArtifacts artifacts: 'coot-build/build/*/*.log*', fingerprint: true, allowEmptyArchive: true
-                    archiveArtifacts artifacts: 'coot-build/deps/*/*.log*', fingerprint: true, allowEmptyArchive: true
-                    archiveArtifacts artifacts: 'coot-build/coot*/*.log*', fingerprint: true, allowEmptyArchive: true
-                    archiveArtifacts artifacts: 'coot-build/coot*/chapi-build/*.log*', fingerprint: true, allowEmptyArchive: true
-                    // Fix Jenkins permissions issue
-                    sh 'chown -R 1000:1000 .'
-                    cleanWs()
-                }
-            }
+        }
+    }
+    post {
+        failure {
+            echo "Build failed"
+        }
+        always {
+            archiveArtifacts artifacts: 'coot-build/*.log*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coot-build/build/*.log*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coot-build/deps/*.log*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coot-build/build/*/*.log*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coot-build/deps/*/*.log*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coot-build/coot*/*.log*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coot-build/coot*/chapi-build/*.log*', fingerprint: true, allowEmptyArchive: true
+            // Fix Jenkins permissions issue
+            sh 'chown -R 1000:1000 .'
+            cleanWs()
         }
     }
 }

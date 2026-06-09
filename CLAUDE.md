@@ -55,7 +55,16 @@ Two pipelines build the script across distros:
   catches root-level logs like `my_git_clone.log` — into a `build-logs-<distro>` artifact.
 - `Jenkinsfile` — a single `buildready-rocky` image; archives the same logs.
 
-Both invoke the script with `-use-os-package-manager -distributable -noninteractive`.
+Both run the build as the script's **four phases, one step/stage each**
+(`-download-only` → `-toolchain-only` → `-deps-only` → `-coot-stage-only`), so a failure
+points at the exact phase. The first step installs OS packages
+(`-use-os-package-manager`); the rest pass `-no-use-os-package-manager` since they share
+the same container. **These pipelines are a correctness check of the script and are
+deliberately NOT cached** — every run is a full from-scratch build (a script-hash cache
+key would invalidate on nearly every commit anyway). The phase split exists so that
+**Coot's own CI** (a separate repo) can cache the prebuilt dependency stack; that caching
+is not configured here.
+
 **CI failures are usually transient** (crates.io network / runner out-of-disk), not
 script bugs — triage with `fetch_ci_logs.py` before assuming otherwise.
 
