@@ -1178,12 +1178,12 @@ build_glycin2 () {
 
 # gdk_pixbuf is a dependency of glycin, so it needs to be built first before (and without) glycin
 build_gdk_pixbuf () {
-  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dglycin=disabled
+  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dinstalled_tests=false -Dglycin=disabled
 }
 
 # Gets rebuilt after glycin, so that glycin support is included.
 build_gdk_pixbuf2 () {
-  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dglycin=enabled
+  build_with_meson gdk-pixbuf ${GDK_PIXBUF_VER} -Dtests=false -Dman=false -Dgtk_doc=false -Dinstalled_tests=false -Dglycin=enabled
 }
 
 build_at_spi2_core () {
