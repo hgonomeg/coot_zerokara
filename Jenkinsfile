@@ -6,6 +6,9 @@ pipeline {
           args '-u root'
         }
     }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '50', artifactNumToKeepStr: '30'))
+    }
     // todo: change this to a matrix, going over multiple distros
     stages {
         stage('Set build info') {
