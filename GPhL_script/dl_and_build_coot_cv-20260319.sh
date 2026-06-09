@@ -619,6 +619,8 @@ cat <<e
   user ................................. `id -nu`
   os.................................... $os
   build type ........................... $btype
+  distributable ........................ `[ $do_distributable -eq 1 ] && echo yes || echo no`
+  tarball .............................. `[ $do_minimaltar -eq 1 ] && echo minimal || echo full`
 
   COOT_GIT ............................. $COOT_GIT
   COOT_TAG ............................. $COOT_TAG
