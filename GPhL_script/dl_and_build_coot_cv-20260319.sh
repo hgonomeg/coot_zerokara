@@ -817,11 +817,12 @@ build_with_configure () {
     $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
-    # make sure that we don't have -g as a flag
+    # strip -g from autoconf-generated Makefile unless we want a debug build
     case $btype in
-      opt) [ -f Makefile ] && \
-             sed -e "s/^[ ]*CFLAGS[ ]*=[ ]*-g/CFLAGS =/g" \
-                 -e "s/^[ ]*CXXFLAGS[ ]*=[ ]*-g/CXXFLAGS =/g" Makefile > .Makefile && mv .Makefile Makefile;;
+      debug) ;;
+      *) [ -f Makefile ] && \
+           sed -e "s/^[ ]*CFLAGS[ ]*=[ ]*-g/CFLAGS =/g" \
+               -e "s/^[ ]*CXXFLAGS[ ]*=[ ]*-g/CXXFLAGS =/g" Makefile > .Makefile && mv .Makefile Makefile;;
     esac
 
     printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
@@ -1316,8 +1317,10 @@ build_libclipper () {
     sed -i 's/from >> &word\[0\]/from >> word/' $DEPS_DIR/clipper-${LIBCLIPPER_VER_PRE}/clipper/cif/cif_data_io.cpp
     echo "done"
     printf "  configure clipper with FC=$FC CC=$CC CXX=$CXX ... "
-    CXXFLAGS="-g -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
-    CFLAGS="-g -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
+    __dbg_flag=""
+    [ "$btype" = "debug" ] && __dbg_flag="-g"
+    CXXFLAGS="${__dbg_flag} -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
+    CFLAGS="${__dbg_flag} -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
     $DEPS_DIR/clipper-${LIBCLIPPER_VER_PRE}/configure --prefix=$PREFIX \
       --enable-shared --disable-static \
       --enable-contrib --enable-ccp4 \
@@ -1974,7 +1977,8 @@ build_coot () {
     printf " ### Coot: configure (see `mypwd`/my_configure.log) ... "
     [ $do_distributable -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
     case $btype in
-      opt) __opt="-g -O3 -ffast-math";;
+      debug) __opt="-g -O2";;
+      opt) __opt="-O3 -ffast-math";;
       *) __opt="";;
     esac
     cat <<EOF > my_configure.sh
