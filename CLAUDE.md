@@ -54,6 +54,19 @@ part of the build itself.
   `build (<distro>, …)`. Read `terminal_output.log` first, then drill into the
   individual `my_*.log` files.
 
+## Continuous integration
+
+Two pipelines build the script across distros:
+- `.github/workflows/build-coot.yml` — GitHub Actions matrix (`ubuntu:24.04/26.04`,
+  `debian:trixie`, `fedora:43/44`, `archlinux:latest`, `rockylinux:9`,
+  `opensuse/leap:15.6`). On failure it tars the `my_*.log` files — the glob now also
+  catches root-level logs like `my_git_clone.log` — into a `build-logs-<distro>` artifact.
+- `Jenkinsfile` — a single `buildready-rocky` image; archives the same logs.
+
+Both invoke the script with `-use-os-package-manager -distributable -noninteractive`.
+**CI failures are usually transient** (crates.io network / runner out-of-disk), not
+script bugs — triage with `fetch_ci_logs.py` before assuming otherwise.
+
 ## How to run it
 
 Meant to be run **interactively, from inside the directory where you want everything
@@ -66,7 +79,9 @@ to land** — all downloads, builds and the install prefix are created in `$PWD`
   distro's system packages first; **installing is the default now** (needs root/sudo;
   per-distro package lists live in the big `case` near the top)
 - `-no_chapi` — skip the headless "Chapi" Python API build
-- `-debug` / `-clean` / `-distributable` / `-fulltar` (default is a minimal tarball) / `-noninteractive`
+- `-fulltar` — build a "full" tarball; **also fetches the full refmac monomer library**
+  (default is a minimal tarball — the bundled ~115-monomer set ships either way)
+- `-debug` / `-clean` / `-distributable` / `-noninteractive`
 - `-patch <file>` — apply a patch to the Coot tree before building
 
 Supported distros: AlmaLinux, Arch, Debian, Fedora, openSUSE, Rocky, Ubuntu
@@ -85,11 +100,13 @@ setup_all_and_build_coot   # the big one, see below
   ├─ download_dependencies # do_wget every dependency tarball into $DEPS_DIR
   ├─ build_dependencies    # iterate $BUILD_DEPENDENCIES, call build_<name>
   ├─ download_coot         # git clone the requested tag/branch
-  ├─ build_coot            # autogen → configure → make → make install
-  └─ build_chapi           # (unless -no_chapi) cmake build of the headless API
+  ├─ build_coot            # autogen → configure (writes+runs my_configure.sh) → make → install
+  ├─ build_chapi           # (unless -no_chapi) cmake build of the headless API
+  └─ complete_coot         # fetch reference-structures (+ full monomer library if -fulltar)
 extract_fonts              # unpack bundled Inter/JetBrains/DejaVu/Noto fonts
-package_coot_prep          # rewrite hard-coded $PREFIX paths, set up wrapper links
-create_coot_wrapper        # emit bin/coot-wrapper.sh (see below)
+package_coot_prep          # move stray Coot ELF into libexec; bin/ → coot-wrapper.sh symlinks
+create_coot_wrapper        # emit bin/coot-wrapper.sh   (see "runtime launcher" below)
+create_coot_env            # emit bin/coot-env.sh       (sourceable full env)
 package_coot_minimal | package_coot   # tar up the result
 ```
 
