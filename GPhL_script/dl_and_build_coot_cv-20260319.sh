@@ -189,7 +189,6 @@ if [ $do_os -eq 1 ]; then
              gcc13-c++ \
              autoconf \
              automake \
-             blas-devel \
              fftw-devel \
              glm-devel \
              gsl-devel \
@@ -282,7 +281,6 @@ if [ $do_os -eq 1 ]; then
             libXinerama-devel \
             libXtst-devel \
             libdrm-devel \
-            blas-devel \
             tar \
             openssl-devel \
             bison \
@@ -370,7 +368,6 @@ if [ $do_os -eq 1 ]; then
               file \
               gperftools-devel \
               $__toolsets \
-              blas-devel \
               dbus-devel \
               libmount-devel \
               readline-devel \
@@ -405,7 +402,7 @@ if [ $do_os -eq 1 ]; then
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
           libxdamage-dev libxinerama-dev libxtst-dev \
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
-          libopenblas-dev libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
+          libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
           libglfw3-dev \
           libpsl-dev \
           xz-utils \
@@ -424,7 +421,7 @@ if [ $do_os -eq 1 ]; then
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
             libxdamage libxinerama libxtst \
             libxkbcommon xcb-util libx11 \
-            openblas blas gmp gc libunistring pcre2 libdrm glm \
+            gmp gc libunistring pcre2 libdrm glm \
             glfw \
             inetutils libpsl bc openal libseccomp zstd || error
       ;;
@@ -512,6 +509,7 @@ BUILD_DEPENDENCIES="
     coordgen
     rdkit
     mmdb2
+    openblas
     gsl
     gemmi
     libccp4
@@ -572,6 +570,7 @@ GTK_VER_Minor=22
 GTK_VER_Patch=4
 GTK_VER=${GTK_VER_Major}.${GTK_VER_Minor}.${GTK_VER_Patch}
 MMDB_VER=2.0.22
+OPENBLAS_VER=0.3.33
 GSL_VER=2.8
 GEMMI_VER=0.7.5
 LIBCCP4_VER=8.0.0
@@ -1236,6 +1235,14 @@ build_mmdb2 () {
   build_with_configure mmdb2 ${MMDB_VER} --enable-shared
 }
 
+build_openblas () {
+  # DYNAMIC_ARCH builds kernels for multiple CPU micro-architectures and selects
+  # the best at runtime — works for both distributable and locally-tuned builds.
+  build_with_cmake openblas ${OPENBLAS_VER} \
+    -DBUILD_SHARED_LIBS=ON \
+    -DDYNAMIC_ARCH=ON \
+    -DBUILD_TESTING=OFF
+}
 
 build_gsl () {
   build_with_configure gsl ${GSL_VER}
@@ -1820,6 +1827,13 @@ download_dependencies () {
   do_wget https://deb.debian.org/debian/pool/main/c/clipper/clipper_${LIBCLIPPER_VER}.orig.tar.gz libclipper-${LIBCLIPPER_VER}.tar.gz
   #do_wget https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/dependencies/clipper-${LIBCLIPPER_VER}.tar.gz libclipper-${LIBCLIPPER_VER}.tar.gz
 
+  # OpenBLAS (BLAS + LAPACK, built from source for relocatability)
+  do_wget https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VER}/OpenBLAS-${OPENBLAS_VER}.tar.gz
+  if [ -d OpenBLAS-${OPENBLAS_VER} ] && [ ! -d openblas-${OPENBLAS_VER} ]; then
+    mv OpenBLAS-${OPENBLAS_VER} openblas-${OPENBLAS_VER} && \
+      ln -s openblas-${OPENBLAS_VER} OpenBLAS-${OPENBLAS_VER} || error
+  fi
+
   # FFTW
   do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz
 
@@ -1932,20 +1946,6 @@ download_coot () {
 }
 
 build_coot () {
-    # todo: inspect those blas shenanigans
-    ls /usr/lib*/libblas.so >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-      if [ ! -f $PREFIX/lib/libblas.so ]; then
-        warning "BLAS library not found in $PREFIX/lib - trying to link it against in /usr/lib or /usr/lib64"
-        if [ -f /usr/lib64/libblas.so.3 ]; then
-          ln -s /usr/lib64/libblas.so.3 $PREFIX/lib/libblas.so
-        elif [ -f /usr/lib/libblas.so.3 ]; then
-          ln -s /usr/lib/libblas.so.3 $PREFIX/lib/libblas.so
-        else
-          warning "BLAS library not found at /usr/lib, nor at /usr/lib64 - Coot may fail to build or run without it"
-        fi
-      fi
-    fi
   cd $COOT_BUILD_DIR
   additional_build_env_setup
 

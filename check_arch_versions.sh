@@ -53,6 +53,7 @@ glycin:GLYCIN_VER:2.1.1
 gdk-pixbuf2:GDK_PIXBUF_VER:2.44.6
 at-spi2-core:AT_SPI2_CORE_VER:2.60.4
 gtk4:GTK_VER:4.22.4
+openblas:OPENBLAS_VER:0.3.33
 fftw:FFTW_VER:2.1.5
 gsl:GSL_VER:2.8
 eigen:EIGEN_VER:5.0.1
