@@ -2211,56 +2211,39 @@ package_coot_prep () {
            $script_file
   done
 
-  # Step 2: move executables behind libexec/ so the wrapper can exec them from there
-  # keep `file` lines containing " executable "; cut takes the path before the ":"
-  for bin_executable in `file bin/* 2>/dev/null | grep -E " executable " | cut -f1 -d':'`
+  # Step 2: make sure every Coot tool's real binary lives in libexec/. Coot installs
+  # most of them there already (often as "<name>-bin"), but a few land directly in bin/
+  # as plain ELF (e.g. coot-bfactan, coot-mmrrcc). Move any Coot-named ELF binary from
+  # bin/ into libexec/ so step 3 can wrap it. "Coot tool" = name matching
+  # coot*/layla*/mini-rsr* (this excludes GTK internals like gio*/at-spi*).
+  for bin_path in bin/coot* bin/layla* bin/mini-rsr*
   do
-    bin_executable=`basename $bin_executable`
-    if [ ! -x libexec/$bin_executable ]; then
-      printf "\n # copy bin/$bin_executable into libexec\n"
-      cp -p bin/$bin_executable libexec/$bin_executable
+    [ -f "$bin_path" ] || continue        # unmatched glob stays literal -> skip
+    [ -L "$bin_path" ] && continue        # already a wrapper symlink -> skip
+    case `file "$bin_path"` in *ELF*) ;; *) continue;; esac   # only real binaries
+    tool=`basename "$bin_path"`
+    if [ ! -e libexec/$tool ]; then
+      printf " # move bin/$tool into libexec\n"
+      mv "$bin_path" libexec/$tool || error
     fi
   done
 
-  # Step 3: for each libexec program, make bin/<exe_name> a symlink to the wrapper
-  # and add a (usually "coot-"-prefixed) alias shim. "coot-1:coot" is a manual pair.
-  #   exe_name   -> symlink to coot-wrapper.sh
-  #   alias_name -> small shim script that calls exe_name
+  # Step 3: for each Coot-tool binary in libexec/, make bin/<name> a symlink to the
+  # wrapper, where <name> is the libexec filename minus a trailing "-bin"
+  # (layla-bin -> layla, coot-findwaters-bin -> coot-findwaters, coot-1 -> coot-1).
+  # ln -sf overwrites Coot's own bin/ launcher in place (no shims, no .orig backups).
   wrapper_link_count=0
-  for libexec_entry in `file libexec/* 2>/dev/null | grep -E " executable," | cut -f1 -d':'` coot-1:coot
+  for libexec_path in libexec/coot* libexec/layla* libexec/mini-rsr*
   do
-    case `basename $libexec_entry` in
-      gio*) continue;;                                          # not a Coot program
-      *:*)    alias_name=`echo $libexec_entry | cut -f2 -d':'`  # "name:alias" pair
-              libexec_entry=`echo $libexec_entry | cut -f1 -d':'`;;
-      coot-*) alias_name=`basename $libexec_entry`;;            # already prefixed
-      *)      alias_name="coot-`basename $libexec_entry`";;     # add "coot-" prefix
-    esac
-    exe_name=`basename $libexec_entry`
-    exe_name=${exe_name%-bin}        # strip trailing "-bin" (findwaters-bin -> findwaters)
-    alias_name=${alias_name%-bin}    # same for the alias
-    alias_name=${alias_name%-bin}    # twice, in case of a doubled "-bin-bin"
-    # act unless bin/<exe_name> is already a symlink and there's no distinct alias
-    if [ ! -h bin/$exe_name ] || [ "X$exe_name" != "X$alias_name" ]; then
-      # keep any pre-existing real files as *.orig
-      [ -f bin/$alias_name ] && mv bin/$alias_name bin/$alias_name.orig
-      [ -f bin/$exe_name ]   && mv bin/$exe_name   bin/$exe_name.orig
-      printf "\n # create bin/$exe_name link\n"
-      ln -sf coot-wrapper.sh bin/$exe_name && wrapper_link_count=`expr $wrapper_link_count + 1`
-      if [ ! -f bin/$alias_name ] && [ ! -h bin/$alias_name ]; then
-        printf "\n # create bin/$alias_name wrapper\n"
-        cat <<EOF > bin/$alias_name
-#!/bin/sh
-"\`dirname \$0\`/$exe_name" "\$@"
-EOF
-        chmod +x bin/$alias_name
-      fi
-    else
-      printf "\n # bin/$exe_name already a link\n"
-    fi
+    [ -f "$libexec_path" ] && [ -x "$libexec_path" ] || continue
+    launcher=`basename "$libexec_path"`
+    launcher=${launcher%-bin}
+    ln -sf coot-wrapper.sh bin/$launcher && wrapper_link_count=`expr $wrapper_link_count + 1`
   done
+  # friendly alias: bare "coot" is resolved to coot-1 by the wrapper
+  ln -sf coot-wrapper.sh bin/coot && wrapper_link_count=`expr $wrapper_link_count + 1`
 
-  printf "\n ### NOTE: created $wrapper_link_count symbolic links to generic wrapper tool\n"
+  printf "\n ### NOTE: created $wrapper_link_count bin -> coot-wrapper.sh symlinks\n"
 
 }
 
@@ -2518,55 +2501,14 @@ create_coot_wrapper () {
     cat <<'EOF' > bin/coot-wrapper.sh
 #!/bin/sh
 # -*-shell-script-*-
-# coot wrapper script 
-# Copyright 2004, 2005, 2006, 2007 University of York
+# coot-wrapper.sh — generic launcher for the relocatable Coot install.
+# Every bin/<tool> is a symlink to this script. It locates the install, sources the
+# shared environment (coot-env.sh), then resolves and execs the real libexec binary.
+# Copyright 2004-2007 University of York; reworked by GPhL.
 
-# 20240521 (CV): re-implemented for more checks before firing up Coot and friends
-# 20260130 (CV): added packaging of fonts and FontConfig system (to be independent of OS fonts and behaviour)
-
-# -----------------------------------------------------------------------------------
-# list of variables that need to be set in the end:
-vars="COOT_DATA_DIR COOT_PREFIX COOT_SCHEME_DIR COOT_STANDARD_RESIDUES PYTHONHOME GUILE_LOAD_PATH XDG_DATA_DIRS"
-
-# all env variables starting with COOT_* defined somewhere in the code:
-# COOT_BACKUP_DIR
-# COOT_CCP4SRS_DIR
-# COOT_CCP4_LIB_DIR
-# COOT_CHEMICAL_FEATURES_DEF
-# COOT_DATA_DIR
-# COOT_DEBUG_REFINEMENT
-# COOT_DEV_TEST
-# COOT_HOME
-# COOT_MONOMER_LIB_DIR
-# COOT_N_THREADS
-# COOT_OPENGL_MAJOR_VERSION
-# COOT_OPENGL_MINOR_VERSION
-# COOT_OPENGL_WIDGET_SCALE_FACTOR
-# COOT_PIXMAPS_DIR
-# COOT_PREFIX
-# COOT_PYTHON_DIR
-# COOT_PYTHON_EXTRAS_DIR
-# COOT_REFMAC_LIB_DIR
-# COOT_REF_SEC_STRUCTS
-# COOT_REF_STRUCTS
-# COOT_SBASE_DIR
-# COOT_SCHEME_DIR
-# COOT_SCHEME_EXTRAS_DIR
-# COOT_STANDARD_RESIDUES
-# COOT_TEST_DATA_DIR
-
-# -----------------------------------------------------------------------------------
-# go for safe locales:
-LANG=C
-LC_ALL=C
-LC_NUMERIC=C
-export LANG LC_ALL LC_NUMERIC
-
-# -----------------------------------------------------------------------------------
-# figure out how we were invoked and where we live:
-#   self_path    = absolute path to this script ($PWD-prefixed if a relative path was used)
-#   invoked_name = the command name the user typed (coot, findwaters, python3, ...)
-#   root_dir     = the install prefix (our dir, with a trailing /bin stripped off)
+# --- locate ourselves ---
+#   invoked_name = how we were called (basename of $0): coot, layla, coot-findwaters ...
+#   root_dir     = install prefix (our dir with a trailing /bin removed)
 case "$0" in
   /*) self_path="$0";;
   *) self_path="`pwd`/$0";;
@@ -2577,8 +2519,7 @@ case "$root_dir" in
   */bin) root_dir=`dirname "$root_dir"`;;
 esac
 
-# -----------------------------------------------------------------------------------
-# utility functions
+# --- utility helpers ---
 error () {
   [ "X$@" != "X" ] && printf "\n ERROR: $@\n\n" || printf "\n ERROR: see above\n\n"
   exit 1
@@ -2586,280 +2527,71 @@ error () {
 warning () {
   [ "X$@" != "X" ] && printf "\n WARNING: $@\n\n" || printf "\n WARNING: see above\n\n"
 }
-note () {
-  [ "X$@" != "X" ] && printf "\n NOTE: $@\n\n"
-}
 usage () {
-  printf "\n"
-  printf " USAGE: $invoked_name [-h] [-v] [--ldd|--debug|--strace] ... $@\n"
-  printf "\n"
+  printf "\n USAGE: $invoked_name [-h] [-v] [--ldd|--debug|--strace] ...\n\n"
 }
 
-# -----------------------------------------------------------------------------------
-# parse command-line arguments (those that are not part of the Coot binary itself)
-iverb=0
-do_ccp4=0
-do_ldd=0
-do_debug=0
-do_strace=0
-while [ $# -gt 0 ]
-do
+# --- environment: single source of truth, shared with interactive `. coot-env.sh` use.
+#     Pass our own prefix in so coot-env.sh need not re-derive it. ---
+COOT_PREFIX="$root_dir"; export COOT_PREFIX
+if [ -r "$root_dir/bin/coot-env.sh" ]; then
+  . "$root_dir/bin/coot-env.sh"
+else
+  warning "coot-env.sh not found in $root_dir/bin - environment may be incomplete"
+fi
+
+# --- launch-only locale (kept here, NOT in coot-env.sh, so sourcing that file does not
+#     clobber an interactive user's locale) ---
+LANG=C LC_ALL=C LC_NUMERIC=C
+export LANG LC_ALL LC_NUMERIC
+
+# --- parse wrapper-only flags; everything else passes through to the real binary ---
+do_ldd=0; do_debug=0; do_strace=0; iverb=0
+while [ $# -gt 0 ]; do
   case "$1" in
-    -h) usage "--help";exit 0;;
-    --ldd)do_ldd=1;shift;;
-    --debug)do_debug=1;shift;;
-    --strace)do_strace=1;shift;;
-    --ccp4*) do_ccp4=1;shift;;
-    -v) iverb=`expr $iverb + 1`;shift;;
+    -h) usage; exit 0;;
+    --ldd) do_ldd=1; shift;;
+    --debug) do_debug=1; shift;;
+    --strace) do_strace=1; shift;;
+    -v) iverb=`expr $iverb + 1`; shift;;
     *) break;;
   esac
 done
 
-# -----------------------------------------------------------------------------------
-# check the text-processing commands this wrapper relies on (sed and cut)
-error_count=0
-for required_cmd in sed cut
-do
-  type $required_cmd >/dev/null 2>&1
-  [ $? -ne 0 ] && warning "command \"$required_cmd\" not found" && error_count=`expr $error_count + 1`
+# --- resolve the real binary: libexec/<name>, then libexec/<name>-bin, then the sole
+#     alias (bare "coot" -> the versioned coot-1) ---
+target_exe=
+for candidate in "$root_dir/libexec/$invoked_name" "$root_dir/libexec/$invoked_name-bin"; do
+  [ -x "$candidate" ] && target_exe="$candidate" && break
 done
-[ $error_count -gt 0 ] && error "some required commands not found - see above"
+[ "X$target_exe" = "X" ] && [ "$invoked_name" = coot ] && [ -x "$root_dir/libexec/coot-1" ] \
+  && target_exe="$root_dir/libexec/coot-1"
+[ "X$target_exe" = "X" ] && error "no libexec binary found for \"$invoked_name\""
 
-# -----------------------------------------------------------------------------------
-# are we running on a supported platform?
-case `uname` in
+# --- env self-check: warn only, never abort (a slightly incomplete install should still
+#     try to run; Coot reports its own errors) ---
+[ "X$COOT_PREFIX" = "X" ]     && warning "COOT_PREFIX is not set"
+[ "X$LD_LIBRARY_PATH" = "X" ] && warning "LD_LIBRARY_PATH is not set"
+[ -d "$COOT_DATA_DIR" ]       || warning "Coot data dir not found: $COOT_DATA_DIR"
 
-  # ---------------------------------------------------------------------------------
-  Linux)
+[ $iverb -gt 0 ] && printf "\n invoked=%s\n root=%s\n target=%s\n\n" "$invoked_name" "$root_dir" "$target_exe"
 
-    # -------------------------------------------------------------------------------
-    # LD_LIBRARY_PATH settings:  
-    vars="$vars LD_LIBRARY_PATH"
-    for subdir in lib lib64 lib/x86_64-linux-gnu/
-    do
-      [ ! -d $root_dir/$subdir ] && continue
-      [ "X$LD_LIBRARY_PATH" = "X" ] && LD_LIBRARY_PATH="$root_dir/$subdir" && continue
-      LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$root_dir/$subdir"
-    done
-    [ "X$LD_LIBRARY_PATH" != "X" ] && export LD_LIBRARY_PATH
-
-    ;;
-
-  # ---------------------------------------------------------------------------------
-  Darwin)
-
-    # -------------------------------------------------------------------------------
-    # DYLD_LIBRARY_PATH settings:  
-    vars="$vars DYLD_LIBRARY_PATH"
-    for subdir in lib
-    do
-      [ ! -d $root_dir/$subdir ] && continue
-      [ "X$DYLD_LIBRARY_PATH" = "X" ] && DYLD_LIBRARY_PATH="$root_dir/$subdir" && continue
-      DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:$root_dir/$subdir"
-    done
-    [ "X$DYLD_LIBRARY_PATH" != "X" ] && export DYLD_LIBRARY_PATH
-
-    ;;
-
-  *) error "$invoked_name doesn't support OS \"`uname`\"";;
-esac
-
-# -----------------------------------------------------------------------------------
-# set variables
-COOT_PREFIX="$root_dir"
-
-PYTHONHOME="$COOT_PREFIX"
-export PYTHONHOME
-
-PATH="$COOT_PREFIX/bin:$PATH"
-
-if [ -f "$COOT_PREFIX/share/coot/syminfo.lib" ]; then
-  SYMINFO="$COOT_PREFIX/share/coot/syminfo.lib"
-  export SYMINFO
-fi
-
-COOT_SCHEME_DIR="$COOT_PREFIX/share/coot/scheme"
-if [ "X$CLIBD_MON" = "X" ]; then
-  COOT_REFMAC_LIB_DIR="$COOT_PREFIX/share/coot/lib"
-  export COOT_REFMAC_LIB_DIR
-  vars="$vars COOT_REFMAC_LIB_DIR"
-fi
-
-if [ -f "$COOT_PREFIX/share/coot/standard-residues.pdb" ]; then
-  COOT_STANDARD_RESIDUES="$COOT_PREFIX/share/coot/standard-residues.pdb"
-  export COOT_STANDARD_RESIDUES
-fi
-
-COOT_DATA_DIR="$COOT_PREFIX/share/coot"
-export COOT_DATA_DIR
-
-if [ -f "$COOT_PREFIX/share/coot/cootrc" ]; then
-  COOT_RESOURCES_FILE="$COOT_PREFIX/share/coot/cootrc"
-  vars="$vars COOT_RESOURCES_FILE"
-fi
-if [ -d "$COOT_PREFIX/share/coot/reference-structures" ]; then
-  COOT_REF_STRUCTS="$COOT_PREFIX/share/coot/reference-structures"
-  vars="$vars COOT_REF_STRUCTS"
-fi
-# Build a name -> binary map so one wrapper can serve many tools: each entry defines a
-# shell variable "<key>_exe" holding the path of the real libexec binary.
-
-# the main Coot binary: first of coot-1/Coot/coot that exists in libexec/
-for main_candidate in coot-1 Coot coot
-do
-  [ ! -x "$COOT_PREFIX/libexec/$main_candidate" ] && continue
-  # name_key: lowercased, hyphens removed, so it is a valid shell var name (coot-1 -> coot1)
-  name_key=`echo $main_candidate | tr '[A-Z]' '[a-z]' | sed "s%-%%g"`
-  eval "${name_key}_exe=\"\$COOT_PREFIX/libexec/\$main_candidate\""
-  # also register the variant with a trailing "1" stripped (coot1 -> coot), so "coot" resolves
-  eval "${name_key%1}_exe=\"\$COOT_PREFIX/libexec/\$main_candidate\""
-  break
-done
-# the other tools: a hand-listed set plus every executable found in libexec/
-# (file ... | grep -E " executable " keeps executables; cut takes the path before ":";
-#  sed "s%.*/%%g" strips the directory, leaving the bare filename)
-for tool_name in coot-density-score-by-residue-bin \
-           coot-ligand-validation-bin \
-           coot-make-ligands-db \
-           coot-identify-protein-bin \
-           findligand-bin \
-           findwaters-bin \
-           identify-protein-bin \
-           mini-rsr-bin \
-           `file "$COOT_PREFIX/libexec"/* 2>/dev/null | grep -E " executable " | cut -f1 -d':' | sed "s%.*/%%g"`
-do
-  [ ! -x "$COOT_PREFIX/libexec/$tool_name" ] && [ ! -x "$COOT_PREFIX/libexec/coot-$tool_name" ] && continue
-  # tool_key: name without a trailing "-bin" and with hyphens removed (valid var name)
-  tool_key=`echo "${tool_name%-bin}" | sed "s/-//g"`
-  eval "${tool_key}_exe=\"\$COOT_PREFIX/libexec/$tool_name\""
-  # also register it under a "coot"-prefixed key, unless it already starts with coot
-  case "$tool_key" in
-    coot*) continue;;
-  esac
-  eval "coot${tool_key}_exe=\"\$COOT_PREFIX/libexec/$tool_name\""
-done
-
-export GUILE_WARN_DEPRECATED=no
-GUILE_LOAD_PATH="$COOT_PREFIX/share/guile/3.0"
-
-if [ "X$COOT_GUILE_BIN" = "X" ]; then
-  if [ -x "$COOT_PREFIX/libexec/guile" ]; then
-    GUILE_BIN="$COOT_PREFIX/libexec/guile"
-  elif [ -x "$COOT_PREFIX/bin/guile" ]; then
-    GUILE_BIN="$COOT_PREFIX/bin/guile"
-  fi
-fi
-if [ -d "$COOT_PREFIX/share" ] && [ "X$COOT_XDG_DATA_DIRS" = "X" ]; then
-  XDG_DATA_DIRS="$COOT_PREFIX/share"
-  export XDG_DATA_DIRS
-fi
-if [ -d "$COOT_PREFIX/var/cache" ] && [ "X$COOT_XDG_CACHE_HOME" = "X" ]; then
-  XDG_CACHE_HOME="$COOT_PREFIX/var/cache"
-  export XDG_CACHE_HOME
-fi
-if [ -d "$COOT_PREFIX/etc/fonts" ] && [ "X$COOT_FONTCONFIG_PATH" = "X" ]; then
-  FONTCONFIG_PATH="$COOT_PREFIX/etc/fonts"
-  export FONTCONFIG_PATH
-fi
-if [ -f "$COOT_PREFIX/etc/fonts/fonts.conf" ] && [ "X$COOT_FONTCONFIG_FILE" = "X" ]; then
-  FONTCONFIG_FILE="$COOT_PREFIX/etc/fonts/fonts.conf"
-  export FONTCONFIG_FILE
-fi
-if [ -d "$COOT_PREFIX/var/cache/fontconfig" ] && [ "X$COOT_FC_CACHEDIR" = "X" ]; then
-  FC_CACHEDIR="$COOT_PREFIX/var/cache/fontconfig"
-  export FC_CACHEDIR
-fi
-# unset FONTCONFIG_SYSROOT
-# unset FONTCONFIG_SYSROOT_DIR
-
-# GI_TYPELIB_PATH settings:  
-vars="$vars GI_TYPELIB_PATH"
-for subdir in lib/girepository-1.0 lib64/girepository-1.0 lib/x86_64-linux-gnu/girepository-1.0
-do
-  [ ! -d $root_dir/$subdir ] && continue
-  [ "X$GI_TYPELIB_PATH" = "X" ] && GI_TYPELIB_PATH="$root_dir/$subdir" && continue
-  GI_TYPELIB_PATH="${GI_TYPELIB_PATH}:$root_dir/$subdir"
-done
-[ "X$GI_TYPELIB_PATH" != "X" ] && export GI_TYPELIB_PATH
-
-# -----------------------------------------------------------------------------------
-# do we have all variables set?
-error_count=0
-for var_name in $vars
-do
-  eval "var_value=\"\$$var_name\""
-  [ "X$var_value" = "X" ] && warning "no value given for variable $var_name" && error_count=`expr $error_count + 1`
-done
-[ $error_count -gt 0 ] && error "some required settings missing - see above"
-
-# -----------------------------------------------------------------------------------
-# additional checks (*PATH/*DIR variables should point to directories)
-error_count=0
-for var_name in $vars
-do
-  case "$var_name" in
-    *PATH|*DIR)
-      eval "var_value=\"\$$var_name\""
-      # sed "s/:/ /g" splits a colon-separated PATH-style value into individual entries
-      for path_entry in `echo "$var_value" | sed "s/:/ /g"`
-      do
-        [ ! -d "$path_entry" ] && warning "directory/entry \"$path_entry\" ($var_name) not found" && error_count=`expr $error_count + 1`
-      done
-      ;;
-  esac
-done
-[ $error_count -gt 0 ] && error "some defined directories not found - see above"
-
-# -----------------------------------------------------------------------------------
-# report all settings (dot-leader aligned) when -v was given
-if [ $iverb -gt 0 ]; then
-  printf "\n"
-  dot_leaders="............................................................"   # 60 dots
-  for var_name in $vars
-  do
-    eval "var_value=\"\$$var_name\""
-    # pad the name with dots out to a 60-char column, then the value (replaces an awk
-    # doing the same): join name + dots and cut to 60 chars
-    label=`printf '%s %s' "$var_name" "$dot_leaders" | cut -c1-60`
-    printf " %s %s\n" "$label" "$var_value"
-  done
-  printf "\n"
-fi
-
-# -----------------------------------------------------------------------------------
-# resolve which real binary to run (from how we were invoked) and launch it
-if [ $do_ccp4 -eq 0 ]; then
-  # lookup_key: invoked name without "-bin", up to the first "-" (e.g. coot-1 -> coot)
-  lookup_key=`echo "${invoked_name%-bin}" | cut -f1 -d'-'`
-  eval "target_exe=\"\$${lookup_key}_exe\""
-  [ "X$target_exe" = "X" ] && error "executable to run \"$invoked_name\" not defined"
-  [ ! -f "$target_exe" ] && error "executable \"$target_exe\" not found"
-  [ ! -x "$target_exe" ] && error "executable \"$target_exe\" not executable"
-
-  # various options for debugging/running:
-  if [ $do_ldd -eq 1 ]; then
-    ldd "$target_exe"
-  elif [ $do_strace -eq 1 ]; then
-    type strace >/dev/null 2>&1 || error "no \"strace\" command found"
-    strace "$target_exe" "$@"
-  else
-    if [ $do_debug -eq 1 ]; then
-      printf "\n\n"
-      echo " ### Running: \"$target_exe\" \"$@\"\n"
-      printf "\n"
-      fc-match -v monospace 2>/dev/null | grep file
-      fc-match -v serif 2>/dev/null | grep file
-      fc-match -v sans 2>/dev/null | grep file
-      "$target_exe" "$@" || error
-    else
-      # rewrite the program's own "Usage: <prog>" line to show the name the user typed
-      "$target_exe" "$@" 2>&1 | sed "s%Usage:[ ]*[^ ]*%Usage: $invoked_name%g" || error
-    fi
-  fi
+# --- run ---
+if [ $do_ldd -eq 1 ]; then
+  ldd "$target_exe"
+elif [ $do_strace -eq 1 ]; then
+  type strace >/dev/null 2>&1 || error "no \"strace\" command found"
+  strace "$target_exe" "$@"
+elif [ $do_debug -eq 1 ]; then
+  printf "\n ### Running: \"%s\" %s\n\n" "$target_exe" "$*"
+  fc-match -v monospace 2>/dev/null | grep file
+  fc-match -v serif 2>/dev/null | grep file
+  fc-match -v sans 2>/dev/null | grep file
+  "$target_exe" "$@" || error
 else
-  error "CCP4 mode not yet supported/implemented"
+  # rewrite the program's own "Usage: <prog>" line to show the name actually invoked
+  "$target_exe" "$@" 2>&1 | sed "s%Usage:[ ]*[^ ]*%Usage: $invoked_name%g" || error
 fi
-
 exit 0
 EOF
     chmod +x bin/coot-wrapper.sh
@@ -2906,25 +2638,51 @@ if [ ! -d "$COOT_PREFIX/lib" ]; then
 fi
 export COOT_PREFIX
 
-# --- core runtime env (mirrors what coot-wrapper.sh sets up) ---
 PATH="$COOT_PREFIX/bin:$PATH"; export PATH
-# ${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} appends the caller's existing value, but the
-# ":+" form expands to ":$LD_LIBRARY_PATH" only when it is already set & non-empty,
-# and to nothing otherwise. That avoids leaving a dangling ":" (an empty path entry,
-# which the loader treats as the current directory "." — a correctness/security trap)
-# when LD_LIBRARY_PATH was previously unset.
-LD_LIBRARY_PATH="$COOT_PREFIX/lib64:$COOT_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; export LD_LIBRARY_PATH
-# PYTHONHOME makes the shipped python3 find its own stdlib + site-packages (where
+
+# --- shared libraries: prepend whichever lib dirs exist under the prefix ---
+# Each "${VAR:+:$VAR}" appends the caller's existing value only when it is non-empty,
+# avoiding a dangling ":" (an empty entry = current dir ".", a correctness/security trap).
+_coot_ld=
+for _coot_d in lib64 lib lib/x86_64-linux-gnu; do
+  [ -d "$COOT_PREFIX/$_coot_d" ] && _coot_ld="${_coot_ld:+$_coot_ld:}$COOT_PREFIX/$_coot_d"
+done
+LD_LIBRARY_PATH="${_coot_ld}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"; export LD_LIBRARY_PATH
+unset _coot_ld _coot_d
+
+# PYTHONHOME makes the shipped python3 find its stdlib + site-packages (where
 # coot_headless_api lives); no PYTHONPATH needed.
 PYTHONHOME="$COOT_PREFIX"; export PYTHONHOME
 
-# --- Coot data directories (so chapi finds dictionaries/structures at runtime) ---
-[ -d "$COOT_PREFIX/share/coot" ]                       && { COOT_DATA_DIR="$COOT_PREFIX/share/coot"; export COOT_DATA_DIR; }
+# --- GObject-introspection typelibs (GTK) ---
+_coot_gi=
+for _coot_d in lib/girepository-1.0 lib64/girepository-1.0 lib/x86_64-linux-gnu/girepository-1.0; do
+  [ -d "$COOT_PREFIX/$_coot_d" ] && _coot_gi="${_coot_gi:+$_coot_gi:}$COOT_PREFIX/$_coot_d"
+done
+[ -n "$_coot_gi" ] && { GI_TYPELIB_PATH="${_coot_gi}${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"; export GI_TYPELIB_PATH; }
+unset _coot_gi _coot_d
+
+# --- Coot data directories / files (so Coot + chapi find dictionaries/structures) ---
+COOT_DATA_DIR="$COOT_PREFIX/share/coot"; export COOT_DATA_DIR
 [ -d "$COOT_PREFIX/share/coot/scheme" ]                && { COOT_SCHEME_DIR="$COOT_PREFIX/share/coot/scheme"; export COOT_SCHEME_DIR; }
 [ -f "$COOT_PREFIX/share/coot/standard-residues.pdb" ] && { COOT_STANDARD_RESIDUES="$COOT_PREFIX/share/coot/standard-residues.pdb"; export COOT_STANDARD_RESIDUES; }
+[ -f "$COOT_PREFIX/share/coot/syminfo.lib" ]           && { SYMINFO="$COOT_PREFIX/share/coot/syminfo.lib"; export SYMINFO; }
+[ -f "$COOT_PREFIX/share/coot/cootrc" ]                && { COOT_RESOURCES_FILE="$COOT_PREFIX/share/coot/cootrc"; export COOT_RESOURCES_FILE; }
 [ -d "$COOT_PREFIX/share/coot/reference-structures" ]  && { COOT_REF_STRUCTS="$COOT_PREFIX/share/coot/reference-structures"; export COOT_REF_STRUCTS; }
-# monomer/dictionary library (only if the user hasn't pointed at a CCP4 one)
+# monomer/dictionary library (only when the user hasn't pointed at a CCP4 one via CLIBD_MON)
 [ "X${CLIBD_MON:-}" = "X" ] && [ -d "$COOT_PREFIX/share/coot/lib" ] && { COOT_REFMAC_LIB_DIR="$COOT_PREFIX/share/coot/lib"; export COOT_REFMAC_LIB_DIR; }
+
+# --- Guile (Coot's scheme scripting) ---
+GUILE_WARN_DEPRECATED=no; export GUILE_WARN_DEPRECATED
+[ -d "$COOT_PREFIX/share/guile/3.0" ] && { GUILE_LOAD_PATH="$COOT_PREFIX/share/guile/3.0"; export GUILE_LOAD_PATH; }
+
+# --- XDG + bundled FontConfig (use Coot's own fonts/cache, not the host's). Each is
+# skipped if the matching COOT_* override is set, so the user can keep their own. ---
+[ -d "$COOT_PREFIX/share" ]                && [ "X${COOT_XDG_DATA_DIRS:-}" = "X" ]   && { XDG_DATA_DIRS="$COOT_PREFIX/share"; export XDG_DATA_DIRS; }
+[ -d "$COOT_PREFIX/var/cache" ]            && [ "X${COOT_XDG_CACHE_HOME:-}" = "X" ]  && { XDG_CACHE_HOME="$COOT_PREFIX/var/cache"; export XDG_CACHE_HOME; }
+[ -d "$COOT_PREFIX/etc/fonts" ]            && [ "X${COOT_FONTCONFIG_PATH:-}" = "X" ] && { FONTCONFIG_PATH="$COOT_PREFIX/etc/fonts"; export FONTCONFIG_PATH; }
+[ -f "$COOT_PREFIX/etc/fonts/fonts.conf" ] && [ "X${COOT_FONTCONFIG_FILE:-}" = "X" ] && { FONTCONFIG_FILE="$COOT_PREFIX/etc/fonts/fonts.conf"; export FONTCONFIG_FILE; }
+[ -d "$COOT_PREFIX/var/cache/fontconfig" ] && [ "X${COOT_FC_CACHEDIR:-}" = "X" ]     && { FC_CACHEDIR="$COOT_PREFIX/var/cache/fontconfig"; export FC_CACHEDIR; }
 EOF
     chmod +x bin/coot-env.sh
   fi
