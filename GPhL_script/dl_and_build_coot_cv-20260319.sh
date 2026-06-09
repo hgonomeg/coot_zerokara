@@ -1978,7 +1978,6 @@ build_coot () {
 PREFIX=$PREFIX
 FFLAGS="$FFLAGS" \\
 CFLAGS="$CFLAGS" \\
-CXXFLAGS="$CXXFLAGS" \\
 LDFLAGS="$LDFLAGS" \\
 SHELL=/bin/sh \\
 PYTHON=python3 \\
@@ -1996,21 +1995,8 @@ CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequ
             --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}"
 EOF
     chmod +x my_configure.sh
-    SHELL=/bin/sh \
-    PYTHON=python3 \
-    CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequence-point -Wsign-compare -Wno-unknown-pragmas" \
-    ./configure --prefix=$PREFIX \
-                --libexecdir=$PREFIX/libexec \
-                --disable-static \
-                --with-sound \
-                --with-enhanced-ligand-tools \
-                --with-rdkit-prefix=$PREFIX \
-                --with-boost=$PREFIX \
-                --with-gemmi=$PREFIX \
-                --with-libdw=$PREFIX \
-                --with-boost-thread=boost_thread \
-                --with-boost-python="boost_python${PYTHON_VER_MAJOR}${PYTHON_VER_MINOR}" \
-                > my_configure.log 2>&1 || error "see `mypwd`/my_configure.log"
+    # run the very script we just wrote — single source of truth, no duplicate inline copy
+    sh my_configure.sh > my_configure.log 2>&1 || error "see `mypwd`/my_configure.log"
     echo "done"
     touch .my_configure_done
     rm -f .my_make_done
