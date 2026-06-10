@@ -124,12 +124,13 @@ setup_build_env            # always: PKG_CONFIG_*, LD_*, CC/CXX/FC, PYTHONPATH �
 
 # phase 1 — download   (stage = all | download)
 download_all
-  ├─ download_toolchain    # do_wget Python, CMake, Ninja, rustup-init.sh (NO build)
+  ├─ download_toolchain    # do_wget Python, CMake, Ninja, rustup-init.sh, libffi/ncurses/readline (NO build)
   └─ download_dependencies # do_wget every dependency tarball into $DEPS_DIR
                            #   — NB: neither downloads Coot itself
 
 # phase 2 — toolchain  (stage = all | toolchain)
 initial_setup             # calls download_toolchain first (idempotent), then BUILDS:
+                          #   ncurses + readline + libffi (Python links them), then
                           #   fresh Python, pip meson/etc, newer CMake + Ninja,
                           #   install Rust + cargo-c
 
@@ -201,8 +202,8 @@ They expect the unpacked source at `$DEPS_DIR/<pkg>-<ver>` and build into
 `$BUILD_DIR/<pkg>`. Packages whose tarball top-dir doesn't match `<pkg>-<ver>` get
 renamed/symlinked in `download_dependencies` (e.g. coordgenlibs→coordgen,
 rdkit-Release_*→rdkit-*, ssm→libssm). A few packages (boost, libtiff, libssm,
-libclipper, fftw) are special-cased with their own hand-written build bodies instead
-of the generic helpers.
+libclipper, fftw, icu, ncurses) are special-cased with their own hand-written build bodies
+instead of the generic helpers.
 
 ### Version pinning
 Every dependency version is a `*_VER` variable in one block near the top
