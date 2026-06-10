@@ -2496,7 +2496,9 @@ package_coot_minimal () {
   staging_root="__$$.tmp"
   staging_dir="$staging_root/$package_basename"
   mkdir -p $staging_dir || error
-  cp -ar $package_dirs $staging_dir/. || error "copy-1 (see above)"
+  # Copy via tar (not cp) to preserve nested paths: $package_dirs can contain
+  # "var/cache/fontconfig", which `cp -ar dest/.` would flatten to dest/fontconfig.
+  ( tar -cf - $package_dirs | ( cd $staging_dir && tar -xf - ) ) || error "copy-1 (see above)"
   mkdir -p $staging_dir/bin
   cp -a bin/coot* bin/layla bin/pyrogen bin/python3* $staging_dir/bin/. || error "copy-2 (see above)"
   if [ -x bin/fc-match ]; then
