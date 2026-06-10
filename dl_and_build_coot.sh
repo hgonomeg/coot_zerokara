@@ -2517,8 +2517,9 @@ package_coot_minimal () {
     printf "   removing stray HTML docs (keeping Coot's own) ...\n"
     find share -type f -name "*html" | grep -v coot | xargs -r rm   # grep -v coot = exclude Coot's docs
     rm -fr share/man share/doc share/RDKit/Docs share/cmake*/Help share/cmake*/Modules   # docs/help trees
-    # strip symbols to shrink libraries/binaries, when `strip` is available
-    if type strip >/dev/null 2>&1; then
+    # strip symbols to shrink libraries/binaries, when `strip` is available — but never
+    # for a debug build, where stripping would throw away the very symbols it's built for.
+    if [ "$btype" != "debug" ] && type strip >/dev/null 2>&1; then
       printf "   stripping shared libraries ...\n"
       # .so files and versioned .so.N: name ends in "so" or in a digit ($ = end; | = OR)
       find lib* -name "*.so*" -type f | grep -E "so$|[0-9]$" | xargs -r -n 1 strip
