@@ -53,6 +53,9 @@ Two pipelines build the script across distros:
   `debian:trixie`, `fedora:43/44`, `archlinux:latest`, `rockylinux:9`,
   `opensuse/leap:15.6`). On failure it tars the `my_*.log` files — the glob now also
   catches root-level logs like `my_git_clone.log` — into a `build-logs-<distro>` artifact.
+  On success it uploads the packaged Coot tarball (`coot-build/coot-*.tar.gz`) as a
+  `coot-<distro>-x86_64` artifact — so users can grab a ready-built Coot from a green run
+  without building it themselves (the README points them here).
 - `Jenkinsfile` — a single `buildready-rocky` image; archives the same logs.
 
 Both run the build as the script's **four phases, one step/stage each**
