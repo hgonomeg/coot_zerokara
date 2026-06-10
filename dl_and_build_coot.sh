@@ -1049,19 +1049,19 @@ build_fontconfig () {
 extract_fonts () {
   ( mkdir -p $PREFIX/share/fonts/truetype/inter && \
       cd $PREFIX/share/fonts/truetype/inter && \
-      tar -xf $DEPS_DIR/Inter-${FONTS_INTER_VER}.tar.gz )
+      tar -xf $DEPS_DIR/fonts/Inter-${FONTS_INTER_VER}.tar.gz )
   ( mkdir -p $PREFIX/share/fonts/truetype/jetbrains-mono && \
       cd $PREFIX/share/fonts/truetype/jetbrains-mono && \
-      tar -xf $DEPS_DIR/JetBrainsMono-${FONTS_JETBRAINS_VER}.tar.gz )
+      tar -xf $DEPS_DIR/fonts/JetBrainsMono-${FONTS_JETBRAINS_VER}.tar.gz )
   ( mkdir -p $PREFIX/share/fonts/truetype/dejavu && \
       cd $PREFIX/share/fonts/truetype/dejavu && \
-      tar -xf $DEPS_DIR/dejavu-fonts-ttf-${FONTS_DEJAVU_VER}.tar.bz2 )
+      tar -xf $DEPS_DIR/fonts/dejavu-fonts-ttf-${FONTS_DEJAVU_VER}.tar.bz2 )
   ( mkdir -p $PREFIX/share/fonts/truetype/dejavu && \
       cd $PREFIX/share/fonts/truetype/dejavu && \
-      tar -xf $DEPS_DIR/dejavu-lgc-fonts-ttf-${FONTS_DEJAVU_VER}.tar.bz2 )
+      tar -xf $DEPS_DIR/fonts/dejavu-lgc-fonts-ttf-${FONTS_DEJAVU_VER}.tar.bz2 )
   ( mkdir -p $PREFIX/share/fonts/truetype && \
       cd $PREFIX/share/fonts/truetype && \
-      tar -xf $DEPS_DIR/Noto.tar.gz )
+      tar -xf $DEPS_DIR/fonts/Noto.tar.gz )
 }
 
 build_pixman () {
@@ -1841,12 +1841,15 @@ download_dependencies () {
   #do_wget https://www.freedesktop.org/software/fontconfig/release/fontconfig-${FONTCONFIG_VER}.tar.xz
   do_wget https://codeload.github.com/fontconfig/fontconfig/tar.gz/refs/tags/${FONTCONFIG_VER} fontconfig-${FONTCONFIG_VER}.tar.gz
 
-  # Fonts
-  do_wget https://github.com/rsms/inter/releases/download/v${FONTS_INTER_VER}/Inter-${FONTS_INTER_VER}.tar.gz
-  do_wget https://download.jetbrains.com/fonts/JetBrainsMono-${FONTS_JETBRAINS_VER}.tar.gz
-  do_wget https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_`echo ${FONTS_DEJAVU_VER} | sed "s/\./_/g"`/dejavu-fonts-ttf-${FONTS_DEJAVU_VER}.tar.bz2
-  do_wget https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_`echo ${FONTS_DEJAVU_VER} | sed "s/\./_/g"`/dejavu-lgc-fonts-ttf-${FONTS_DEJAVU_VER}.tar.bz2
-  do_wget https://github.com/notofonts/NotoSansMono/archive/refs/heads/Noto.tar.gz
+  # Fonts — kept together under $DEPS_DIR/fonts/ so CI can preserve/cache that one dir
+  # (extract_fonts untars them in the Coot phase). do_wget's error() only kills the
+  # subshell here, so guard the block with || error to keep abort-on-failure.
+  ( mkdir -p $DEPS_DIR/fonts && cd $DEPS_DIR/fonts || error
+    do_wget https://github.com/rsms/inter/releases/download/v${FONTS_INTER_VER}/Inter-${FONTS_INTER_VER}.tar.gz
+    do_wget https://download.jetbrains.com/fonts/JetBrainsMono-${FONTS_JETBRAINS_VER}.tar.gz
+    do_wget https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_`echo ${FONTS_DEJAVU_VER} | sed "s/\./_/g"`/dejavu-fonts-ttf-${FONTS_DEJAVU_VER}.tar.bz2
+    do_wget https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_`echo ${FONTS_DEJAVU_VER} | sed "s/\./_/g"`/dejavu-lgc-fonts-ttf-${FONTS_DEJAVU_VER}.tar.bz2
+    do_wget https://github.com/notofonts/NotoSansMono/archive/refs/heads/Noto.tar.gz ) || error
 
   # Pixman
   do_wget https://www.cairographics.org/releases/pixman-${PIXMAN_VER}.tar.gz
@@ -2082,7 +2085,7 @@ build_coot () {
     [ $do_distributable -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
     case $btype in
       debug) __opt="-g -Og";;
-      opt) __opt="-O3 -ffast-math";;
+      opt) __opt="-O3";;
       *) __opt="";;
     esac
     cat <<EOF > my_configure.sh
@@ -2778,6 +2781,10 @@ GUILE_WARN_DEPRECATED=no; export GUILE_WARN_DEPRECATED
 [ -d "$COOT_PREFIX/etc/fonts" ]            && [ "X${COOT_FONTCONFIG_PATH:-}" = "X" ] && { FONTCONFIG_PATH="$COOT_PREFIX/etc/fonts"; export FONTCONFIG_PATH; }
 [ -f "$COOT_PREFIX/etc/fonts/fonts.conf" ] && [ "X${COOT_FONTCONFIG_FILE:-}" = "X" ] && { FONTCONFIG_FILE="$COOT_PREFIX/etc/fonts/fonts.conf"; export FONTCONFIG_FILE; }
 [ -d "$COOT_PREFIX/var/cache/fontconfig" ] && [ "X${COOT_FC_CACHEDIR:-}" = "X" ]     && { FC_CACHEDIR="$COOT_PREFIX/var/cache/fontconfig"; export FC_CACHEDIR; }
+
+# Return success: the trailing conditionals above leave $? non-zero when their dirs are
+# absent, which would abort a caller that sources this file under `set -e`.
+:
 EOF
     chmod +x bin/coot-env.sh
   fi
