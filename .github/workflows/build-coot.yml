@@ -74,14 +74,13 @@ jobs:
 
       # Deps are installed in the prefix now; the unpacked sources + build trees are the
       # bulk of the disk usage. Drop them, but keep two things: every my_*.log (for the
-      # failure-log step) and the deps/ top-level tarballs (the Coot phase's extract_fonts
-      # untars the bundled fonts straight from deps/*.tar.*). So: delete unpacked sources
-      # (deps/ depth >=2) and the whole build/ tree, leaving the top-level tarballs.
-      - name: Reclaim disk space (drop dependency sources & build trees, keep logs + tarballs)
+      # failure-log step) and deps/fonts/ (the Coot phase's extract_fonts untars the
+      # bundled fonts straight from there).
+      - name: Reclaim disk space (drop dependency sources & build trees, keep logs + fonts)
         run: |
           cd $GITHUB_WORKSPACE/coot-build
           df -h .
-          find deps -mindepth 2 -type f ! -name '*.log*' -delete
+          find deps -type f ! -path 'deps/fonts/*' ! -name '*.log*' -delete
           find build -type f ! -name '*.log*' -delete
           find deps build -depth -type d -empty -delete
           df -h .
