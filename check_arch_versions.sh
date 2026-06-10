@@ -79,4 +79,6 @@ libdwarf:LIBDWARF_VER:2.3.1
 backward-cpp:LIBBACKWARD_VER:1.6
 icu:ICU_VER:78.3
 util-linux:UTIL_LINUX_VER:2.42.1
+ncurses:NCURSES_VER:6.6
+readline:READLINE_VER:8.3
 PKGLIST

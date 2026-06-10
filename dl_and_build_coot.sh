@@ -225,10 +225,7 @@ if [ $do_os -eq 1 ]; then
              libXtst-devel \
              libexpat-devel \
              dbus-1-devel \
-             libffi-devel \
              libelf-devel \
-             readline-devel \
-             ncurses-devel \
              libpng16-devel \
              libbrotli-devel \
              libxcb-devel \
@@ -282,7 +279,6 @@ if [ $do_os -eq 1 ]; then
             gperf file \
             libX11-devel \
             libglvnd-devel \
-            libffi-devel \
             freetype-devel \
             libxkbcommon-devel \
             libXrender-devel \
@@ -307,8 +303,6 @@ if [ $do_os -eq 1 ]; then
             gperftools-devel \
             expat-devel \
             dbus-devel \
-            readline-devel \
-            ncurses-devel \
             sqlite-devel \
             lzo-devel \
             libpng-devel \
@@ -354,7 +348,6 @@ if [ $do_os -eq 1 ]; then
               bzip2-devel \
               libX11-devel \
               libglvnd-devel \
-              libffi-devel \
               freetype-devel \
               libxkbcommon-devel \
               libXrender-devel \
@@ -382,8 +375,6 @@ if [ $do_os -eq 1 ]; then
               gperftools-devel \
               $__toolsets \
               dbus-devel \
-              readline-devel \
-              ncurses-devel \
               sqlite-devel \
               lzo-devel \
               libpng-devel \
@@ -408,8 +399,8 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get update || error
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
-          libdbus-1-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
-          libssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
+          libdbus-1-dev libexpat1-dev libelf-dev libxml2-dev libxml2-utils \
+          libssl-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -428,8 +419,8 @@ if [ $do_os -eq 1 ]; then
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
-            dbus expat libffi libxml2 readline \
-            openssl ncurses sqlite lzo xz bzip2 libpng brotli \
+            dbus expat libxml2 \
+            openssl sqlite lzo xz bzip2 libpng brotli \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
@@ -471,7 +462,6 @@ export COOT_DIR
 
 # Fixed dependency build list (NOT user-overridable). Order matters - and some packages
 # must be built more than once (see the numbered build_<name> variants).
-# todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
 BUILD_DEPENDENCIES="
     util_linux
     icu
@@ -484,7 +474,6 @@ BUILD_DEPENDENCIES="
     libunistring
     gc
     glm
-    libffi
     guile
     swig
     eigen
@@ -606,6 +595,8 @@ PCRE2_VER=10.47
 LIBFFI_VER=3.5.2
 ICU_VER=78.3
 UTIL_LINUX_VER=2.42.1
+NCURSES_VER=6.6
+READLINE_VER=8.3
 BOOST_VER_=`echo $BOOST_VER | tr . _`
 WAYLAND_VER=1.25.0
 WAYLANDPROTOCOLS_VER=1.48
@@ -901,6 +892,48 @@ build_pcre2 () {
 
 build_libffi () {
   build_with_configure libffi ${LIBFFI_VER} --disable-static --disable-multi-os-directory
+}
+
+# ncurses (widec) for readline/Python. readline only probes the non-wide termcap names,
+# so we symlink those onto our libtinfow/libncursesw — keeping it entirely in $PREFIX,
+# no system ncurses involved.
+build_ncurses () {
+  if [ ! -f $BUILD_DIR/ncurses/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building ncurses (${NCURSES_VER}) with configure/make\n"
+    mkdir -p $BUILD_DIR/ncurses || error
+    cd $BUILD_DIR/ncurses || error
+    build_save_mylogs_and_rm
+
+    printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    $DEPS_DIR/ncurses-${NCURSES_VER}/configure --prefix=$PREFIX \
+      --with-shared --without-normal --without-debug --without-ada --without-cxx-binding \
+      --enable-widec --with-termlib --enable-overwrite --enable-pc-files \
+      --with-pkg-config-libdir=$PREFIX/lib/pkgconfig > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+    printf "  make install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+
+    # Non-wide aliases so -ltinfo / -lncurses / -lcurses resolve to our widec libs.
+    ln -sf libncursesw.so $PREFIX/lib/libncurses.so
+    ln -sf libncursesw.so $PREFIX/lib/libcurses.so
+    ln -sf libtinfow.so   $PREFIX/lib/libtinfo.so
+    ln -sf ncursesw.pc    $PREFIX/lib/pkgconfig/ncurses.pc
+    ln -sf tinfow.pc      $PREFIX/lib/pkgconfig/tinfo.pc
+
+    do_cleans="$do_cleans `pwd`"
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/ncurses/.my_done${MY_DONE_EXT}
+  fi
+}
+
+# readline picks up termcap from our ncurses (the libtinfo symlink above).
+build_readline () {
+  build_with_configure readline ${READLINE_VER} --disable-static
 }
 
 # Built only for libmount (glib's gio links it); everything else switched off.
@@ -1582,6 +1615,12 @@ download_toolchain () {
       ln -s python-${PYTHON_VER} Python-${PYTHON_VER} || error
   fi
 
+  # Built in initial_setup before Python (which links them). Fetched here so the
+  # toolchain phase is self-contained.
+  do_wget https://ftp.gnu.org/gnu/ncurses/ncurses-${NCURSES_VER}.tar.gz
+  do_wget https://ftp.gnu.org/gnu/readline/readline-${READLINE_VER}.tar.gz
+  do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
+
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
   cd $BUILD_DIR/cmakebuild || error
@@ -1616,6 +1655,14 @@ initial_setup () {
   download_toolchain || error
 
   cd $PREFIX || error
+
+  # libffi, ncurses and readline are linked by Python (ctypes / _curses / readline) and
+  # must exist before it — built here, not in the deps phase. additional_build_env_setup
+  # puts $PREFIX on the compiler -I/-L paths so readline finds our ncurses.
+  additional_build_env_setup
+  build_ncurses  || error
+  build_readline || error
+  build_libffi   || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
     printf "\n"
@@ -1970,8 +2017,6 @@ download_dependencies () {
 
   # Harfbuzz
   do_wget https://github.com/harfbuzz/harfbuzz/archive/refs/tags/${HARFBUZZ_VER}.tar.gz harfbuzz-${HARFBUZZ_VER}.tar.gz
-
-  do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
 
   # # elfutils
   do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
