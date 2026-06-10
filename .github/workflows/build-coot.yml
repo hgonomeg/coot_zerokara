@@ -72,17 +72,17 @@ jobs:
           cd $GITHUB_WORKSPACE/coot-build
           bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -deps-only
 
-      # The dependencies are now installed in the prefix (bin/ lib/ include/ share/ …);
-      # the unpacked sources (deps/) and out-of-tree build dirs (build/) are no longer
-      # needed and are the bulk of the disk usage. Drop everything in them so the Coot
-      # phase + packaging don't run the runner out of disk — but keep the my_*.log files
-      # (at their original paths, so the failure-log step can still collect them). The
-      # Coot build lives under coot-build/coot*/ and never touches deps/ or build/.
-      - name: Reclaim disk space (drop dependency sources & build trees, keep logs)
+      # Deps are installed in the prefix now; the unpacked sources + build trees are the
+      # bulk of the disk usage. Drop them, but keep two things: every my_*.log (for the
+      # failure-log step) and the deps/ top-level tarballs (the Coot phase's extract_fonts
+      # untars the bundled fonts straight from deps/*.tar.*). So: delete unpacked sources
+      # (deps/ depth >=2) and the whole build/ tree, leaving the top-level tarballs.
+      - name: Reclaim disk space (drop dependency sources & build trees, keep logs + tarballs)
         run: |
           cd $GITHUB_WORKSPACE/coot-build
           df -h .
-          find deps build -type f ! -name '*.log*' -delete
+          find deps -mindepth 2 -type f ! -name '*.log*' -delete
+          find build -type f ! -name '*.log*' -delete
           find deps build -depth -type d -empty -delete
           df -h .
 
