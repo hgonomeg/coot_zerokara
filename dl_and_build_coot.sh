@@ -212,7 +212,6 @@ if [ $do_os -eq 1 ]; then
              libboost_serialization-devel-impl \
              libboost_thread-devel-impl \
              libepoxy-devel \
-             libicu-devel \
              libtool \
              sqlite3-devel \
              swig \
@@ -226,7 +225,6 @@ if [ $do_os -eq 1 ]; then
              libXtst-devel \
              libexpat-devel \
              dbus-1-devel \
-             libmount-devel \
              libffi-devel \
              libelf-devel \
              readline-devel \
@@ -309,7 +307,6 @@ if [ $do_os -eq 1 ]; then
             gperftools-devel \
             expat-devel \
             dbus-devel \
-            libmount-devel \
             readline-devel \
             ncurses-devel \
             sqlite-devel \
@@ -385,7 +382,6 @@ if [ $do_os -eq 1 ]; then
               gperftools-devel \
               $__toolsets \
               dbus-devel \
-              libmount-devel \
               readline-devel \
               ncurses-devel \
               sqlite-devel \
@@ -412,7 +408,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get update || error
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
-          libdbus-1-dev libmount-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
+          libdbus-1-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
           libssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
@@ -432,7 +428,7 @@ if [ $do_os -eq 1 ]; then
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
-            dbus util-linux-libs expat libffi libxml2 readline \
+            dbus expat libffi libxml2 readline \
             openssl ncurses sqlite lzo xz bzip2 libpng brotli \
             libxcb \
             mesa \
@@ -477,6 +473,8 @@ export COOT_DIR
 # must be built more than once (see the numbered build_<name> variants).
 # todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
 BUILD_DEPENDENCIES="
+    util_linux
+    icu
     elfutils
     libdwarf
     libbackward
@@ -606,6 +604,8 @@ GC_VER=8.2.12
 GLM_VER=1.0.3
 PCRE2_VER=10.47
 LIBFFI_VER=3.5.2
+ICU_VER=78.3
+UTIL_LINUX_VER=2.42.1
 BOOST_VER_=`echo $BOOST_VER | tr . _`
 WAYLAND_VER=1.25.0
 WAYLANDPROTOCOLS_VER=1.48
@@ -901,6 +901,42 @@ build_pcre2 () {
 
 build_libffi () {
   build_with_configure libffi ${LIBFFI_VER} --disable-static --disable-multi-os-directory
+}
+
+# Built only for libmount (glib's gio links it); everything else switched off.
+# Source dir is util-linux-*, so pass that (hyphen) name to the configure helper.
+build_util_linux () {
+  build_with_configure util-linux ${UTIL_LINUX_VER} \
+    --disable-all-programs --enable-libuuid --enable-libblkid --enable-libmount \
+    --disable-static --disable-nls --disable-bash-completion
+}
+
+# Hand-rolled: ICU's configure lives under source/, so build_with_configure can't drive it.
+build_icu () {
+  if [ ! -f $BUILD_DIR/icu/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building icu (${ICU_VER}) with configure/make\n"
+    rm -rf $BUILD_DIR/icu
+    cp -a $DEPS_DIR/icu-${ICU_VER}/ $BUILD_DIR/icu || error
+    cd $BUILD_DIR/icu/source || error
+
+    printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    ./configure --prefix=$PREFIX \
+                --enable-shared --disable-static \
+                --disable-samples --disable-tests > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  make install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+    do_cleans="$do_cleans `pwd`"
+
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/icu/.my_done${MY_DONE_EXT}
+  fi
 }
 # build_libdrm () {
 #   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
@@ -1749,6 +1785,17 @@ additional_build_env_setup () {
 
 download_dependencies () {
   cd $DEPS_DIR || error
+
+  # util-linux (for libmount). Unpacks to util-linux-${UTIL_LINUX_VER} (used as-is).
+  do_wget https://www.kernel.org/pub/linux/utils/util-linux/v`echo ${UTIL_LINUX_VER} | cut -d. -f1-2`/util-linux-${UTIL_LINUX_VER}.tar.xz
+
+  # ICU (icu4c) — unpacks to icu/; rename so the source dir is icu-${ICU_VER}
+  # (symlink left behind so do_wget doesn't re-unpack on reruns).
+  do_wget https://github.com/unicode-org/icu/releases/download/release-${ICU_VER}/icu4c-${ICU_VER}-sources.tgz icu4c-${ICU_VER}-sources.tgz
+  if [ -d icu ] && [ ! -d icu-${ICU_VER} ]; then
+    mv icu icu-${ICU_VER} && \
+      ln -s icu-${ICU_VER} icu || error
+  fi
 
   #Libjpeg
   do_wget https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${LIBJPEG_VER}.tar.gz libjpeg-turbo-${LIBJPEG_VER}.tar.gz

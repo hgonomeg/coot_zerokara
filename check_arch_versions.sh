@@ -77,4 +77,6 @@ python-gobject:PYGOBJECT_VER:3.56.3
 rdkit:RDKIT_VER:2026_03_3
 libdwarf:LIBDWARF_VER:2.3.1
 backward-cpp:LIBBACKWARD_VER:1.6
+icu:ICU_VER:78.3
+util-linux:UTIL_LINUX_VER:2.42.1
 PKGLIST
