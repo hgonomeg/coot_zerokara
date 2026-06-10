@@ -1,0 +1,111 @@
+name: Build Coot
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'dl_and_build_coot.sh'
+      - '.github/workflows/build-coot.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    #timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu-24.04
+            container: ubuntu:24.04
+          - distro: ubuntu-26.04
+            container: ubuntu:26.04
+          - distro: debian-13
+            container: debian:trixie
+          - distro: fedora-43
+            container: fedora:43
+          - distro: fedora-44
+            container: fedora:44
+          - distro: archlinux
+            container: archlinux:latest
+          - distro: rocky-9
+            container: rockylinux:9
+          - distro: opensuse-leap-15
+            container: opensuse/leap:15.6
+          # todo: almalinux
+
+    container:
+      image: ${{ matrix.container }}
+
+    env:
+      COOT_GIT: https://github.com/hgonomeg/coot
+
+    steps:
+      - name: Install git, tar, zstd
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update && apt-get install -y git tar zstd
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y git tar zstd
+          elif command -v zypper >/dev/null 2>&1; then
+            zypper install -y git tar zstd
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Sy --noconfirm --needed git tar zstd
+          fi
+
+      - uses: actions/checkout@v4
+
+      # Full from-scratch build (no caching) run as four phases, one step each. Phase 1
+      # installs the OS packages; later phases reuse them via -no-use-os-package-manager.
+      - name: Download sources
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/coot-build
+          cd $GITHUB_WORKSPACE/coot-build
+          bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -use-os-package-manager -distributable -noninteractive -download-only
+
+      - name: Build toolchain
+        run: |
+          cd $GITHUB_WORKSPACE/coot-build
+          bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -toolchain-only
+
+      - name: Build dependencies
+        run: |
+          cd $GITHUB_WORKSPACE/coot-build
+          bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -deps-only
+
+      # The dependencies are now installed in the prefix (bin/ lib/ include/ share/ …);
+      # the unpacked sources (deps/) and out-of-tree build dirs (build/) are no longer
+      # needed and are the bulk of the disk usage. Drop everything in them so the Coot
+      # phase + packaging don't run the runner out of disk — but keep the my_*.log files
+      # (at their original paths, so the failure-log step can still collect them). The
+      # Coot build lives under coot-build/coot*/ and never touches deps/ or build/.
+      - name: Reclaim disk space (drop dependency sources & build trees, keep logs)
+        run: |
+          cd $GITHUB_WORKSPACE/coot-build
+          df -h .
+          find deps build -type f ! -name '*.log*' -delete
+          find deps build -depth -type d -empty -delete
+          df -h .
+
+      - name: Build Coot
+        run: |
+          cd $GITHUB_WORKSPACE/coot-build
+          bash $GITHUB_WORKSPACE/dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -coot-stage-only
+
+      - name: Collect build logs on failure
+        if: failure()
+        run: bash -c "cd $GITHUB_WORKSPACE/coot-build && shopt -s nullglob && tar --zstd -cf build-logs.tar.zst *.log* {deps,build}/*/*.log* {build,deps}/*.log* coot*/*.log* coot*/chapi-build/*.log*"
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.distro }}
+          path: ${{ github.workspace }}/coot-build/build-logs.tar.zst
+          if-no-files-found: warn
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: coot-${{ matrix.distro }}-x86_64
+          path: ${{ github.workspace }}/coot-build/coot-*.tar.gz
+          if-no-files-found: error
