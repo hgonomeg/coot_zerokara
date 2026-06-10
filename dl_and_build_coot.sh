@@ -2734,6 +2734,10 @@ GUILE_WARN_DEPRECATED=no; export GUILE_WARN_DEPRECATED
 [ -d "$COOT_PREFIX/etc/fonts" ]            && [ "X${COOT_FONTCONFIG_PATH:-}" = "X" ] && { FONTCONFIG_PATH="$COOT_PREFIX/etc/fonts"; export FONTCONFIG_PATH; }
 [ -f "$COOT_PREFIX/etc/fonts/fonts.conf" ] && [ "X${COOT_FONTCONFIG_FILE:-}" = "X" ] && { FONTCONFIG_FILE="$COOT_PREFIX/etc/fonts/fonts.conf"; export FONTCONFIG_FILE; }
 [ -d "$COOT_PREFIX/var/cache/fontconfig" ] && [ "X${COOT_FC_CACHEDIR:-}" = "X" ]     && { FC_CACHEDIR="$COOT_PREFIX/var/cache/fontconfig"; export FC_CACHEDIR; }
+
+# Return success: the trailing conditionals above leave $? non-zero when their dirs are
+# absent, which would abort a caller that sources this file under `set -e`.
+:
 EOF
     chmod +x bin/coot-env.sh
   fi
