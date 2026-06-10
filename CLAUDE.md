@@ -13,6 +13,15 @@ The script builds Coot **1.x only**. Do not reintroduce 0.9-era (Python 2 / GTK2
 dependencies — gtkglext, libgnomecanvas, goocanvas, libart, pygtk, pillow, freeglut,
 etc. — unless explicitly asked.
 
+> **Standing goal — a truly relocatable tarball (read [`RELOCATABILITY.md`](RELOCATABILITY.md)).**
+> The long-term direction is to build **essentially the entire dependency stack from
+> source** and bundle it, so the tarball runs on end-user machines that have only a
+> minimal host base (graphics environment + C/C++ runtime/glibc). We must not require
+> users to have dependency libraries installed, and must not link against many system
+> libraries (e.g. **ICU, OpenSSL, libmount** must be built ourselves). Concretely: prefer
+> moving libraries *out* of the per-distro OS-package `case` and *into* the from-source
+> `$BUILD_DEPENDENCIES` stack. Keep this in mind for any dependency-related change.
+
 ## Repository layout
 
 This file (`CLAUDE.md`) and the build script both live at the repository root.
