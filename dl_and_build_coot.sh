@@ -104,7 +104,7 @@ usage () {
   printf "   Arch Linux (20260402)\n"
   printf "   Debian 13\n"
   printf "   Fedora Linux 43 and 44\n"
-  printf "   openSUSE Leap 15 (todo: test again)\n"
+  printf "   openSUSE Leap 15.6\n"
   printf "   Rocky Linux 9.3\n"
   printf "   Ubuntu 24.04 and 26.04\n"
 }
