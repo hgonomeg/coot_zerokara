@@ -59,7 +59,12 @@ Both run the build as the script's **four phases, one step/stage each**
 (`-download-only` → `-toolchain-only` → `-deps-only` → `-coot-stage-only`), so a failure
 points at the exact phase. The first step installs OS packages
 (`-use-os-package-manager`); the rest pass `-no-use-os-package-manager` since they share
-the same container. **These pipelines are a correctness check of the script and are
+the same container. The GitHub workflow adds a step between deps and Coot that
+drops the source/build trees under `coot-build/{deps,build}` (keeping the `my_*.log`
+files at their original paths so the failure-log step still collects them) — once the
+dependencies are installed in the prefix those trees are dead weight, and dropping them
+keeps the runner from running out of disk during the Coot build/packaging. **These pipelines are a correctness
+check of the script and are
 deliberately NOT cached** — every run is a full from-scratch build (a script-hash cache
 key would invalidate on nearly every commit anyway). The phase split exists so that
 **Coot's own CI** (a separate repo) can cache the prebuilt dependency stack; that caching
