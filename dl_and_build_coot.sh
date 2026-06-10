@@ -2038,7 +2038,7 @@ build_coot () {
     [ $do_distributable -eq 1 ] && __arch="-mtune=generic" || __arch="-march=native -mtune=native"
     case $btype in
       debug) __opt="-g -Og";;
-      opt) __opt="-O3 -ffast-math";;
+      opt) __opt="-O3";;
       *) __opt="";;
     esac
     cat <<EOF > my_configure.sh
