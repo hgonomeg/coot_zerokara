@@ -1014,10 +1014,9 @@ build_icu () {
   fi
 }
 # Built with ICU (ours, built right before); Python bindings + compression not needed.
-# Provides xmllint for shared-mime-info.
+# Provides xmllint for shared-mime-info. 2.15.x dropped autotools — meson only.
 build_libxml2 () {
-  build_with_configure libxml2 ${LIBXML2_VER} \
-    --without-python --with-icu --without-zlib --without-lzma
+  build_with_meson libxml2 ${LIBXML2_VER} -Dicu=enabled -Dlegacy=enabled
 }
 
 # build_libdrm () {
