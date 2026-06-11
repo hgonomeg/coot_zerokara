@@ -1016,8 +1016,20 @@ build_ncurses () {
     ln -sf libncursesw.so $PREFIX/lib/libncurses.so
     ln -sf libncursesw.so $PREFIX/lib/libcurses.so
     ln -sf libncursesw.so $PREFIX/lib/libtinfo.so
+    # Same for form/menu/panel — without these, code that probes -lform / -lmenu / -lpanel
+    # (e.g. CMake's bootstrap) falls back to the system libs, which on older distros
+    # reference _nc_stdscr (ncurses <=6.2 internal, renamed to _nc_stdscr_of in >=6.3).
+    ln -sf libformw.so  $PREFIX/lib/libform.so
+    ln -sf libmenuw.so  $PREFIX/lib/libmenu.so
+    ln -sf libpanelw.so $PREFIX/lib/libpanel.so
     ln -sf ncursesw.pc    $PREFIX/lib/pkgconfig/ncurses.pc
     ln -sf ncursesw.pc    $PREFIX/lib/pkgconfig/tinfo.pc
+    # Non-wide header symlinks — CMake's bootstrap and other find_path users probe
+    # for curses.h directly (not ncursesw/curses.h), so they must be resolvable
+    # from $PREFIX/include without the ncursesw/ subdirectory.
+    for __h in curses.h form.h menu.h panel.h ncurses.h term.h; do
+      ln -sf ncursesw/$__h $PREFIX/include/$__h
+    done
 
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
