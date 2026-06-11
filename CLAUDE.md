@@ -53,7 +53,9 @@ part of the build itself.
   `-d <distro>` / `-n <max>` narrow it. The repo is hard-coded as `hgonomeg/coot_zerokara`
   (override with `--repo`). The matrix-job name parsing assumes CI names jobs
   `build (<distro>, …)`. Read `terminal_output.log` first, then drill into the
-  individual `my_*.log` files.
+  individual `my_*.log` files. **Always pull CI logs with this script** (don't hand-roll
+  `gh api … /logs`), and open the fetched files with the editor's read tool — not
+  `cat`/`tail`/`sed`/`grep`.
 
 ## Continuous integration
 
