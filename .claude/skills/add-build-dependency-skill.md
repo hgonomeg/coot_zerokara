@@ -310,6 +310,9 @@ Before committing:
 - [ ] **Upstream project verified** - Checked meson_options.txt / CMakeLists.txt
 - [ ] **Version is current** - Used GitHub API to confirm latest release
 - [ ] **Build options verified** - Checked actual source for exact option names
+- [ ] **Optimization + debug symbols honor `$btype`** - Generic helpers handle it; for any
+      hand-rolled build, inject `-O2`(opt)/`-O2 -g`(debug) and verify `-O` actually lands in
+      the generated Makefile (the exported `CFLAGS` suppresses build-system `-O` defaults)
 - [ ] **Download URL tested** - `curl -I <URL>` returns 2xx or 3xx status
 - [ ] **Dependency order correct** - Dependencies listed before dependents
 - [ ] **All five components added:**
