@@ -813,11 +813,17 @@ build_with_configure () {
       $DEPS_DIR/${__p}-${__v}/autogen.sh --prefix=$PREFIX > my_autogen.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_autogen.log${MY_DONE_EXT}"
       echo "done"
     fi
+    # Inject the optimization level explicitly: autoconf only adds its -g -O2 default when
+    # CFLAGS is *unset*, but additional_build_env_setup exports CFLAGS=-I$PREFIX/include, so
+    # without this every configure dep would compile at -O0. opt -> -O2; debug -> -O2 -g.
+    [ "$btype" = "debug" ] && __cfg_opt="-O2 -g" || __cfg_opt="-O2"
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
-    $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    CFLAGS="${CFLAGS} ${__cfg_opt}" CXXFLAGS="${CXXFLAGS} ${__cfg_opt}" \
+      $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
-    # strip -g from autoconf-generated Makefile unless we want a debug build
+    # Belt-and-braces: strip a leftover bare "-g" from the Makefile in opt builds, in case a
+    # package's configure injected one of its own (our CFLAGS above carries the real flags).
     case $btype in
       debug) ;;
       *) [ -f Makefile ] && \
@@ -1288,7 +1294,10 @@ build_tiff() {
     ./autogen.sh --prefix=$PREFIX > my_autogen.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_autogen.log${MY_DONE_EXT}"
     echo "done"
 
+    # Explicit opt: a set CFLAGS suppresses autoconf's -O2 default (see build_with_configure).
+    [ "$btype" = "debug" ] && __opt="-O2 -g" || __opt="-O2"
     printf "  running configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" \
     ./configure --prefix=$PREFIX \
                 --enable-cxx \
                 --with-jpeg-lib-dir=$PREFIX/lib \
@@ -1536,7 +1545,10 @@ build_libssm () {
     ( aclocal && libtoolize --automake --copy && autoconf && automake --copy --add-missing --gnu ) > my_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_setup.log${MY_DONE_EXT}"
     echo "done"
 
+    # Explicit opt: a set CFLAGS suppresses autoconf's -O2 default (see build_with_configure).
+    [ "$btype" = "debug" ] && __opt="-O2 -g" || __opt="-O2"
     printf "  configure libssm ... "
+    CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" \
     ./configure --prefix=$PREFIX \
       --enable-shared --disable-static \
       --enable-ccp4 > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
@@ -1614,12 +1626,15 @@ build_libclipper () {
 build_fftw () {
   #FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --enable-openmp --enable-threads --with-gcc --with-gnu-ld"
   FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --with-gcc --with-gnu-ld"
+  # Explicit opt: a set CFLAGS suppresses autoconf's -O2 default (see build_with_configure).
+  # Prefixed (quoted) on each call below so $FFTW_CONFIGURE still word-splits as before.
+  [ "$btype" = "debug" ] && __opt="-O2 -g" || __opt="-O2"
   if [ ! -f $BUILD_DIR/fftw/.my_done${MY_DONE_EXT} ]; then
     printf "\n ### building fftw with configure/make ... "
     rm -rf $BUILD_DIR/fftw
     cp -a $DEPS_DIR/fftw-${FFTW_VER} $BUILD_DIR/fftw || error
     cd $BUILD_DIR/fftw || error
-    ${FFTW_CONFIGURE} > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    CFLAGS="${CFLAGS} ${__opt}" ${FFTW_CONFIGURE} > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
     make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
     do_cleans="$do_cleans `pwd`"
@@ -1633,7 +1648,7 @@ build_fftw () {
     rm -rf $BUILD_DIR/sfftw
     cp -a $DEPS_DIR/fftw-${FFTW_VER} $BUILD_DIR/sfftw || error
     cd $BUILD_DIR/sfftw || error
-    ${FFTW_CONFIGURE} --enable-type-prefix --enable-float > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    CFLAGS="${CFLAGS} ${__opt}" ${FFTW_CONFIGURE} --enable-type-prefix --enable-float > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
     make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
     do_cleans="$do_cleans `pwd`"
