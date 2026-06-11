@@ -1010,9 +1010,10 @@ build_ncurses () {
     cd $BUILD_DIR/ncurses || error
     build_save_mylogs_and_rm
 
-    # --with-debug builds the debug variant with -g; --without-debug (opt) omits it.
-    [ "$btype" = "debug" ] && __nc_debug="--with-debug" || __nc_debug="--without-debug"
+    # ncurses adds no -O of its own when CFLAGS is set, so inject it (see build_with_configure).
+    [ "$btype" = "debug" ] && { __nc_debug="--with-debug"; __opt="-O2 -g"; } || { __nc_debug="--without-debug"; __opt="-O2"; }
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" \
     $DEPS_DIR/ncurses-${NCURSES_VER}/configure --prefix=$PREFIX \
       --with-shared --without-normal ${__nc_debug} --without-ada --without-cxx-binding \
       --enable-widec --enable-pc-files --with-versioned-syms \
@@ -1067,10 +1068,11 @@ build_openssl () {
     cp -a $DEPS_DIR/openssl-${OPENSSL_VER}/ $BUILD_DIR/openssl || error
     cd $BUILD_DIR/openssl || error
 
-    # OpenSSL's config takes --debug (-O0 -g) / --release (default, optimized).
-    [ "$btype" = "debug" ] && __ssl_btype="--debug" || __ssl_btype="--release"
+    # --debug/--release set assertions; the -O flag (config arg) is needed because a set
+    # CFLAGS suppresses openssl's own -O3 (verified: no -O in CNF_CFLAGS).
+    [ "$btype" = "debug" ] && { __ssl_btype="--debug"; __opt="-O2 -g"; } || { __ssl_btype="--release"; __opt="-O2"; }
     printf "  config (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
-    ./config --prefix=$PREFIX --openssldir=$PREFIX/ssl --libdir=lib ${__ssl_btype} \
+    ./config --prefix=$PREFIX --openssldir=$PREFIX/ssl --libdir=lib ${__ssl_btype} ${__opt} \
              shared no-tests enable-brotli enable-zlib enable-zstd > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
@@ -1103,9 +1105,11 @@ build_icu () {
     cp -a $DEPS_DIR/icu-${ICU_VER}/ $BUILD_DIR/icu || error
     cd $BUILD_DIR/icu/source || error
 
-    # ICU pairs --enable-debug/--disable-release (debug) vs --disable-debug/--enable-release (opt).
-    [ "$btype" = "debug" ] && __icu_btype="--enable-debug --disable-release" || __icu_btype="--disable-debug --enable-release"
+    # ICU adds no -O when CFLAGS is set, so inject it (see build_with_configure). The
+    # --enable-debug/--enable-release pair stays for ICU's internal assertion settings.
+    [ "$btype" = "debug" ] && { __icu_btype="--enable-debug --disable-release"; __opt="-O2 -g"; } || { __icu_btype="--disable-debug --enable-release"; __opt="-O2"; }
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" \
     ./configure --prefix=$PREFIX \
                 --enable-shared --disable-static ${__icu_btype} \
                 --disable-samples --disable-tests > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
