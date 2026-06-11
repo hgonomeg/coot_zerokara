@@ -69,6 +69,11 @@ Two pipelines build the script across distros:
   without building it themselves (the README points them here).
 - `Jenkinsfile` — a single `buildready-rocky` image; archives the same logs.
 
+**Reproduce CI failures in a fresh, throwaway container of the matrix image** (`docker run
+--rm opensuse/leap:15.6 …`) — never on your host, whose toolchain (newer binutils, no
+system -devel packages) can mask distro-specific breakage. Build the relevant piece there
+to confirm both the bug and the fix.
+
 Both run the build as the script's **four phases, one step/stage each**
 (`-download-only` → `-toolchain-only` → `-deps-only` → `-coot-stage-only`), so a failure
 points at the exact phase. The first step installs OS packages

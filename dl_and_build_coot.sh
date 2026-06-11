@@ -1809,6 +1809,19 @@ setup_build_env () {
   # cargo invocation in this run: cargo-c install and librsvg's cargo cbuild.
   export CARGO_NET_RETRY=20
 
+  # Our from-source OpenSSL shadows the system libssl (via LD_LIBRARY_PATH) but ships no
+  # cert store; point TLS tools (wget, rustup, pip) at the build host's CA bundle so HTTPS
+  # still verifies. coot-env.sh does the same for the shipped tarball at runtime.
+  if [ "X$SSL_CERT_FILE" = "X" ]; then
+    for __ca in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt \
+                /etc/ssl/ca-bundle.pem /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem \
+                /etc/ssl/cert.pem; do
+      [ -f "$__ca" ] && { export SSL_CERT_FILE="$__ca"; break; }
+    done
+  fi
+  [ -d /etc/ssl/certs ] && export SSL_CERT_DIR=/etc/ssl/certs
+  [ "X$SSL_CERT_FILE" != "X" ] && export CURL_CA_BUNDLE="$SSL_CERT_FILE"
+
   # GCC_COMMAND_EXT is an optional version suffix set in the distro config (e.g. "-13" → gcc-13).
   # Only set CC/CXX/FC/F77 when the caller hasn't already provided them.
   # `type` prints where the compiler was found (e.g. "gcc is /usr/bin/gcc").
@@ -2876,6 +2889,19 @@ GTK_THEME=Adwaita; export GTK_THEME
 [ -d "$COOT_PREFIX/etc/fonts" ]            && [ "X${COOT_FONTCONFIG_PATH:-}" = "X" ] && { FONTCONFIG_PATH="$COOT_PREFIX/etc/fonts"; export FONTCONFIG_PATH; }
 [ -f "$COOT_PREFIX/etc/fonts/fonts.conf" ] && [ "X${COOT_FONTCONFIG_FILE:-}" = "X" ] && { FONTCONFIG_FILE="$COOT_PREFIX/etc/fonts/fonts.conf"; export FONTCONFIG_FILE; }
 [ -d "$COOT_PREFIX/var/cache/fontconfig" ] && [ "X${COOT_FC_CACHEDIR:-}" = "X" ]     && { FC_CACHEDIR="$COOT_PREFIX/var/cache/fontconfig"; export FC_CACHEDIR; }
+
+# --- TLS CA certificates: the bundled OpenSSL ships no cert store, so point it at the
+# host's CA bundle (desktop Linux is expected to provide one). All skipped if already set. ---
+if [ "X${SSL_CERT_FILE:-}" = "X" ]; then
+  for _coot_ca in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt \
+                  /etc/ssl/ca-bundle.pem /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem \
+                  /etc/ssl/cert.pem; do
+    [ -f "$_coot_ca" ] && { SSL_CERT_FILE="$_coot_ca"; export SSL_CERT_FILE; break; }
+  done
+  unset _coot_ca
+fi
+[ "X${SSL_CERT_DIR:-}" = "X" ] && [ -d /etc/ssl/certs ] && { SSL_CERT_DIR=/etc/ssl/certs; export SSL_CERT_DIR; }
+[ "X${CURL_CA_BUNDLE:-}" = "X" ] && [ -n "${SSL_CERT_FILE:-}" ] && { CURL_CA_BUNDLE="$SSL_CERT_FILE"; export CURL_CA_BUNDLE; }
 
 # Return success: the trailing conditionals above leave $? non-zero when their dirs are
 # absent, which would abort a caller that sources this file under `set -e`.
