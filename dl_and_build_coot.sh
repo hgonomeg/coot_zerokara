@@ -213,7 +213,6 @@ if [ $do_os -eq 1 ]; then
              libtool \
              sqlite3-devel \
              swig \
-             libxml2-devel \
              libdrm-devel \
              libXrandr-devel \
              libXi-devel \
@@ -300,7 +299,6 @@ if [ $do_os -eq 1 ]; then
             libdrm-devel \
             tar \
             bison \
-            libxml2-devel \
             bzip2 \
             autoconf \
             automake \
@@ -370,7 +368,6 @@ if [ $do_os -eq 1 ]; then
               libXtst-devel \
               libdrm-devel \
               expat-devel \
-              libxml2-devel \
               bzip2 \
               autoconf \
               automake \
@@ -407,7 +404,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get update || error
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
-          libdbus-1-dev libexpat1-dev libelf-dev libxml2-dev libxml2-utils \
+          libdbus-1-dev libexpat1-dev libelf-dev \
           libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
@@ -427,7 +424,7 @@ if [ $do_os -eq 1 ]; then
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
-            dbus expat libxml2 \
+            dbus expat \
             sqlite lzo xz bzip2 libpng brotli \
             libxcb \
             mesa \
@@ -473,6 +470,7 @@ export COOT_DIR
 BUILD_DEPENDENCIES="
     util_linux
     icu
+    libxml2
     elfutils
     libdwarf
     libbackward
@@ -602,6 +600,7 @@ GLM_VER=1.0.3
 PCRE2_VER=10.47
 LIBFFI_VER=3.5.2
 ICU_VER=78.3
+LIBXML2_VER=2.15.3
 UTIL_LINUX_VER=2.42.1
 NCURSES_VER=6.6
 READLINE_VER=8.3
@@ -1014,6 +1013,13 @@ build_icu () {
     touch $BUILD_DIR/icu/.my_done${MY_DONE_EXT}
   fi
 }
+# Built with ICU (ours, built right before); Python bindings + compression not needed.
+# Provides xmllint for shared-mime-info.
+build_libxml2 () {
+  build_with_configure libxml2 ${LIBXML2_VER} \
+    --without-python --with-icu --without-zlib --without-lzma
+}
+
 # build_libdrm () {
 #   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
 # }
@@ -1155,6 +1161,8 @@ build_poppler () {
 build_curl () {
     build_with_cmake curl ${CURL_VER} \
       -DCURL_USE_OPENSSL=ON \
+      -DCURL_DISABLE_LDAP=ON \
+      -DCURL_DISABLE_LDAPS=ON \
       -DBUILD_TESTING=OFF \
       -DBUILD_LIBCURL_DOCS=OFF \
       -DBUILD_MISC_DOCS=OFF \
@@ -1901,6 +1909,13 @@ download_dependencies () {
   if [ -d icu ] && [ ! -d icu-${ICU_VER} ]; then
     mv icu icu-${ICU_VER} && \
       ln -s icu-${ICU_VER} icu || error
+  fi
+
+  # libxml2 — provides xmllint for shared-mime-info
+  do_wget https://gitlab.gnome.org/GNOME/libxml2/-/archive/v${LIBXML2_VER}/libxml2-v${LIBXML2_VER}.tar.bz2
+  if [ -d libxml2-v${LIBXML2_VER} ] && [ ! -d libxml2-${LIBXML2_VER} ]; then
+    mv libxml2-v${LIBXML2_VER} libxml2-${LIBXML2_VER} && \
+      ln -s libxml2-${LIBXML2_VER} libxml2-v${LIBXML2_VER} || error
   fi
 
   #Libjpeg
