@@ -931,9 +931,11 @@ build_ncurses () {
   fi
 }
 
-# readline picks up termcap from our ncurses (the libtinfo symlink above).
+# readline must bind our ncurses termcap INTO libreadline.so. Its default leaves UP/BC/PC
+# undefined for the host program to supply (a termcap relic); that breaks any tool which
+# loads our libreadline via LD_LIBRARY_PATH (e.g. Rocky's gawk, used by configure scripts).
 build_readline () {
-  build_with_configure readline ${READLINE_VER} --disable-static
+  build_with_configure readline ${READLINE_VER} --disable-static --with-shared-termcap-library=yes
 }
 
 # Built only for libmount (glib's gio links it); everything else switched off.
