@@ -31,6 +31,8 @@ jobs:
             container: rockylinux:9
           - distro: opensuse-leap-15
             container: opensuse/leap:15.6
+          - distro: opensuse-leap-16
+            container: opensuse/leap:16.0
           # todo: almalinux
 
     container:
