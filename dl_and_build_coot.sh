@@ -462,7 +462,6 @@ BUILD_DEPENDENCIES="
     util_linux
     icu
     libxml2
-    bzip2
     zlib
     zstd
     brotli
@@ -1761,6 +1760,8 @@ download_toolchain () {
   do_wget https://github.com/madler/zlib/releases/download/v${ZLIB_VER}/zlib-${ZLIB_VER}.tar.xz
   do_wget https://github.com/facebook/zstd/archive/refs/tags/v${ZSTD_VER}.tar.gz zstd-${ZSTD_VER}.tar.gz
   do_wget https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VER}.tar.gz brotli-${BROTLI_VER}.tar.gz
+  # bzip2 — shared library only; Python's _bz2 needs it
+  do_wget https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VER}.tar.gz
 
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
@@ -1808,6 +1809,7 @@ initial_setup () {
   build_zlib     || error
   build_zstd     || error
   build_brotli   || error
+  build_bzip2    || error
   build_openssl  || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
@@ -2171,9 +2173,6 @@ download_dependencies () {
 
   # glm
   do_wget https://github.com/g-truc/glm/archive/refs/tags/${GLM_VER}.tar.gz glm-${GLM_VER}.tar.gz
-
-  # bzip2 — shared library only; pcre2 + freetype link it
-  do_wget https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VER}.tar.gz
 
   # pcre2
   do_wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VER}/pcre2-${PCRE2_VER}.tar.gz
