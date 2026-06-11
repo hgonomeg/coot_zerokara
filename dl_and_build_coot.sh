@@ -1765,12 +1765,12 @@ download_toolchain () {
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
   cd $BUILD_DIR/cmakebuild || error
-  do_wget https://github.com/Kitware/CMake/archive/refs/tags/v${CMAKE_VER}.tar.gz
+  do_wget https://github.com/Kitware/CMake/archive/refs/tags/v${CMAKE_VER}.tar.gz cmake-${CMAKE_VER}.tar.gz
 
   # Newer Ninja
   mkdir -p $BUILD_DIR/ninjabuild || error
   cd $BUILD_DIR/ninjabuild || error
-  do_wget https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VER}.tar.gz
+  do_wget https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VER}.tar.gz ninja-${NINJA_VER}.tar.gz
 
   # Rust installer (rustup-init.sh). Only the bootstrap script is fetched here; the
   # actual rustup/cargo-c install stays in initial_setup (it writes to CARGO_HOME).
