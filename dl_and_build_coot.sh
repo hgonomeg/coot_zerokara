@@ -901,9 +901,10 @@ build_libffi () {
   build_with_configure libffi ${LIBFFI_VER} --disable-static --disable-multi-os-directory
 }
 
-# ncurses (widec) for readline/Python. readline only probes the non-wide termcap names,
-# so we symlink those onto our libtinfow/libncursesw — keeping it entirely in $PREFIX,
-# no system ncurses involved.
+# ncurses (widec, no --with-termlib — Arch-style — so terminfo and the curses symbols
+# like _nc_acs_map stay in libncursesw where Python's _curses links them; --with-termlib
+# strands them in libtinfow and _curses fails to import). readline probes the non-wide
+# termcap names, hence the symlinks below. All in $PREFIX, no system ncurses involved.
 build_ncurses () {
   if [ ! -f $BUILD_DIR/ncurses/.my_done${MY_DONE_EXT} ]; then
     printf "\n ### building ncurses (${NCURSES_VER}) with configure/make\n"
@@ -914,7 +915,7 @@ build_ncurses () {
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     $DEPS_DIR/ncurses-${NCURSES_VER}/configure --prefix=$PREFIX \
       --with-shared --without-normal --without-debug --without-ada --without-cxx-binding \
-      --enable-widec --with-termlib --enable-overwrite --enable-pc-files \
+      --enable-widec --enable-overwrite --enable-pc-files --with-versioned-syms \
       --with-pkg-config-libdir=$PREFIX/lib/pkgconfig > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
@@ -925,12 +926,12 @@ build_ncurses () {
     make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
     echo "done"
 
-    # Non-wide aliases so -ltinfo / -lncurses / -lcurses resolve to our widec libs.
+    # Non-wide aliases so -ltinfo / -lncurses / -lcurses resolve to our one widec lib.
     ln -sf libncursesw.so $PREFIX/lib/libncurses.so
     ln -sf libncursesw.so $PREFIX/lib/libcurses.so
-    ln -sf libtinfow.so   $PREFIX/lib/libtinfo.so
+    ln -sf libncursesw.so $PREFIX/lib/libtinfo.so
     ln -sf ncursesw.pc    $PREFIX/lib/pkgconfig/ncurses.pc
-    ln -sf tinfow.pc      $PREFIX/lib/pkgconfig/tinfo.pc
+    ln -sf ncursesw.pc    $PREFIX/lib/pkgconfig/tinfo.pc
 
     do_cleans="$do_cleans `pwd`"
     cd $BUILD_DIR || error
