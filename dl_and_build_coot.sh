@@ -465,9 +465,6 @@ BUILD_DEPENDENCIES="
     util_linux
     icu
     libxml2
-    zlib
-    zstd
-    brotli
     elfutils
     libdwarf
     libbackward
@@ -905,7 +902,13 @@ build_bzip2 () {
     cd $BUILD_DIR/bzip2 || error
 
     printf "  make libbz2.so (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
-    make -f Makefile-libbz2_so CC="${CC} ${CFLAGS} -fPIC ${LDFLAGS}" > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    # Override the Makefile's hardcoded "-O2 -g" so the build honors $btype: opt drops -g,
+    # debug keeps it. -fPIC + the BIGFILES define are mandatory for the shared lib; LDFLAGS
+    # rides on CC because Makefile-libbz2_so links with $(CC).
+    [ "$btype" = "debug" ] && __bz_opt="-O2 -g" || __bz_opt="-O2"
+    make -f Makefile-libbz2_so CC="${CC} ${LDFLAGS}" \
+         CFLAGS="${CFLAGS} -fpic -fPIC -Wall -Winline ${__bz_opt} -D_FILE_OFFSET_BITS=64" \
+         > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
     echo "done"
 
     printf "  installing libbz2 (see `mypwd`/my_install.log${MY_DONE_EXT}) ... "
@@ -1001,9 +1004,11 @@ build_ncurses () {
     cd $BUILD_DIR/ncurses || error
     build_save_mylogs_and_rm
 
+    # --with-debug builds the debug variant with -g; --without-debug (opt) omits it.
+    [ "$btype" = "debug" ] && __nc_debug="--with-debug" || __nc_debug="--without-debug"
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     $DEPS_DIR/ncurses-${NCURSES_VER}/configure --prefix=$PREFIX \
-      --with-shared --without-normal --without-debug --without-ada --without-cxx-binding \
+      --with-shared --without-normal ${__nc_debug} --without-ada --without-cxx-binding \
       --enable-widec --enable-pc-files --with-versioned-syms \
       --with-pkg-config-libdir=$PREFIX/lib/pkgconfig > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
@@ -1056,8 +1061,10 @@ build_openssl () {
     cp -a $DEPS_DIR/openssl-${OPENSSL_VER}/ $BUILD_DIR/openssl || error
     cd $BUILD_DIR/openssl || error
 
+    # OpenSSL's config takes --debug (-O0 -g) / --release (default, optimized).
+    [ "$btype" = "debug" ] && __ssl_btype="--debug" || __ssl_btype="--release"
     printf "  config (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
-    ./config --prefix=$PREFIX --openssldir=$PREFIX/ssl --libdir=lib \
+    ./config --prefix=$PREFIX --openssldir=$PREFIX/ssl --libdir=lib ${__ssl_btype} \
              shared no-tests enable-brotli enable-zlib enable-zstd > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
@@ -1090,9 +1097,11 @@ build_icu () {
     cp -a $DEPS_DIR/icu-${ICU_VER}/ $BUILD_DIR/icu || error
     cd $BUILD_DIR/icu/source || error
 
+    # ICU pairs --enable-debug/--disable-release (debug) vs --disable-debug/--enable-release (opt).
+    [ "$btype" = "debug" ] && __icu_btype="--enable-debug --disable-release" || __icu_btype="--disable-debug --enable-release"
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     ./configure --prefix=$PREFIX \
-                --enable-shared --disable-static \
+                --enable-shared --disable-static ${__icu_btype} \
                 --disable-samples --disable-tests > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
