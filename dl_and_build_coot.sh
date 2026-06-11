@@ -201,6 +201,7 @@ if [ $do_os -eq 1 ]; then
              hostname \
              autoconf \
              automake \
+             cmake \
              fftw-devel \
              glm-devel \
              gsl-devel \
@@ -279,6 +280,7 @@ if [ $do_os -eq 1 ]; then
             gcc-c++ \
             gcc-gfortran \
             make \
+            cmake \
             $__toolsets \
             gperf file \
             libX11-devel \
@@ -346,6 +348,7 @@ if [ $do_os -eq 1 ]; then
               hostname \
               gcc-c++ \
               gcc-gfortran \
+              cmake \
               libX11-devel \
               libglvnd-devel \
               freetype-devel \
@@ -395,7 +398,7 @@ if [ $do_os -eq 1 ]; then
     debian*|ubuntu*)
         $sudo apt-get update || error
         $sudo apt-get -y install \
-          git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
+          git wget build-essential gfortran gettext pkg-config bison flex make automake cmake gperf file vim xmlto libtool-bin \
           libdbus-1-dev libexpat1-dev libelf-dev \
           libsqlite3-dev liblzo2-dev libpng-dev \
           libxcb-glx0-dev \
