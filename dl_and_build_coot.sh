@@ -905,10 +905,14 @@ build_libffi () {
   build_with_configure libffi ${LIBFFI_VER} --disable-static --disable-multi-os-directory
 }
 
-# ncurses (widec, no --with-termlib — Arch-style — so terminfo and the curses symbols
-# like _nc_acs_map stay in libncursesw where Python's _curses links them; --with-termlib
-# strands them in libtinfow and _curses fails to import). readline probes the non-wide
-# termcap names, hence the symlinks below. All in $PREFIX, no system ncurses involved.
+# ncurses (widec). Two non-obvious flags, both needed for Python's _curses to import:
+#  - NO --with-termlib: keep terminfo + the curses symbols (e.g. _nc_acs_map) in one
+#    libncursesw. --with-termlib splits them into libtinfow, where _curses can't reach them.
+#  - NO --enable-overwrite: install headers under include/ncursesw/ so CPython's
+#    `#include <ncursesw/curses.h>` resolves to OURS. With overwrite they land in include/
+#    (no ncursesw/ subdir), and on a host with system ncurses-devel present (e.g. openSUSE's
+#    devel_basis pulls 6.1) CPython falls back to that older header -> undefined _nc_acs_map.
+# readline probes the non-wide termcap names, hence the libtinfo/libncurses symlinks below.
 build_ncurses () {
   if [ ! -f $BUILD_DIR/ncurses/.my_done${MY_DONE_EXT} ]; then
     printf "\n ### building ncurses (${NCURSES_VER}) with configure/make\n"
@@ -919,7 +923,7 @@ build_ncurses () {
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     $DEPS_DIR/ncurses-${NCURSES_VER}/configure --prefix=$PREFIX \
       --with-shared --without-normal --without-debug --without-ada --without-cxx-binding \
-      --enable-widec --enable-overwrite --enable-pc-files --with-versioned-syms \
+      --enable-widec --enable-pc-files --with-versioned-syms \
       --with-pkg-config-libdir=$PREFIX/lib/pkgconfig > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
