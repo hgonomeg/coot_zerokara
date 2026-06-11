@@ -192,7 +192,6 @@ if [ $do_os -eq 1 ]; then
       $sudo zypper install -y --force-resolution --allow-downgrade -t pattern devel_basis || error
       # probably not all needed:
       $sudo zypper install -y \
-             libopenssl-3-devel \
              wget \
              git \
              vim \
@@ -291,7 +290,6 @@ if [ $do_os -eq 1 ]; then
             libXtst-devel \
             libdrm-devel \
             tar \
-            openssl-devel \
             bison \
             libxml2-devel \
             bzip2 \
@@ -356,7 +354,6 @@ if [ $do_os -eq 1 ]; then
               libXi-devel \
               libXcursor-devel \
               tar \
-              openssl-devel \
               bison \
               libXdamage-devel \
               libXinerama-devel \
@@ -400,7 +397,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
           libdbus-1-dev libexpat1-dev libelf-dev libxml2-dev libxml2-utils \
-          libssl-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
+          libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -420,7 +417,7 @@ if [ $do_os -eq 1 ]; then
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
             dbus expat libxml2 \
-            openssl sqlite lzo xz bzip2 libpng brotli \
+            sqlite lzo xz bzip2 libpng brotli \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
@@ -597,6 +594,7 @@ ICU_VER=78.3
 UTIL_LINUX_VER=2.42.1
 NCURSES_VER=6.6
 READLINE_VER=8.3
+OPENSSL_VER=3.6.3
 BOOST_VER_=`echo $BOOST_VER | tr . _`
 WAYLAND_VER=1.25.0
 WAYLANDPROTOCOLS_VER=1.48
@@ -863,7 +861,7 @@ build_with_cmake () {
 
 build_python () {
   build_with_configure python ${PYTHON_VER} --libdir=$PREFIX/lib --enable-optimizations --with-system-expat=true --with-lto=full \
-  --without-static-libpython --enable-shared
+  --without-static-libpython --enable-shared --with-openssl=$PREFIX
 }
 
 build_libjpeg () {
@@ -936,6 +934,33 @@ build_ncurses () {
 # loads our libreadline via LD_LIBRARY_PATH (e.g. Rocky's gawk, used by configure scripts).
 build_readline () {
   build_with_configure readline ${READLINE_VER} --disable-static --with-shared-termcap-library=yes
+}
+
+# OpenSSL (Configure is perl, so hand-rolled). Built in the toolchain phase before Python
+# (its ssl/hashlib + pip's HTTPS need it); curl links it later. install_sw skips the docs.
+build_openssl () {
+  if [ ! -f $BUILD_DIR/openssl/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building openssl (${OPENSSL_VER}) with Configure/make\n"
+    rm -rf $BUILD_DIR/openssl
+    cp -a $DEPS_DIR/openssl-${OPENSSL_VER}/ $BUILD_DIR/openssl || error
+    cd $BUILD_DIR/openssl || error
+
+    printf "  config (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    ./config --prefix=$PREFIX --openssldir=$PREFIX/ssl --libdir=lib \
+             shared no-tests > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+    printf "  make install_sw (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make install_sw > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+
+    do_cleans="$do_cleans `pwd`"
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/openssl/.my_done${MY_DONE_EXT}
+  fi
 }
 
 # Built only for libmount (glib's gio links it); everything else switched off.
@@ -1113,6 +1138,7 @@ build_poppler () {
 
 build_curl () {
     build_with_cmake curl ${CURL_VER} \
+      -DCURL_USE_OPENSSL=ON \
       -DBUILD_TESTING=OFF \
       -DBUILD_LIBCURL_DOCS=OFF \
       -DBUILD_MISC_DOCS=OFF \
@@ -1622,6 +1648,7 @@ download_toolchain () {
   do_wget https://ftp.gnu.org/gnu/ncurses/ncurses-${NCURSES_VER}.tar.gz
   do_wget https://ftp.gnu.org/gnu/readline/readline-${READLINE_VER}.tar.gz
   do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
+  do_wget https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz
 
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
@@ -1658,13 +1685,14 @@ initial_setup () {
 
   cd $PREFIX || error
 
-  # libffi, ncurses and readline are linked by Python (ctypes / _curses / readline) and
-  # must exist before it — built here, not in the deps phase. additional_build_env_setup
-  # puts $PREFIX on the compiler -I/-L paths so readline finds our ncurses.
+  # libffi, ncurses, readline and openssl are linked by Python (ctypes / _curses / readline /
+  # ssl, plus pip's HTTPS) and must exist before it — built here, not in the deps phase.
+  # additional_build_env_setup puts $PREFIX on the compiler -I/-L paths so readline finds ncurses.
   additional_build_env_setup
   build_ncurses  || error
   build_readline || error
   build_libffi   || error
+  build_openssl  || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
     printf "\n"

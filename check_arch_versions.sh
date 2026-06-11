@@ -81,4 +81,5 @@ icu:ICU_VER:78.3
 util-linux:UTIL_LINUX_VER:2.42.1
 ncurses:NCURSES_VER:6.6
 readline:READLINE_VER:8.3
+openssl:OPENSSL_VER:3.6.3
 PKGLIST
