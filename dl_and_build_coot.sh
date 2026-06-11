@@ -1833,6 +1833,11 @@ download_toolchain () {
 }
 
 initial_setup () {
+  # Subshell so this phase's build-flag env (esp. FFLAGS="-std=f2008") can't leak into deps and
+  # break Eigen's LAPACK; `|| error` re-raises the subshell's exit, do_cleans is stashed via file.
+  __cleans_file="$BUILD_DIR/.initial_setup_do_cleans"
+  rm -f "$__cleans_file"
+  (
 
   mkdir -p $PREFIX    || error
   mkdir -p $DEPS_DIR  || error
@@ -1942,6 +1947,10 @@ initial_setup () {
     $CARGO_HOME/bin/cargo install cargo-c --locked > $DEPS_DIR/rust/my_cargo_c_install.log 2>&1 || error "see $DEPS_DIR/rust/my_cargo_c_install.log"
     echo "done"
   fi
+
+  printf '%s' "$do_cleans" > "$__cleans_file" || error
+  ) || error
+  [ -f "$__cleans_file" ] && { do_cleans=`cat "$__cleans_file"`; rm -f "$__cleans_file"; }
 }
 
 setup_build_env () {
