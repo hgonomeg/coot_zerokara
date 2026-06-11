@@ -305,8 +305,7 @@ if [ $do_os -eq 1 ]; then
             autoconf \
             automake \
             libtool \
-            perl-FindBin \
-            perl-IPC-Cmd \
+            perl-core \
             git \
             flex \
             gperftools-devel \
@@ -376,8 +375,7 @@ if [ $do_os -eq 1 ]; then
               autoconf \
               automake \
               libtool \
-              perl-FindBin \
-              perl-IPC-Cmd \
+              perl-core \
               git \
               flex \
               gperf \
