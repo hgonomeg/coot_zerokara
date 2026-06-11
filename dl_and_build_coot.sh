@@ -188,6 +188,8 @@ if [ $do_os -eq 1 ]; then
 
   case `echo "$os" | tr '[A-Z]' '[a-z]'` in
     opensuse*)
+      # extract the major version (e.g. 15 from "openSUSE Leap-15.6")
+      _suse_major=$(echo "$os" | sed 's/.*[^0-9]\([0-9][0-9]*\)\.[0-9][0-9]*.*/\1/')
       # probably not all needed:
       $sudo zypper install -y --force-resolution --allow-downgrade -t pattern devel_basis || error
       # probably not all needed:
@@ -198,9 +200,6 @@ if [ $do_os -eq 1 ]; then
              vim \
              gzip bzip2 lzo-devel libbz2-devel \
              hostname \
-             gcc13 \
-             gcc13-fortran \
-             gcc13-c++ \
              autoconf \
              automake \
              fftw-devel \
@@ -256,9 +255,19 @@ if [ $do_os -eq 1 ]; then
              libzstd-devel \
              doxygen \
              || error
-      # openSUSE, ever so helpful, ships a stale fixincludes bits/floatn.h that
-      # shadows glibc's good one and breaks <tgmath.h>. Nuke it so gcc sees the real header.
-      $sudo rm -f "$(gcc-13 -print-file-name=include-fixed)/bits/floatn.h"
+      if [ "$_suse_major" -lt 16 ] 2>/dev/null; then
+        # Leap < 16 ships an older system GCC; install GCC 13 explicitly.
+        $sudo zypper install -y --force-resolution --allow-downgrade \
+               gcc13 gcc13-fortran gcc13-c++ || error
+        # openSUSE, ever so helpful, ships a stale fixincludes bits/floatn.h that
+        # shadows glibc's good one and breaks <tgmath.h>. Nuke it so gcc sees the real header.
+        $sudo rm -f "$(gcc-13 -print-file-name=include-fixed)/bits/floatn.h"
+      else
+        # Leap >= 16: system default GCC is recent enough.
+        # devel_basis only recommends gcc-c++ and doesn't include gfortran — pull them in explicitly.
+        $sudo zypper install -y --force-resolution --allow-downgrade \
+               gcc gcc-c++ gcc-fortran || error
+      fi
       ;;
     rocky*|alma*|centos*)
         #$sudo dnf update -y
