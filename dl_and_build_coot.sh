@@ -224,7 +224,6 @@ if [ $do_os -eq 1 ]; then
              dbus-1-devel \
              libelf-devel \
              libpng16-devel \
-             libbrotli-devel \
              libxcb-devel \
              xcb-util-devel \
              xcb-util-renderutil-devel \
@@ -245,7 +244,6 @@ if [ $do_os -eq 1 ]; then
              glibc-locale \
              openal-soft-devel \
              libseccomp-devel \
-             libzstd-devel \
              doxygen \
              || error
       if [ "$_suse_major" -lt 16 ] 2>/dev/null; then
@@ -311,7 +309,6 @@ if [ $do_os -eq 1 ]; then
             sqlite-devel \
             lzo-devel \
             libpng-devel \
-            brotli-devel \
             libxcb-devel \
             xcb-util-devel \
             gmp-devel \
@@ -327,7 +324,6 @@ if [ $do_os -eq 1 ]; then
             libpsl-devel \
             openal-soft-devel \
             libseccomp-devel \
-            libzstd-devel \
             doxygen \
             || error
       ;;
@@ -381,7 +377,6 @@ if [ $do_os -eq 1 ]; then
               sqlite-devel \
               lzo-devel \
               libpng-devel \
-              brotli-devel \
               libxcb-devel \
               xcb-util-devel \
               gmp-devel \
@@ -395,7 +390,6 @@ if [ $do_os -eq 1 ]; then
               glibc-gconv-extra \
               openal-soft-devel \
               libseccomp-devel \
-              libzstd-devel \
               doxygen
       ;;
     debian*|ubuntu*)
@@ -403,7 +397,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
           libdbus-1-dev libexpat1-dev libelf-dev \
-          libsqlite3-dev liblzo2-dev libpng-dev libbrotli-dev \
+          libsqlite3-dev liblzo2-dev libpng-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -415,7 +409,6 @@ if [ $do_os -eq 1 ]; then
           xz-utils \
           libopenal-dev \
           libseccomp-dev \
-          libzstd-dev \
           doxygen \
           bc || error
       ;;
@@ -423,7 +416,7 @@ if [ $do_os -eq 1 ]; then
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
             dbus expat \
-            sqlite lzo xz bzip2 libpng brotli \
+            sqlite lzo xz bzip2 libpng \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
@@ -431,7 +424,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             gmp gc libunistring pcre2 libdrm glm \
             glfw \
-            inetutils libpsl bc openal libseccomp zstd doxygen || error
+            inetutils libpsl bc openal libseccomp doxygen || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -470,6 +463,9 @@ BUILD_DEPENDENCIES="
     icu
     libxml2
     bzip2
+    zlib
+    zstd
+    brotli
     elfutils
     libdwarf
     libbackward
@@ -602,6 +598,9 @@ ICU_VER=78.3
 LIBXML2_VER=2.15.3
 UTIL_LINUX_VER=2.42.1
 BZIP2_VER=1.0.8
+ZLIB_VER=1.3.2
+ZSTD_VER=1.5.7
+BROTLI_VER=1.2.0
 NCURSES_VER=6.6
 READLINE_VER=8.3
 OPENSSL_VER=3.6.3
@@ -936,6 +935,47 @@ EOF
   fi
 }
 
+build_zlib () {
+  build_with_cmake zlib ${ZLIB_VER} \
+    -DZLIB_BUILD_SHARED=ON -DZLIB_BUILD_STATIC=OFF
+}
+
+# zstd's CMakeLists.txt lives under build/cmake/ — hand-rolled.
+build_zstd () {
+  if [ ! -f $BUILD_DIR/zstd/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building zstd (${ZSTD_VER}) with cmake\n"
+    mkdir -p $BUILD_DIR/zstd || error
+    cd $BUILD_DIR/zstd || error
+    build_save_mylogs_and_rm
+
+    printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
+    [ "$btype" = "debug" ] && __cmake_buildtype=RelWithDebInfo || __cmake_buildtype=Release
+    cmake -S $DEPS_DIR/zstd-${ZSTD_VER}/build/cmake -B . \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=${__cmake_buildtype} \
+          -DZSTD_BUILD_SHARED=ON -DZSTD_BUILD_STATIC=OFF \
+          -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_TESTS=OFF \
+          -DZSTD_BUILD_CONTRIB=OFF > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  cmake --build (see `mypwd`/my_cmake_build.log${MY_DONE_EXT}) ... "
+    cmake --build . -j ${nthreads} > my_cmake_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_build.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  cmake --install (see `mypwd`/my_cmake_install.log${MY_DONE_EXT}) ... "
+    cmake --install . > my_cmake_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_install.log${MY_DONE_EXT}"
+    echo "done"
+
+    do_cleans="$do_cleans `pwd`"
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/zstd/.my_done${MY_DONE_EXT}
+  fi
+}
+
+build_brotli () {
+  build_with_cmake brotli ${BROTLI_VER} \
+    -DBUILD_SHARED_LIBS=ON -DBROTLI_BUILD_TOOLS=OFF
+}
+
 build_pcre2 () {
   build_with_configure pcre2 ${PCRE2_VER} --enable-unicode --enable-jit --enable-pcre2-16 --enable-pcre2-32 --enable-pcre2grep-libz --enable-pcre2grep-libbz2 --disable-static
 }
@@ -1004,7 +1044,7 @@ build_openssl () {
 
     printf "  config (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     ./config --prefix=$PREFIX --openssldir=$PREFIX/ssl --libdir=lib \
-             shared no-tests > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+             shared no-tests enable-brotli enable-zlib enable-zstd > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
     printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
@@ -1716,6 +1756,12 @@ download_toolchain () {
   do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
   do_wget https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz
 
+  # zlib, zstd, brotli — built before Python (zipfile/gzip/pip) and OpenSSL
+  # (compression support). System cmake is used for zstd/brotli.
+  do_wget https://github.com/madler/zlib/releases/download/v${ZLIB_VER}/zlib-${ZLIB_VER}.tar.xz
+  do_wget https://github.com/facebook/zstd/archive/refs/tags/v${ZSTD_VER}.tar.gz zstd-${ZSTD_VER}.tar.gz
+  do_wget https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VER}.tar.gz brotli-${BROTLI_VER}.tar.gz
+
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
   cd $BUILD_DIR/cmakebuild || error
@@ -1751,13 +1797,17 @@ initial_setup () {
 
   cd $PREFIX || error
 
-  # libffi, ncurses, readline and openssl are linked by Python (ctypes / _curses / readline /
-  # ssl, plus pip's HTTPS) and must exist before it — built here, not in the deps phase.
-  # additional_build_env_setup puts $PREFIX on the compiler -I/-L paths so readline finds ncurses.
+  # libffi, ncurses, readline, compression libs and openssl are linked by Python (ctypes /
+  # _curses / readline / zipfile+gzip+bz2 / ssl, plus pip's HTTPS) and must exist before
+  # it — built here, not in the deps phase. additional_build_env_setup puts $PREFIX on
+  # the compiler -I/-L paths so readline finds ncurses.
   additional_build_env_setup
   build_ncurses  || error
   build_readline || error
   build_libffi   || error
+  build_zlib     || error
+  build_zstd     || error
+  build_brotli   || error
   build_openssl  || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then

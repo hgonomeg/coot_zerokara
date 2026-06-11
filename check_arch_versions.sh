@@ -84,6 +84,9 @@ backward-cpp:LIBBACKWARD_VER:1.6
 icu:ICU_VER:78.3
 libxml2:LIBXML2_VER:2.15.3
 bzip2:BZIP2_VER:1.0.8
+zlib:ZLIB_VER:1.3.2
+zstd:ZSTD_VER:1.5.7
+brotli:BROTLI_VER:1.2.0
 util-linux:UTIL_LINUX_VER:2.42.1
 ncurses:NCURSES_VER:6.6
 readline:READLINE_VER:8.3
