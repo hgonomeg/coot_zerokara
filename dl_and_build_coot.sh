@@ -2252,6 +2252,10 @@ download_dependencies () {
 }
 
 build_dependencies () {
+  # Set CFLAGS/CXXFLAGS/FFLAGS/LDFLAGS for the deps phase. In a full run initial_setup
+  # already called this, but -deps-only skips initial_setup, so without this the whole
+  # deps phase would build with an empty env (no -I/-L$PREFIX, no Fortran flags).
+  additional_build_env_setup
   # order matters - and some have to be done multiple times it seems
   for dep in $BUILD_DEPENDENCIES
   do
