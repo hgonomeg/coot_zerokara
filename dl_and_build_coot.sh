@@ -922,6 +922,9 @@ build_bzip2 () {
       install -m755 libbz2.so.${BZIP2_VER} $PREFIX/lib/ || error
       ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so
       ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so.1
+      # libbz2.so.1.0 is the soname (-Wl,-soname,libbz2.so.1.0); without it our own
+      # consumers (Python _bz2) can't load the lib unless the host ships a system one.
+      ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so.1.0
       install -m644 bzlib.h $PREFIX/include/ || error
 
       # pkg-config file — upstream doesn't ship one; cmake's FindBZip2 probes it
