@@ -1904,6 +1904,11 @@ initial_setup () {
     touch $BUILD_DIR/cmakebuild/.my_done
   fi
 
+  # zlib/zstd/brotli already ran `cmake` (system one) earlier this phase, so the shell
+  # hash-cached that path; without this the ninja build below and every deps-phase
+  # build_with_cmake would keep using the old system cmake instead of the one just built.
+  hash -r 2>/dev/null || true
+
   # Newer Ninja (source fetched + unpacked by download_toolchain)
   if [ ! -f $BUILD_DIR/ninjabuild/.my_done ]; then
     printf "\n ### building newer Ninja\n"
