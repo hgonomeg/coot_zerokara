@@ -197,7 +197,7 @@ if [ $do_os -eq 1 ]; then
              wget \
              git \
              vim \
-             gzip bzip2 lzo-devel libbz2-devel \
+             gzip bzip2 lzo-devel \
              hostname \
              autoconf \
              automake \
@@ -282,7 +282,6 @@ if [ $do_os -eq 1 ]; then
             gcc-gfortran \
             make \
             $__toolsets \
-            bzip2-devel \
             gperf file \
             libX11-devel \
             libglvnd-devel \
@@ -351,7 +350,6 @@ if [ $do_os -eq 1 ]; then
               hostname \
               gcc-c++ \
               gcc-gfortran \
-              bzip2-devel \
               libX11-devel \
               libglvnd-devel \
               freetype-devel \
@@ -405,7 +403,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
           libdbus-1-dev libexpat1-dev libelf-dev \
-          libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
+          libsqlite3-dev liblzo2-dev libpng-dev libbrotli-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -471,6 +469,7 @@ BUILD_DEPENDENCIES="
     util_linux
     icu
     libxml2
+    bzip2
     elfutils
     libdwarf
     libbackward
@@ -602,12 +601,13 @@ LIBFFI_VER=3.5.2
 ICU_VER=78.3
 LIBXML2_VER=2.15.3
 UTIL_LINUX_VER=2.42.1
+BZIP2_VER=1.0.8
 NCURSES_VER=6.6
 READLINE_VER=8.3
 OPENSSL_VER=3.6.3
 BOOST_VER_=`echo $BOOST_VER | tr . _`
 WAYLAND_VER=1.25.0
-WAYLANDPROTOCOLS_VER=1.48
+WAYLANDPROTOCOLS_VER=1.49
 # EXPAT_VER=2.7.5
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
@@ -892,6 +892,48 @@ build_gc () {
 
 build_glm () {
   build_with_cmake glm ${GLM_VER}
+}
+
+# bzip2 has no autotools/cmake — hand-rolled. Build only the shared library
+# (the bzip2 tool is on every host for tar xf, and we ship libbz2 for linking).
+build_bzip2 () {
+  if [ ! -f $BUILD_DIR/bzip2/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building bzip2 (${BZIP2_VER}) with make\n"
+    rm -rf $BUILD_DIR/bzip2
+    cp -a $DEPS_DIR/bzip2-${BZIP2_VER}/ $BUILD_DIR/bzip2 || error
+    cd $BUILD_DIR/bzip2 || error
+
+    printf "  make libbz2.so (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -f Makefile-libbz2_so CC="${CC} ${CFLAGS} -fPIC ${LDFLAGS}" > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  installing libbz2 (see `mypwd`/my_install.log${MY_DONE_EXT}) ... "
+    {
+      install -m755 libbz2.so.${BZIP2_VER} $PREFIX/lib/ || error
+      ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so
+      ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so.1
+      install -m644 bzlib.h $PREFIX/include/ || error
+
+      # pkg-config file — upstream doesn't ship one; cmake's FindBZip2 probes it
+      cat > $PREFIX/lib/pkgconfig/bzip2.pc <<EOF
+prefix=$PREFIX
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+
+Name: bzip2
+Description: A file compression library
+Version: ${BZIP2_VER}
+Libs: -L\${libdir} -lbz2
+Cflags: -I\${includedir}
+EOF
+    } > my_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_install.log${MY_DONE_EXT}"
+    echo "done"
+
+    do_cleans="$do_cleans `pwd`"
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/bzip2/.my_done${MY_DONE_EXT}
+  fi
 }
 
 build_pcre2 () {
@@ -2078,6 +2120,9 @@ download_dependencies () {
 
   # glm
   do_wget https://github.com/g-truc/glm/archive/refs/tags/${GLM_VER}.tar.gz glm-${GLM_VER}.tar.gz
+
+  # bzip2 — shared library only; pcre2 + freetype link it
+  do_wget https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VER}.tar.gz
 
   # pcre2
   do_wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VER}/pcre2-${PCRE2_VER}.tar.gz
