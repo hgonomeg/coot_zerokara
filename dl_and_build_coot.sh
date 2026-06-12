@@ -993,7 +993,7 @@ build_brotli () {
 
 build_xz () {
   build_with_configure xz ${XZ_VER} --disable-static --disable-nls --disable-doc \
-    --disable-scripts --disable-lzmainfo --disable-lzma-links
+    --disable-scripts --disable-lzmainfo
 }
 
 build_pcre2 () {
