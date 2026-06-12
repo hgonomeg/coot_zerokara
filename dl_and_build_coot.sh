@@ -253,6 +253,7 @@ if [ $do_os -eq 1 ]; then
              openal-soft-devel \
              libseccomp-devel \
              libzstd-devel \
+             zstd \
              doxygen \
              || error
       if [ "$_suse_major" -lt 16 ] 2>/dev/null; then
@@ -341,6 +342,7 @@ if [ $do_os -eq 1 ]; then
             openal-soft-devel \
             libseccomp-devel \
             libzstd-devel \
+            zstd \
             doxygen \
             || error
       ;;
@@ -415,6 +417,7 @@ if [ $do_os -eq 1 ]; then
               openal-soft-devel \
               libseccomp-devel \
               libzstd-devel \
+              zstd \
               doxygen
       ;;
     debian*|ubuntu*)
@@ -435,6 +438,7 @@ if [ $do_os -eq 1 ]; then
           libopenal-dev \
           libseccomp-dev \
           libzstd-dev \
+          zstd \
           doxygen \
           bc || error
       ;;
