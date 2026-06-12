@@ -1191,7 +1191,8 @@ build_gobject_introspection () {
 }
 
 build_guile () {
-  build_with_configure guile ${GUILE_VER} --enable-shared --disable-static --disable-error-on-warning --enable-mini-gmp
+  build_with_configure guile ${GUILE_VER} --enable-shared --disable-static --disable-error-on-warning --enable-mini-gmp \
+    --with-libreadline-prefix=$PREFIX
 }
 
 build_swig () {
