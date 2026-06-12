@@ -2817,6 +2817,7 @@ e
     build_chapi || error
   fi
   complete_coot || error
+  printf "\n################### bundling themed icons #################### \n\n"
   bundle_themed_icons || error
   printf "\n####################### handling fonts ####################### \n\n"
   extract_fonts || error
