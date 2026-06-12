@@ -2530,6 +2530,27 @@ complete_coot () {
   fi
 }
 
+# Copy the symbolic icons the UI references out of Adwaita into share/coot/pixmaps, where they
+# resolve as "unthemed" icons on the search path regardless of the host's active icon theme
+# (the host forces its own theme, which our bundle-only XDG_DATA_DIRS lacks, so themed lookups
+# would otherwise break). Scanning the .ui files keeps new -symbolic references covered.
+bundle_themed_icons () {
+  pixmaps=$PREFIX/share/coot/pixmaps
+  adwaita_sym=$PREFIX/share/icons/Adwaita/symbolic
+  { [ -d "$pixmaps" ] && [ -d "$adwaita_sym" ]; } || return 0
+  copied=0
+  names=`grep -rhoE 'icon-name">[^<]*-symbolic<' $PREFIX/share/coot/ui/*.ui 2>/dev/null \
+           | sed -e 's%icon-name">%%' -e 's%<$%%' | sort -u`
+  for n in $names
+  do
+    [ -e "$pixmaps/$n.svg" ] && continue          # already shipped as a Coot pixmap
+    src=`find "$adwaita_sym" -name "$n.svg" -print 2>/dev/null | head -n 1`
+    [ "X$src" != "X" ] || continue                # not in Adwaita (e.g. legacy, purged) -> skip
+    cp -p "$src" "$pixmaps/$n.svg" && copied=`expr $copied + 1`
+  done
+  printf " ### bundled %s themed symbolic icon(s) into share/coot/pixmaps\n" "$copied"
+}
+
 create_readme () {
   [ -f README ] && readme="README.GPhL" || readme="README"
   cat <<EOF > $readme
@@ -3130,6 +3151,7 @@ e
     build_chapi || error
   fi
   complete_coot || error
+  bundle_themed_icons || error
   printf "\n####################### handling fonts ####################### \n\n"
   extract_fonts || error
   printf "\n###################### package_coot_prep ##################### \n\n"
