@@ -49,7 +49,7 @@ pipeline {
         stage('Build Coot') {
             steps {
                sh '. /opt/rh/gcc-toolset-15/enable; cd ./coot-build; bash ../dl_and_build_coot.sh -no-use-os-package-manager -distributable -noninteractive -coot-stage-only'
-               archiveArtifacts artifacts: 'coot-build/coot-*.tar.gz', fingerprint: true
+               archiveArtifacts artifacts: 'coot-build/coot-*.tar.zst', fingerprint: true
             }
         }
     }
