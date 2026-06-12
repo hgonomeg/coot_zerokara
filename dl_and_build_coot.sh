@@ -1986,6 +1986,10 @@ setup_build_env () {
   [ -d /etc/ssl/certs ] && export SSL_CERT_DIR=/etc/ssl/certs
   [ "X$SSL_CERT_FILE" != "X" ] && export CURL_CA_BUNDLE="$SSL_CERT_FILE"
 
+  # Our from-source libxml2 defaults its catalog to $PREFIX/etc/xml/catalog (empty); point it
+  # at the host's so xmlto/xmllint resolve DocBook DTDs locally instead of fetching over HTTP.
+  [ "X$XML_CATALOG_FILES" = "X" ] && [ -f /etc/xml/catalog ] && export XML_CATALOG_FILES=/etc/xml/catalog
+
   # GCC_COMMAND_EXT is an optional version suffix set in the distro config (e.g. "-13" → gcc-13).
   # Only set CC/CXX/FC/F77 when the caller hasn't already provided them.
   # `type` prints where the compiler was found (e.g. "gcc is /usr/bin/gcc").
