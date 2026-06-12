@@ -2067,8 +2067,6 @@ additional_build_env_setup () {
 }
 
 
-#TODO:
-# * libbackward
 
 download_dependencies () {
   cd $DEPS_DIR || error
