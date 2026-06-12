@@ -1058,11 +1058,11 @@ build_ncurses () {
   fi
 }
 
-# readline must bind our ncurses termcap INTO libreadline.so. Its default leaves UP/BC/PC
-# undefined for the host program to supply (a termcap relic); that breaks any tool which
-# loads our libreadline via LD_LIBRARY_PATH (e.g. Rocky's gawk, used by configure scripts).
+# Static-only (-fPIC so it embeds into Python's/guile's shared modules). A shared libreadline.so.8
+# would shadow the host bash's via LD_LIBRARY_PATH; where that bash links a symbol-versioned system
+# readline (openSUSE Leap 16) it'd warn "no version information available" and break g-ir-scanner.
 build_readline () {
-  build_with_configure readline ${READLINE_VER} --disable-static --with-shared-termcap-library=yes
+  CFLAGS="$CFLAGS -fPIC" build_with_configure readline ${READLINE_VER} --disable-shared --enable-static
 }
 
 # OpenSSL (Configure is perl, so hand-rolled). Built in the toolchain phase before Python
