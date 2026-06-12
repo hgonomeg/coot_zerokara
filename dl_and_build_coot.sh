@@ -2002,10 +2002,11 @@ setup_build_env () {
   export CMAKE_PREFIX_PATH="$PREFIX"
   export GI_TYPELIB_PATH="$PREFIX/lib/girepository-1.0:$PREFIX/lib64/girepository-1.0"
   export CMAKE_BUILD_PARALLEL_LEVEL=${nthreads}
-  # Make cargo's crates.io downloads resilient to transient registry/HTTP2 hiccups
-  # (e.g. the "[16] Error in the HTTP2 framing layer" seen in CI). Applies to every
-  # cargo invocation in this run: cargo-c install and librsvg's cargo cbuild.
+  # Resilience for cargo's crates.io downloads. MULTIPLEXING=false drops HTTP/2 (one
+  # request per connection), sidestepping the recurring "[16] HTTP2 framing layer"
+  # error that retries alone can't fix. Hits cargo-c install and librsvg's cargo cbuild.
   export CARGO_NET_RETRY=40
+  export CARGO_HTTP_MULTIPLEXING=false
 
   # Our from-source OpenSSL shadows the system libssl (via LD_LIBRARY_PATH) but ships no
   # cert store; point TLS tools (wget, rustup, pip) at the build host's CA bundle so HTTPS
