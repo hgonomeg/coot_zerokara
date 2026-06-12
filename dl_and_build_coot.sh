@@ -2829,11 +2829,12 @@ package_coot () {
     debug) build_label=debug;;
     *) build_label=release;;
   esac
-  tarball_name=coot_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`.tar.gz
+  tarball_name=coot_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`.tar.zst
   collect_package_dirs
   create_readme
   printf "\n packaging Coot as $tarball_name ... "
-  tar -czf $tarball_name bin/coot* bin/layla bin/pyrogen bin/python3* $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
+  # zstd -19 (-T0 = all cores) for a much smaller tarball than gzip; needs the zstd CLI.
+  tar -I 'zstd -T0 -19' -cf $tarball_name bin/coot* bin/layla bin/pyrogen bin/python3* $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
   echo "done"
   printf "\n   "
   ls -l $tarball_name
@@ -2847,7 +2848,7 @@ package_coot_minimal () {
     *) build_label=release;;
   esac
   package_basename=coot-${outtag}-minimal_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`
-  tarball_name=$package_basename.tar.gz
+  tarball_name=$package_basename.tar.zst
   collect_package_dirs
   # stage a throwaway copy under a PID-named temp dir ($$ = this shell's PID), so we
   # can prune and strip it without touching the real install
@@ -2892,7 +2893,8 @@ package_coot_minimal () {
     cd ../ || error
     # now inside $staging_root; "*" is just the $package_basename dir; write tarball + log one level up
     printf "\n packaging minimal Coot as $tarball_name ... "
-    tar -czf ../$tarball_name * > ../my_tar.log 2>&1 || error "see `dirname $PWD`/my_tar.log"
+    # zstd -19 (-T0 = all cores) for a much smaller tarball than gzip; needs the zstd CLI.
+    tar -I 'zstd -T0 -19' -cf ../$tarball_name * > ../my_tar.log 2>&1 || error "see `dirname $PWD`/my_tar.log"
     echo "done"
   )
   rm -fr $staging_root || error
