@@ -900,7 +900,7 @@ build_glm () {
 }
 
 # bzip2 has no autotools/cmake — hand-rolled. Build only the shared library
-# (the bzip2 tool is on every host for tar xf, and we ship libbz2 for linking).
+# Ships libbz2 (for linking) and the bzip2/bunzip2/bzcat CLIs (for tar's .tar.bz2 path).
 build_bzip2 () {
   if [ ! -f $BUILD_DIR/bzip2/.my_done${MY_DONE_EXT} ]; then
     printf "\n ### building bzip2 (${BZIP2_VER}) with make\n"
@@ -918,9 +918,20 @@ build_bzip2 () {
          > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
     echo "done"
 
+    # bzip2/bzip2recover CLIs (link statically against libbz2.a; LDFLAGS rides on CC).
+    printf "  make bzip2 binary (see `mypwd`/my_make_bin.log${MY_DONE_EXT}) ... "
+    make -f Makefile bzip2 bzip2recover CC="${CC} ${LDFLAGS}" \
+         CFLAGS="${CFLAGS} -Wall -Winline ${__bz_opt} -D_FILE_OFFSET_BITS=64" \
+         > my_make_bin.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_bin.log${MY_DONE_EXT}"
+    echo "done"
+
     printf "  installing libbz2 (see `mypwd`/my_install.log${MY_DONE_EXT}) ... "
     {
       install -m755 libbz2.so.${BZIP2_VER} $PREFIX/lib/ || error
+      install -m755 bzip2 $PREFIX/bin/ || error
+      install -m755 bzip2recover $PREFIX/bin/ || error
+      ln -sf bzip2 $PREFIX/bin/bunzip2
+      ln -sf bzip2 $PREFIX/bin/bzcat
       ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so
       ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so.1
       # libbz2.so.1.0 is the soname (-Wl,-soname,libbz2.so.1.0); without it our own
@@ -988,7 +999,7 @@ build_zstd () {
 
 build_brotli () {
   build_with_cmake brotli ${BROTLI_VER} \
-    -DBUILD_SHARED_LIBS=ON -DBROTLI_BUILD_TOOLS=OFF
+    -DBUILD_SHARED_LIBS=ON -DBROTLI_BUILD_TOOLS=ON
 }
 
 build_xz () {
