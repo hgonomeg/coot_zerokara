@@ -1994,7 +1994,7 @@ setup_build_env () {
   # Make cargo's crates.io downloads resilient to transient registry/HTTP2 hiccups
   # (e.g. the "[16] Error in the HTTP2 framing layer" seen in CI). Applies to every
   # cargo invocation in this run: cargo-c install and librsvg's cargo cbuild.
-  export CARGO_NET_RETRY=20
+  export CARGO_NET_RETRY=40
 
   # Our from-source OpenSSL shadows the system libssl (via LD_LIBRARY_PATH) but ships no
   # cert store; point TLS tools (wget, rustup, pip) at the build host's CA bundle so HTTPS
