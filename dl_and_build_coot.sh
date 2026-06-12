@@ -979,7 +979,7 @@ build_zstd () {
     cmake -S $DEPS_DIR/zstd-${ZSTD_VER}/build/cmake -B . \
           -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=${__cmake_buildtype} \
           -DZSTD_BUILD_SHARED=ON -DZSTD_BUILD_STATIC=OFF \
-          -DZSTD_BUILD_PROGRAMS=ON -DZSTD_BUILD_TESTS=OFF \
+          -DZSTD_BUILD_PROGRAMS=ON -DZSTD_PROGRAMS_LINK_SHARED=ON -DZSTD_BUILD_TESTS=OFF \
           -DZSTD_BUILD_CONTRIB=OFF > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
     echo "done"
 
