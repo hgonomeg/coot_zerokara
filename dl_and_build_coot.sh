@@ -3054,9 +3054,6 @@ COOT_DATA_DIR="$COOT_PREFIX/share/coot"; export COOT_DATA_DIR
 GUILE_WARN_DEPRECATED=no; export GUILE_WARN_DEPRECATED
 [ -d "$COOT_PREFIX/share/guile/3.0" ] && { GUILE_LOAD_PATH="$COOT_PREFIX/share/guile/3.0"; export GUILE_LOAD_PATH; }
 
-# --- icon theme: force the bundled Adwaita, skipping the host's XSETTINGS/GSettings ---
-GTK_THEME=Adwaita; export GTK_THEME
-
 # --- XDG + bundled FontConfig (use Coot's own fonts/cache, not the host's). Each is
 # skipped if the matching COOT_* override is set, so the user can keep their own. ---
 [ -d "$COOT_PREFIX/share" ]                && [ "X${COOT_XDG_DATA_DIRS:-}" = "X" ]   && { XDG_DATA_DIRS="$COOT_PREFIX/share"; export XDG_DATA_DIRS; }
