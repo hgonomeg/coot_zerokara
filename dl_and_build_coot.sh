@@ -1515,7 +1515,8 @@ build_mmdb2 () {
 build_openblas () {
   # DYNAMIC_ARCH builds kernels for multiple CPU micro-architectures and selects
   # the best at runtime — works for both distributable and locally-tuned builds.
-  build_with_cmake openblas ${OPENBLAS_VER} \
+  # Empty FFLAGS: the leaked "-std=f2008" rejects LAPACK's COMPLEX*16 (a GNU extension).
+  FFLAGS="" build_with_cmake openblas ${OPENBLAS_VER} \
     -DBUILD_SHARED_LIBS=ON \
     -DDYNAMIC_ARCH=ON \
     -DBUILD_TESTING=OFF
