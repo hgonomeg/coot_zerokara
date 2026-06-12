@@ -1063,6 +1063,14 @@ build_ncurses () {
 # readline (openSUSE Leap 16) it'd warn "no version information available" and break g-ir-scanner.
 build_readline () {
   CFLAGS="$CFLAGS -fPIC" build_with_configure readline ${READLINE_VER} --disable-shared --enable-static
+  # Static readline references termcap globals (UP/BC/PC) it doesn't define; the shared lib carried
+  # a NEEDED on ncurses, a .a can't. Promote the dep from Requires.private to public Libs so plain
+  # pkg-config consumers (CPython's readline module) link -ltinfo and resolve UP at load.
+  # grep: skip if already patched (idempotent on reruns; -- so -ltinfo isn't read as a flag).
+  # sed: on the "Libs:" line, append " -ltinfo" right after the existing -lreadline.
+  __rlpc=$PREFIX/lib/pkgconfig/readline.pc
+  [ -f $__rlpc ] && ! grep -q -- "-ltinfo" $__rlpc && \
+    sed -i "s/^\(Libs:.*-lreadline\)/\1 -ltinfo/" $__rlpc
 }
 
 # OpenSSL (Configure is perl, so hand-rolled). Built in the toolchain phase before Python
