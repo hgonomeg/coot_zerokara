@@ -600,6 +600,7 @@ BZIP2_VER=1.0.8
 ZLIB_VER=1.3.2
 ZSTD_VER=1.5.7
 BROTLI_VER=1.2.0
+XZ_VER=5.8.3
 NCURSES_VER=6.6
 READLINE_VER=8.3
 OPENSSL_VER=3.6.3
@@ -990,10 +991,12 @@ build_brotli () {
     -DBUILD_SHARED_LIBS=ON -DBROTLI_BUILD_TOOLS=OFF
 }
 
+build_xz () {
+  build_with_configure xz ${XZ_VER} --disable-static --disable-nls --disable-doc \
+    --disable-scripts --disable-lzmainfo --disable-lzma-links
+}
+
 build_pcre2 () {
-  # First configure dep that needs $PREFIX headers (bzip2's bzlib.h for --enable-pcre2grep-libbz2);
-  # set up CFLAGS=-I$PREFIX/include etc. here (it persists for the rest of the deps phase).
-  additional_build_env_setup
   build_with_configure pcre2 ${PCRE2_VER} --enable-unicode --enable-jit --enable-pcre2-16 --enable-pcre2-32 --enable-pcre2grep-libz --enable-pcre2grep-libbz2 --disable-static
 }
 
@@ -1491,9 +1494,7 @@ build_coordgen() {
 }
 
 build_eigen () {
-  # Empty FFLAGS: the leaked "-std=f2008 -fallow-argument-mismatch" (set for libccp4/clipper)
-  # breaks eigen's cmake Fortran check.
-  FFLAGS="" build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
+  build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
           -DEIGEN_BUILD_TESTING=OFF \
           -DEIGEN_BUILD_DEMOS=OFF
 }
@@ -1518,14 +1519,15 @@ build_rdkit () {
 }
 
 build_mmdb2 () {
+  # Legacy crystallographic lib: needs the old-Fortran flags (no longer set globally).
+  FFLAGS="-std=f2008 -fallow-argument-mismatch" \
   build_with_configure mmdb2 ${MMDB_VER} --enable-shared
 }
 
 build_openblas () {
   # DYNAMIC_ARCH builds kernels for multiple CPU micro-architectures and selects
   # the best at runtime — works for both distributable and locally-tuned builds.
-  # Empty FFLAGS: the leaked "-std=f2008" rejects LAPACK's COMPLEX*16 (a GNU extension).
-  FFLAGS="" build_with_cmake openblas ${OPENBLAS_VER} \
+  build_with_cmake openblas ${OPENBLAS_VER} \
     -DBUILD_SHARED_LIBS=ON \
     -DDYNAMIC_ARCH=ON \
     -DBUILD_TESTING=OFF
@@ -1541,6 +1543,8 @@ build_gemmi () {
 
 build_libccp4 () {
   additional_build_env_setup
+  # Legacy crystallographic lib: needs the old-Fortran flags (no longer set globally).
+  FFLAGS="-std=f2008 -fallow-argument-mismatch" \
   CFLAGS="$CFLAGS -Wno-incompatible-pointer-types -std=gnu17" \
   build_with_configure libccp4 ${LIBCCP4_VER} \
     --enable-shared --disable-static \
@@ -1607,6 +1611,7 @@ build_libclipper () {
     [ "$btype" = "debug" ] && __dbg_flag="-g"
     CXXFLAGS="${__dbg_flag} -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
     CFLAGS="${__dbg_flag} -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
+    FFLAGS="-std=f2008 -fallow-argument-mismatch" \
     $DEPS_DIR/clipper-${LIBCLIPPER_VER_PRE}/configure --prefix=$PREFIX \
       --enable-shared --disable-static \
       --enable-contrib --enable-ccp4 \
@@ -1823,6 +1828,8 @@ download_toolchain () {
   do_wget https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VER}.tar.gz brotli-${BROTLI_VER}.tar.gz
   # bzip2 — shared library only; Python's _bz2 needs it
   do_wget https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VER}.tar.gz
+  # xz/liblzma — Python's _lzma needs it; also a NEEDED of libdw (elfutils) and libtiff
+  do_wget https://github.com/tukaani-project/xz/releases/download/v${XZ_VER}/xz-${XZ_VER}.tar.gz
 
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
@@ -1848,8 +1855,8 @@ download_toolchain () {
 }
 
 initial_setup () {
-  # Subshell so this phase's build-flag env (esp. FFLAGS="-std=f2008") can't leak into deps and
-  # break Eigen's LAPACK; `|| error` re-raises the subshell's exit, do_cleans is stashed via file.
+  # Subshell so this phase's build-flag env (CFLAGS/LDFLAGS from additional_build_env_setup)
+  # can't leak into deps; `|| error` re-raises the subshell's exit, do_cleans is stashed via file.
   __cleans_file="$BUILD_DIR/.initial_setup_do_cleans"
   rm -f "$__cleans_file"
   (
@@ -1865,7 +1872,7 @@ initial_setup () {
   cd $PREFIX || error
 
   # libffi, ncurses, readline, compression libs and openssl are linked by Python (ctypes /
-  # _curses / readline / zipfile+gzip+bz2 / ssl, plus pip's HTTPS) and must exist before
+  # _curses / readline / zipfile+gzip+bz2+lzma / ssl, plus pip's HTTPS) and must exist before
   # it — built here, not in the deps phase. additional_build_env_setup puts $PREFIX on
   # the compiler -I/-L paths so readline finds ncurses.
   additional_build_env_setup
@@ -1876,6 +1883,7 @@ initial_setup () {
   build_zstd     || error
   build_brotli   || error
   build_bzip2    || error
+  build_xz       || error
   build_openssl  || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
@@ -2047,7 +2055,9 @@ setup_build_env () {
 }
 
 additional_build_env_setup () {
-  export FFLAGS="-std=f2008 -fallow-argument-mismatch"
+  # No FFLAGS here: the legacy crystallographic libs (mmdb2/libccp4/libclipper) that need
+  # "-std=f2008 -fallow-argument-mismatch" set it themselves. Exporting it globally broke
+  # the cmake Fortran checks in eigen/openblas.
   export CFLAGS="-I${PREFIX}/include"
   export CXXFLAGS="-I${PREFIX}/include"
   IFS=":"
@@ -2305,6 +2315,9 @@ download_dependencies () {
 }
 
 build_dependencies () {
+  # Put $PREFIX on the compiler -I/-L paths up front so even the earliest configure deps
+  # (util_linux, elfutils) link OUR zlib/zstd/bzip2/lzma rather than the system copies.
+  additional_build_env_setup
   # order matters - and some have to be done multiple times it seems
   for dep in $BUILD_DEPENDENCIES
   do
