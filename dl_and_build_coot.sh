@@ -991,6 +991,9 @@ build_brotli () {
 }
 
 build_pcre2 () {
+  # First configure dep that needs $PREFIX headers (bzip2's bzlib.h for --enable-pcre2grep-libbz2);
+  # set up CFLAGS=-I$PREFIX/include etc. here (it persists for the rest of the deps phase).
+  additional_build_env_setup
   build_with_configure pcre2 ${PCRE2_VER} --enable-unicode --enable-jit --enable-pcre2-16 --enable-pcre2-32 --enable-pcre2grep-libz --enable-pcre2grep-libbz2 --disable-static
 }
 
@@ -1479,7 +1482,9 @@ build_coordgen() {
 }
 
 build_eigen () {
-  build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
+  # Empty FFLAGS: the leaked "-std=f2008 -fallow-argument-mismatch" (set for libccp4/clipper)
+  # breaks eigen's cmake Fortran check.
+  FFLAGS="" build_with_cmake eigen ${EIGEN_VER} -DEIGEN_BUILD_DOC=OFF \
           -DEIGEN_BUILD_TESTING=OFF \
           -DEIGEN_BUILD_DEMOS=OFF
 }
