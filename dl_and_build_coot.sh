@@ -202,15 +202,6 @@ if [ $do_os -eq 1 ]; then
              autoconf \
              automake \
              cmake \
-             fftw-devel \
-             glm-devel \
-             gsl-devel \
-             gtk4-devel \
-             libboost_headers-devel-impl \
-             libboost_iostreams-devel-impl \
-             libboost_serialization-devel-impl \
-             libboost_thread-devel-impl \
-             libepoxy-devel \
              libtool \
              sqlite3-devel \
              swig \
@@ -223,7 +214,6 @@ if [ $do_os -eq 1 ]; then
              libXtst-devel \
              libexpat-devel \
              dbus-1-devel \
-             libelf-devel \
              libpng16-devel \
              libxcb-devel \
              xcb-util-devel \
@@ -285,7 +275,6 @@ if [ $do_os -eq 1 ]; then
             gperf file \
             libX11-devel \
             libglvnd-devel \
-            freetype-devel \
             libxkbcommon-devel \
             libXrender-devel \
             libXext-devel \
@@ -350,7 +339,6 @@ if [ $do_os -eq 1 ]; then
               cmake \
               libX11-devel \
               libglvnd-devel \
-              freetype-devel \
               libxkbcommon-devel \
               libXrender-devel \
               libXext-devel \
@@ -397,14 +385,14 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get update || error
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake cmake gperf file vim xmlto libtool-bin \
-          libdbus-1-dev libexpat1-dev libelf-dev \
+          libdbus-1-dev libexpat1-dev \
           libsqlite3-dev libpng-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
           libxdamage-dev libxinerama-dev libxtst-dev \
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
-          libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
+          libgmp-dev libdrm-dev \
           libglfw3-dev \
           libpsl-dev \
           xz-utils \
@@ -423,7 +411,7 @@ if [ $do_os -eq 1 ]; then
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
             libxdamage libxinerama libxtst \
             libxkbcommon xcb-util libx11 \
-            gmp gc libunistring pcre2 libdrm glm \
+            gmp libdrm \
             glfw \
             inetutils libpsl bc openal libseccomp doxygen || error
       ;;
