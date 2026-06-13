@@ -53,7 +53,9 @@ part of the build itself.
   `-d <distro>` / `-n <max>` narrow it. The repo is hard-coded as `hgonomeg/coot_zerokara`
   (override with `--repo`). The matrix-job name parsing assumes CI names jobs
   `build (<distro>, …)`. Read `terminal_output.log` first, then drill into the
-  individual `my_*.log` files.
+  individual `my_*.log` files. **Always pull CI logs with this script** (don't hand-roll
+  `gh api … /logs`), and open the fetched files with the editor's read tool — not
+  `cat`/`tail`/`sed`/`grep`.
 
 ## Continuous integration
 
@@ -66,6 +68,11 @@ Two pipelines build the script across distros:
   `coot-<distro>-x86_64` artifact — so users can grab a ready-built Coot from a green run
   without building it themselves (the README points them here).
 - `Jenkinsfile` — a single `buildready-rocky` image; archives the same logs.
+
+**Reproduce CI failures in a fresh, throwaway container of the matrix image** (`docker run
+--rm opensuse/leap:15.6 …`) — never on your host, whose toolchain (newer binutils, no
+system -devel packages) can mask distro-specific breakage. Build the relevant piece there
+to confirm both the bug and the fix.
 
 Both run the build as the script's **four phases, one step/stage each**
 (`-download-only` → `-toolchain-only` → `-deps-only` → `-coot-stage-only`), so a failure
@@ -124,12 +131,13 @@ setup_build_env            # always: PKG_CONFIG_*, LD_*, CC/CXX/FC, PYTHONPATH �
 
 # phase 1 — download   (stage = all | download)
 download_all
-  ├─ download_toolchain    # do_wget Python, CMake, Ninja, rustup-init.sh (NO build)
+  ├─ download_toolchain    # do_wget Python, CMake, Ninja, rustup-init.sh, libffi/ncurses/readline (NO build)
   └─ download_dependencies # do_wget every dependency tarball into $DEPS_DIR
                            #   — NB: neither downloads Coot itself
 
 # phase 2 — toolchain  (stage = all | toolchain)
 initial_setup             # calls download_toolchain first (idempotent), then BUILDS:
+                          #   ncurses + readline + libffi (Python links them), then
                           #   fresh Python, pip meson/etc, newer CMake + Ninja,
                           #   install Rust + cargo-c
 
@@ -201,8 +209,8 @@ They expect the unpacked source at `$DEPS_DIR/<pkg>-<ver>` and build into
 `$BUILD_DIR/<pkg>`. Packages whose tarball top-dir doesn't match `<pkg>-<ver>` get
 renamed/symlinked in `download_dependencies` (e.g. coordgenlibs→coordgen,
 rdkit-Release_*→rdkit-*, ssm→libssm). A few packages (boost, libtiff, libssm,
-libclipper, fftw) are special-cased with their own hand-written build bodies instead
-of the generic helpers.
+libclipper, fftw, icu, ncurses) are special-cased with their own hand-written build bodies
+instead of the generic helpers.
 
 ### Version pinning
 Every dependency version is a `*_VER` variable in one block near the top

@@ -84,6 +84,32 @@ build_highway() {
 }
 ```
 
+### ALWAYS verify optimization level and debug symbols honor `$btype`
+The generic helpers do this for you: `build_with_cmake` maps `$btype` to
+`Release`/`RelWithDebInfo`, `build_with_meson` to `release`/`debugoptimized`, and
+`build_with_configure` injects `-O2` (opt) / `-O2 -g` (debug) on the configure line. If
+you use them, you're covered.
+
+**A hand-rolled build is the danger.** Two traps, both verified to bite in this repo:
+- **The `-O0` trap:** the script exports `CFLAGS=-I$PREFIX/include`, and a *set* `CFLAGS`
+  suppresses the build system's own `-O2`/`-O3` default (autoconf, ncurses, openssl's
+  `--release`, ICU's `--enable-release` — all emit **no `-O`** under our `CFLAGS`). So a
+  hand-rolled configure/Make build silently compiles at `-O0` unless you inject `-O`.
+- **No debug symbols:** debug builds must add `-g`; opt builds shouldn't carry it.
+
+So for any hand-rolled build, mirror the helper explicitly:
+```sh
+[ "$btype" = "debug" ] && __opt="-O2 -g" || __opt="-O2"
+CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" ./configure ...
+# openssl-style config: pass ${__opt} as a config arg; cmake/meson: use the buildtype var.
+```
+**Verify it actually took** (a set CFLAGS is silently honored, so don't assume) — in a
+throwaway CI container, run the package's configure with `CFLAGS=-I/x` exported and grep
+the generated Makefile for `-O`:
+```bash
+CFLAGS="-I/x" ./configure ... && grep -m1 -E '^ *CFLAGS' Makefile   # must show -O2
+```
+
 ---
 
 ## Step 3: Verify the Download URL
@@ -284,6 +310,9 @@ Before committing:
 - [ ] **Upstream project verified** - Checked meson_options.txt / CMakeLists.txt
 - [ ] **Version is current** - Used GitHub API to confirm latest release
 - [ ] **Build options verified** - Checked actual source for exact option names
+- [ ] **Optimization + debug symbols honor `$btype`** - Generic helpers handle it; for any
+      hand-rolled build, inject `-O2`(opt)/`-O2 -g`(debug) and verify `-O` actually lands in
+      the generated Makefile (the exported `CFLAGS` suppresses build-system `-O` defaults)
 - [ ] **Download URL tested** - `curl -I <URL>` returns 2xx or 3xx status
 - [ ] **Dependency order correct** - Dependencies listed before dependents
 - [ ] **All five components added:**

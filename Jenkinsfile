@@ -63,6 +63,10 @@ pipeline {
             archiveArtifacts artifacts: 'coot-build/deps/*.log*', fingerprint: true, allowEmptyArchive: true
             archiveArtifacts artifacts: 'coot-build/build/*/*.log*', fingerprint: true, allowEmptyArchive: true
             archiveArtifacts artifacts: 'coot-build/deps/*/*.log*', fingerprint: true, allowEmptyArchive: true
+            // Two levels deep: cmake/ninja build inside an unpacked source subdir
+            // (build/cmakebuild/CMake-*/, build/ninjabuild/ninja-*/).
+            archiveArtifacts artifacts: 'coot-build/build/*/*/*.log*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coot-build/deps/*/*/*.log*', fingerprint: true, allowEmptyArchive: true
             archiveArtifacts artifacts: 'coot-build/coot*/*.log*', fingerprint: true, allowEmptyArchive: true
             archiveArtifacts artifacts: 'coot-build/coot*/chapi-build/*.log*', fingerprint: true, allowEmptyArchive: true
             // Fix Jenkins permissions issue

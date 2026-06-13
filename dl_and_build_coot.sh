@@ -194,28 +194,17 @@ if [ $do_os -eq 1 ]; then
       $sudo zypper install -y --force-resolution --allow-downgrade -t pattern devel_basis || error
       # probably not all needed:
       $sudo zypper install -y \
-             libopenssl-3-devel \
              wget \
              git \
              vim \
-             gzip bzip2 lzo-devel libbz2-devel \
+             gzip bzip2 \
              hostname \
              autoconf \
              automake \
-             fftw-devel \
-             glm-devel \
-             gsl-devel \
-             gtk4-devel \
-             libboost_headers-devel-impl \
-             libboost_iostreams-devel-impl \
-             libboost_serialization-devel-impl \
-             libboost_thread-devel-impl \
-             libepoxy-devel \
-             libicu-devel \
+             cmake \
              libtool \
              sqlite3-devel \
              swig \
-             libxml2-devel \
              libdrm-devel \
              libXrandr-devel \
              libXi-devel \
@@ -225,13 +214,7 @@ if [ $do_os -eq 1 ]; then
              libXtst-devel \
              libexpat-devel \
              dbus-1-devel \
-             libmount-devel \
-             libffi-devel \
-             libelf-devel \
-             readline-devel \
-             ncurses-devel \
              libpng16-devel \
-             libbrotli-devel \
              libxcb-devel \
              xcb-util-devel \
              xcb-util-renderutil-devel \
@@ -239,8 +222,12 @@ if [ $do_os -eq 1 ]; then
              libXrender-devel \
              libXext-devel \
              libxkbcommon-devel \
+             Mesa-libGL-devel \
+             Mesa-libEGL-devel \
+             Mesa-libGLESv2-devel \
              gmp-devel \
              libglfw-devel \
+             gperftools-devel \
              xmlto \
              docbook_4 \
              docbook-xsl-stylesheets \
@@ -252,8 +239,6 @@ if [ $do_os -eq 1 ]; then
              glibc-locale \
              openal-soft-devel \
              libseccomp-devel \
-             libzstd-devel \
-             zstd \
              doxygen \
              || error
       if [ "$_suse_major" -lt 16 ] 2>/dev/null; then
@@ -289,13 +274,11 @@ if [ $do_os -eq 1 ]; then
             gcc-c++ \
             gcc-gfortran \
             make \
+            cmake \
             $__toolsets \
-            bzip2-devel \
             gperf file \
             libX11-devel \
             libglvnd-devel \
-            libffi-devel \
-            freetype-devel \
             libxkbcommon-devel \
             libXrender-devel \
             libXext-devel \
@@ -307,25 +290,19 @@ if [ $do_os -eq 1 ]; then
             libXtst-devel \
             libdrm-devel \
             tar \
-            openssl-devel \
             bison \
-            libxml2-devel \
             bzip2 \
             autoconf \
             automake \
             libtool \
+            perl-core \
             git \
             flex \
             gperftools-devel \
             expat-devel \
             dbus-devel \
-            libmount-devel \
-            readline-devel \
-            ncurses-devel \
             sqlite-devel \
-            lzo-devel \
             libpng-devel \
-            brotli-devel \
             libxcb-devel \
             xcb-util-devel \
             gmp-devel \
@@ -341,8 +318,6 @@ if [ $do_os -eq 1 ]; then
             libpsl-devel \
             openal-soft-devel \
             libseccomp-devel \
-            libzstd-devel \
-            zstd \
             doxygen \
             || error
       ;;
@@ -365,11 +340,9 @@ if [ $do_os -eq 1 ]; then
               hostname \
               gcc-c++ \
               gcc-gfortran \
-              bzip2-devel \
+              cmake \
               libX11-devel \
               libglvnd-devel \
-              libffi-devel \
-              freetype-devel \
               libxkbcommon-devel \
               libXrender-devel \
               libXext-devel \
@@ -377,18 +350,17 @@ if [ $do_os -eq 1 ]; then
               libXi-devel \
               libXcursor-devel \
               tar \
-              openssl-devel \
               bison \
               libXdamage-devel \
               libXinerama-devel \
               libXtst-devel \
               libdrm-devel \
               expat-devel \
-              libxml2-devel \
               bzip2 \
               autoconf \
               automake \
               libtool \
+              perl-core \
               git \
               flex \
               gperf \
@@ -396,13 +368,8 @@ if [ $do_os -eq 1 ]; then
               gperftools-devel \
               $__toolsets \
               dbus-devel \
-              libmount-devel \
-              readline-devel \
-              ncurses-devel \
               sqlite-devel \
-              lzo-devel \
               libpng-devel \
-              brotli-devel \
               libxcb-devel \
               xcb-util-devel \
               gmp-devel \
@@ -416,45 +383,41 @@ if [ $do_os -eq 1 ]; then
               glibc-gconv-extra \
               openal-soft-devel \
               libseccomp-devel \
-              libzstd-devel \
-              zstd \
               doxygen
       ;;
     debian*|ubuntu*)
         $sudo apt-get update || error
         $sudo apt-get -y install \
-          git wget build-essential gfortran gettext pkg-config bison flex make automake gperf file vim xmlto libtool-bin \
-          libdbus-1-dev libmount-dev libexpat1-dev libffi-dev libelf-dev libxml2-dev libxml2-utils libreadline-dev \
-          libssl-dev libncurses-dev libsqlite3-dev liblzo2-dev libbz2-dev libpng-dev libbrotli-dev \
+          git wget build-essential gfortran gettext pkg-config bison flex make automake cmake gperf file vim xmlto libtool-bin \
+          libdbus-1-dev libexpat1-dev \
+          libsqlite3-dev libpng-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
           libxdamage-dev libxinerama-dev libxtst-dev \
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
-          libgmp-dev libgc-dev libunistring-dev libpcre2-dev libdrm-dev libglm-dev \
+          libgmp-dev libdrm-dev \
           libglfw3-dev \
           libpsl-dev \
           xz-utils \
           libopenal-dev \
           libseccomp-dev \
-          libzstd-dev \
-          zstd \
           doxygen \
           bc || error
       ;;
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
-            dbus util-linux-libs expat libffi libxml2 readline \
-            openssl ncurses sqlite lzo xz bzip2 libpng brotli \
+            dbus expat \
+            sqlite xz bzip2 libpng \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
             libxdamage libxinerama libxtst \
             libxkbcommon xcb-util libx11 \
-            gmp gc libunistring pcre2 libdrm glm \
+            gmp libdrm \
             glfw \
-            inetutils libpsl bc openal libseccomp zstd doxygen || error
+            inetutils libpsl bc openal libseccomp doxygen || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -488,8 +451,10 @@ export COOT_DIR
 
 # Fixed dependency build list (NOT user-overridable). Order matters - and some packages
 # must be built more than once (see the numbered build_<name> variants).
-# todo: libffi is needed before Python and is obtained as a system-level dependency: it needs to be removed here.
 BUILD_DEPENDENCIES="
+    util_linux
+    icu
+    libxml2
     elfutils
     libdwarf
     libbackward
@@ -499,7 +464,6 @@ BUILD_DEPENDENCIES="
     libunistring
     gc
     glm
-    libffi
     guile
     swig
     eigen
@@ -619,9 +583,20 @@ GC_VER=8.2.12
 GLM_VER=1.0.3
 PCRE2_VER=10.47
 LIBFFI_VER=3.5.2
+ICU_VER=78.3
+LIBXML2_VER=2.15.3
+UTIL_LINUX_VER=2.42.1
+BZIP2_VER=1.0.8
+ZLIB_VER=1.3.2
+ZSTD_VER=1.5.7
+BROTLI_VER=1.2.0
+XZ_VER=5.8.3
+NCURSES_VER=6.6
+READLINE_VER=8.3
+OPENSSL_VER=3.6.3
 BOOST_VER_=`echo $BOOST_VER | tr . _`
 WAYLAND_VER=1.25.0
-WAYLANDPROTOCOLS_VER=1.48
+WAYLANDPROTOCOLS_VER=1.49
 # EXPAT_VER=2.7.5
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
@@ -829,11 +804,17 @@ build_with_configure () {
       $DEPS_DIR/${__p}-${__v}/autogen.sh --prefix=$PREFIX > my_autogen.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_autogen.log${MY_DONE_EXT}"
       echo "done"
     fi
+    # Inject the optimization level explicitly: autoconf only adds its -g -O2 default when
+    # CFLAGS is *unset*, but additional_build_env_setup exports CFLAGS=-I$PREFIX/include, so
+    # without this every configure dep would compile at -O0. opt -> -O2; debug -> -O2 -g.
+    [ "$btype" = "debug" ] && __cfg_opt="-O2 -g" || __cfg_opt="-O2"
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
-    $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    CFLAGS="${CFLAGS} ${__cfg_opt}" CXXFLAGS="${CXXFLAGS} ${__cfg_opt}" \
+      $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
-    # strip -g from autoconf-generated Makefile unless we want a debug build
+    # Belt-and-braces: strip a leftover bare "-g" from the Makefile in opt builds, in case a
+    # package's configure injected one of its own (our CFLAGS above carries the real flags).
     case $btype in
       debug) ;;
       *) [ -f Makefile ] && \
@@ -885,7 +866,7 @@ build_with_cmake () {
 
 build_python () {
   build_with_configure python ${PYTHON_VER} --libdir=$PREFIX/lib --enable-optimizations --with-system-expat=true --with-lto=full \
-  --without-static-libpython --enable-shared
+  --without-static-libpython --enable-shared --with-openssl=$PREFIX
 }
 
 build_libjpeg () {
@@ -908,6 +889,114 @@ build_glm () {
   build_with_cmake glm ${GLM_VER}
 }
 
+# bzip2 has no autotools/cmake — hand-rolled. Build only the shared library
+# Ships libbz2 (for linking) and the bzip2/bunzip2/bzcat CLIs (for tar's .tar.bz2 path).
+build_bzip2 () {
+  if [ ! -f $BUILD_DIR/bzip2/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building bzip2 (${BZIP2_VER}) with make\n"
+    rm -rf $BUILD_DIR/bzip2
+    cp -a $DEPS_DIR/bzip2-${BZIP2_VER}/ $BUILD_DIR/bzip2 || error
+    cd $BUILD_DIR/bzip2 || error
+
+    printf "  make libbz2.so (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    # Override the Makefile's hardcoded "-O2 -g" so the build honors $btype: opt drops -g,
+    # debug keeps it. -fPIC + the BIGFILES define are mandatory for the shared lib; LDFLAGS
+    # rides on CC because Makefile-libbz2_so links with $(CC).
+    [ "$btype" = "debug" ] && __bz_opt="-O2 -g" || __bz_opt="-O2"
+    make -f Makefile-libbz2_so CC="${CC} ${LDFLAGS}" \
+         CFLAGS="${CFLAGS} -fpic -fPIC -Wall -Winline ${__bz_opt} -D_FILE_OFFSET_BITS=64" \
+         > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+
+    # bzip2/bzip2recover CLIs (link statically against libbz2.a; LDFLAGS rides on CC).
+    printf "  make bzip2 binary (see `mypwd`/my_make_bin.log${MY_DONE_EXT}) ... "
+    make -f Makefile bzip2 bzip2recover CC="${CC} ${LDFLAGS}" \
+         CFLAGS="${CFLAGS} -Wall -Winline ${__bz_opt} -D_FILE_OFFSET_BITS=64" \
+         > my_make_bin.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_bin.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  installing libbz2 (see `mypwd`/my_install.log${MY_DONE_EXT}) ... "
+    {
+      install -m755 libbz2.so.${BZIP2_VER} $PREFIX/lib/ || error
+      install -m755 bzip2 $PREFIX/bin/ || error
+      install -m755 bzip2recover $PREFIX/bin/ || error
+      ln -sf bzip2 $PREFIX/bin/bunzip2
+      ln -sf bzip2 $PREFIX/bin/bzcat
+      ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so
+      ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so.1
+      # libbz2.so.1.0 is the soname (-Wl,-soname,libbz2.so.1.0); without it our own
+      # consumers (Python _bz2) can't load the lib unless the host ships a system one.
+      ln -sf libbz2.so.${BZIP2_VER} $PREFIX/lib/libbz2.so.1.0
+      install -m644 bzlib.h $PREFIX/include/ || error
+
+      # pkg-config file — upstream doesn't ship one; cmake's FindBZip2 probes it
+      cat > $PREFIX/lib/pkgconfig/bzip2.pc <<EOF
+prefix=$PREFIX
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+
+Name: bzip2
+Description: A file compression library
+Version: ${BZIP2_VER}
+Libs: -L\${libdir} -lbz2
+Cflags: -I\${includedir}
+EOF
+    } > my_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_install.log${MY_DONE_EXT}"
+    echo "done"
+
+    do_cleans="$do_cleans `pwd`"
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/bzip2/.my_done${MY_DONE_EXT}
+  fi
+}
+
+build_zlib () {
+  build_with_cmake zlib ${ZLIB_VER} \
+    -DZLIB_BUILD_SHARED=ON -DZLIB_BUILD_STATIC=OFF
+}
+
+# zstd's CMakeLists.txt lives under build/cmake/ — hand-rolled.
+build_zstd () {
+  if [ ! -f $BUILD_DIR/zstd/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building zstd (${ZSTD_VER}) with cmake\n"
+    mkdir -p $BUILD_DIR/zstd || error
+    cd $BUILD_DIR/zstd || error
+    build_save_mylogs_and_rm
+
+    printf "  cmake (see `mypwd`/my_cmake.log${MY_DONE_EXT}) ... "
+    [ "$btype" = "debug" ] && __cmake_buildtype=RelWithDebInfo || __cmake_buildtype=Release
+    cmake -S $DEPS_DIR/zstd-${ZSTD_VER}/build/cmake -B . \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=${__cmake_buildtype} \
+          -DZSTD_BUILD_SHARED=ON -DZSTD_BUILD_STATIC=OFF \
+          -DZSTD_BUILD_PROGRAMS=ON -DZSTD_PROGRAMS_LINK_SHARED=ON -DZSTD_BUILD_TESTS=OFF \
+          -DZSTD_BUILD_CONTRIB=OFF > my_cmake.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  cmake --build (see `mypwd`/my_cmake_build.log${MY_DONE_EXT}) ... "
+    cmake --build . -j ${nthreads} > my_cmake_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_build.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  cmake --install (see `mypwd`/my_cmake_install.log${MY_DONE_EXT}) ... "
+    cmake --install . > my_cmake_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_cmake_install.log${MY_DONE_EXT}"
+    echo "done"
+
+    do_cleans="$do_cleans `pwd`"
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/zstd/.my_done${MY_DONE_EXT}
+  fi
+}
+
+build_brotli () {
+  build_with_cmake brotli ${BROTLI_VER} \
+    -DBUILD_SHARED_LIBS=ON -DBROTLI_BUILD_TOOLS=ON
+}
+
+build_xz () {
+  build_with_configure xz ${XZ_VER} --disable-static --disable-nls --disable-doc \
+    --disable-scripts --disable-lzmainfo
+}
+
 build_pcre2 () {
   build_with_configure pcre2 ${PCRE2_VER} --enable-unicode --enable-jit --enable-pcre2-16 --enable-pcre2-32 --enable-pcre2grep-libz --enable-pcre2grep-libbz2 --disable-static
 }
@@ -915,6 +1004,155 @@ build_pcre2 () {
 build_libffi () {
   build_with_configure libffi ${LIBFFI_VER} --disable-static --disable-multi-os-directory
 }
+
+# ncurses (widec). Two non-obvious flags, both needed for Python's _curses to import:
+#  - NO --with-termlib: keep terminfo + the curses symbols (e.g. _nc_acs_map) in one
+#    libncursesw. --with-termlib splits them into libtinfow, where _curses can't reach them.
+#  - NO --enable-overwrite: install headers under include/ncursesw/ so CPython's
+#    `#include <ncursesw/curses.h>` resolves to OURS. With overwrite they land in include/
+#    (no ncursesw/ subdir), and on a host with system ncurses-devel present (e.g. openSUSE's
+#    devel_basis pulls 6.1) CPython falls back to that older header -> undefined _nc_acs_map.
+# readline probes the non-wide termcap names, hence the libtinfo/libncurses symlinks below.
+build_ncurses () {
+  if [ ! -f $BUILD_DIR/ncurses/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building ncurses (${NCURSES_VER}) with configure/make\n"
+    mkdir -p $BUILD_DIR/ncurses || error
+    cd $BUILD_DIR/ncurses || error
+    build_save_mylogs_and_rm
+
+    # ncurses adds no -O of its own when CFLAGS is set, so inject it (see build_with_configure).
+    [ "$btype" = "debug" ] && { __nc_debug="--with-debug"; __opt="-O2 -g"; } || { __nc_debug="--without-debug"; __opt="-O2"; }
+    printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" \
+    $DEPS_DIR/ncurses-${NCURSES_VER}/configure --prefix=$PREFIX \
+      --with-shared --without-normal ${__nc_debug} --without-ada --without-cxx-binding \
+      --enable-widec --enable-pc-files --with-versioned-syms \
+      --with-pkg-config-libdir=$PREFIX/lib/pkgconfig > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+    printf "  make install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+
+    # Non-wide aliases so -ltinfo / -lncurses / -lcurses resolve to our one widec lib.
+    ln -sf libncursesw.so $PREFIX/lib/libncurses.so
+    ln -sf libncursesw.so $PREFIX/lib/libcurses.so
+    ln -sf libncursesw.so $PREFIX/lib/libtinfo.so
+    # Same for form/menu/panel — without these, code that probes -lform / -lmenu / -lpanel
+    # (e.g. CMake's bootstrap) falls back to the system libs, which on older distros
+    # reference _nc_stdscr (ncurses <=6.2 internal, renamed to _nc_stdscr_of in >=6.3).
+    ln -sf libformw.so  $PREFIX/lib/libform.so
+    ln -sf libmenuw.so  $PREFIX/lib/libmenu.so
+    ln -sf libpanelw.so $PREFIX/lib/libpanel.so
+    ln -sf ncursesw.pc    $PREFIX/lib/pkgconfig/ncurses.pc
+    ln -sf ncursesw.pc    $PREFIX/lib/pkgconfig/tinfo.pc
+    # Non-wide header symlinks — CMake's bootstrap and other find_path users probe
+    # for curses.h directly (not ncursesw/curses.h), so they must be resolvable
+    # from $PREFIX/include without the ncursesw/ subdirectory.
+    for __h in curses.h form.h menu.h panel.h ncurses.h term.h; do
+      ln -sf ncursesw/$__h $PREFIX/include/$__h
+    done
+
+    do_cleans="$do_cleans `pwd`"
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/ncurses/.my_done${MY_DONE_EXT}
+  fi
+}
+
+# Static-only (-fPIC so it embeds into Python's/guile's shared modules). A shared libreadline.so.8
+# would shadow the host bash's via LD_LIBRARY_PATH; where that bash links a symbol-versioned system
+# readline (openSUSE Leap 16) it'd warn "no version information available" and break g-ir-scanner.
+build_readline () {
+  CFLAGS="$CFLAGS -fPIC" build_with_configure readline ${READLINE_VER} --disable-shared --enable-static
+  # Static readline references termcap globals (UP/BC/PC) it doesn't define; the shared lib carried
+  # a NEEDED on ncurses, a .a can't. Promote the dep from Requires.private to public Libs so plain
+  # pkg-config consumers (CPython's readline module) link -ltinfo and resolve UP at load.
+  # grep: skip if already patched (idempotent on reruns; -- so -ltinfo isn't read as a flag).
+  # sed: on the "Libs:" line, append " -ltinfo" right after the existing -lreadline.
+  __rlpc=$PREFIX/lib/pkgconfig/readline.pc
+  [ -f $__rlpc ] && ! grep -q -- "-ltinfo" $__rlpc && \
+    sed -i "s/^\(Libs:.*-lreadline\)/\1 -ltinfo/" $__rlpc
+}
+
+# OpenSSL (Configure is perl, so hand-rolled). Built in the toolchain phase before Python
+# (its ssl/hashlib + pip's HTTPS need it); curl links it later. install_sw skips the docs.
+build_openssl () {
+  if [ ! -f $BUILD_DIR/openssl/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building openssl (${OPENSSL_VER}) with Configure/make\n"
+    rm -rf $BUILD_DIR/openssl
+    cp -a $DEPS_DIR/openssl-${OPENSSL_VER}/ $BUILD_DIR/openssl || error
+    cd $BUILD_DIR/openssl || error
+
+    # --debug/--release set assertions; the -O flag (config arg) is needed because a set
+    # CFLAGS suppresses openssl's own -O3 (verified: no -O in CNF_CFLAGS).
+    [ "$btype" = "debug" ] && { __ssl_btype="--debug"; __opt="-O2 -g"; } || { __ssl_btype="--release"; __opt="-O2"; }
+    printf "  config (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    ./config --prefix=$PREFIX --openssldir=$PREFIX/ssl --libdir=lib ${__ssl_btype} ${__opt} \
+             shared no-tests enable-brotli enable-zlib enable-zstd > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+    printf "  make install_sw (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make install_sw > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+
+    do_cleans="$do_cleans `pwd`"
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/openssl/.my_done${MY_DONE_EXT}
+  fi
+}
+
+# Built only for libmount (glib's gio links it); everything else switched off.
+# Source dir is util-linux-*, so pass that (hyphen) name to the configure helper.
+build_util_linux () {
+  build_with_configure util-linux ${UTIL_LINUX_VER} \
+    --disable-all-programs --enable-libuuid --enable-libblkid --enable-libmount \
+    --disable-static --disable-nls --disable-bash-completion \
+    --without-econf
+}
+
+# Hand-rolled: ICU's configure lives under source/, so build_with_configure can't drive it.
+build_icu () {
+  if [ ! -f $BUILD_DIR/icu/.my_done${MY_DONE_EXT} ]; then
+    printf "\n ### building icu (${ICU_VER}) with configure/make\n"
+    rm -rf $BUILD_DIR/icu
+    cp -a $DEPS_DIR/icu-${ICU_VER}/ $BUILD_DIR/icu || error
+    cd $BUILD_DIR/icu/source || error
+
+    # ICU adds no -O when CFLAGS is set, so inject it (see build_with_configure). The
+    # --enable-debug/--enable-release pair stays for ICU's internal assertion settings.
+    [ "$btype" = "debug" ] && { __icu_btype="--enable-debug --disable-release"; __opt="-O2 -g"; } || { __icu_btype="--disable-debug --enable-release"; __opt="-O2"; }
+    printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" \
+    ./configure --prefix=$PREFIX \
+                --enable-shared --disable-static ${__icu_btype} \
+                --disable-samples --disable-tests > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  make (see `mypwd`/my_make.log${MY_DONE_EXT}) ... "
+    make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
+    echo "done"
+
+    printf "  make install (see `mypwd`/my_make_install.log${MY_DONE_EXT}) ... "
+    make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
+    echo "done"
+    do_cleans="$do_cleans `pwd`"
+
+    cd $BUILD_DIR || error
+    touch $BUILD_DIR/icu/.my_done${MY_DONE_EXT}
+  fi
+}
+# Built with ICU (ours, built right before); Python bindings + compression not needed.
+# Provides xmllint for shared-mime-info. 2.15.x dropped autotools — meson only.
+build_libxml2 () {
+  build_with_meson libxml2 ${LIBXML2_VER} -Dicu=enabled -Dlegacy=enabled
+}
+
 # build_libdrm () {
 #   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
 # }
@@ -966,7 +1204,8 @@ build_gobject_introspection () {
 }
 
 build_guile () {
-  build_with_configure guile ${GUILE_VER} --enable-shared --disable-static --disable-error-on-warning --enable-mini-gmp
+  build_with_configure guile ${GUILE_VER} --enable-shared --disable-static --disable-error-on-warning --enable-mini-gmp \
+    --with-libreadline-prefix=$PREFIX
 }
 
 build_swig () {
@@ -1055,6 +1294,10 @@ build_poppler () {
 
 build_curl () {
     build_with_cmake curl ${CURL_VER} \
+      -DCURL_USE_OPENSSL=ON \
+      -DCURL_DISABLE_LDAP=ON \
+      -DCURL_DISABLE_LDAPS=ON \
+      -DCURL_USE_LIBSSH2=OFF \
       -DBUILD_TESTING=OFF \
       -DBUILD_LIBCURL_DOCS=OFF \
       -DBUILD_MISC_DOCS=OFF \
@@ -1075,7 +1318,10 @@ build_tiff() {
     ./autogen.sh --prefix=$PREFIX > my_autogen.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_autogen.log${MY_DONE_EXT}"
     echo "done"
 
+    # Explicit opt: a set CFLAGS suppresses autoconf's -O2 default (see build_with_configure).
+    [ "$btype" = "debug" ] && __opt="-O2 -g" || __opt="-O2"
     printf "  running configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
+    CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" \
     ./configure --prefix=$PREFIX \
                 --enable-cxx \
                 --with-jpeg-lib-dir=$PREFIX/lib \
@@ -1100,11 +1346,11 @@ build_tiff() {
 # Cairo's features are all auto-detected and every dependency is already built
 # before this point — a single pass is sufficient, no circular bootstrap needed.
 build_cairo () {
-  build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled
+  build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled -Dlzo=disabled
 }
 
 build_pango () {
-  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled -Dbuild-testsuite=false -Dbuild-examples=false
+  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled -Dbuild-testsuite=false -Dbuild-examples=false -Dlibthai=disabled
 }
 
 build_smi () {
@@ -1275,6 +1521,8 @@ build_rdkit () {
 }
 
 build_mmdb2 () {
+  # Legacy crystallographic lib: needs the old-Fortran flags (no longer set globally).
+  FFLAGS="-std=f2008 -fallow-argument-mismatch" \
   build_with_configure mmdb2 ${MMDB_VER} --enable-shared
 }
 
@@ -1297,6 +1545,8 @@ build_gemmi () {
 
 build_libccp4 () {
   additional_build_env_setup
+  # Legacy crystallographic lib: needs the old-Fortran flags (no longer set globally).
+  FFLAGS="-std=f2008 -fallow-argument-mismatch" \
   CFLAGS="$CFLAGS -Wno-incompatible-pointer-types -std=gnu17" \
   build_with_configure libccp4 ${LIBCCP4_VER} \
     --enable-shared --disable-static \
@@ -1323,7 +1573,10 @@ build_libssm () {
     ( aclocal && libtoolize --automake --copy && autoconf && automake --copy --add-missing --gnu ) > my_setup.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_setup.log${MY_DONE_EXT}"
     echo "done"
 
+    # Explicit opt: a set CFLAGS suppresses autoconf's -O2 default (see build_with_configure).
+    [ "$btype" = "debug" ] && __opt="-O2 -g" || __opt="-O2"
     printf "  configure libssm ... "
+    CFLAGS="${CFLAGS} ${__opt}" CXXFLAGS="${CXXFLAGS} ${__opt}" \
     ./configure --prefix=$PREFIX \
       --enable-shared --disable-static \
       --enable-ccp4 > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
@@ -1360,6 +1613,7 @@ build_libclipper () {
     [ "$btype" = "debug" ] && __dbg_flag="-g"
     CXXFLAGS="${__dbg_flag} -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
     CFLAGS="${__dbg_flag} -O2 -fno-strict-aliasing -Wno-narrowing -I$PREFIX/include" \
+    FFLAGS="-std=f2008 -fallow-argument-mismatch" \
     $DEPS_DIR/clipper-${LIBCLIPPER_VER_PRE}/configure --prefix=$PREFIX \
       --enable-shared --disable-static \
       --enable-contrib --enable-ccp4 \
@@ -1401,12 +1655,15 @@ build_libclipper () {
 build_fftw () {
   #FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --enable-openmp --enable-threads --with-gcc --with-gnu-ld"
   FFTW_CONFIGURE="./configure F77=gfortran${GCC_COMMAND_EXT} --prefix=$PREFIX --enable-shared --disable-static --with-gcc --with-gnu-ld"
+  # Explicit opt: a set CFLAGS suppresses autoconf's -O2 default (see build_with_configure).
+  # Prefixed (quoted) on each call below so $FFTW_CONFIGURE still word-splits as before.
+  [ "$btype" = "debug" ] && __opt="-O2 -g" || __opt="-O2"
   if [ ! -f $BUILD_DIR/fftw/.my_done${MY_DONE_EXT} ]; then
     printf "\n ### building fftw with configure/make ... "
     rm -rf $BUILD_DIR/fftw
     cp -a $DEPS_DIR/fftw-${FFTW_VER} $BUILD_DIR/fftw || error
     cd $BUILD_DIR/fftw || error
-    ${FFTW_CONFIGURE} > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    CFLAGS="${CFLAGS} ${__opt}" ${FFTW_CONFIGURE} > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
     make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
     do_cleans="$do_cleans `pwd`"
@@ -1420,7 +1677,7 @@ build_fftw () {
     rm -rf $BUILD_DIR/sfftw
     cp -a $DEPS_DIR/fftw-${FFTW_VER} $BUILD_DIR/sfftw || error
     cd $BUILD_DIR/sfftw || error
-    ${FFTW_CONFIGURE} --enable-type-prefix --enable-float > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+    CFLAGS="${CFLAGS} ${__opt}" ${FFTW_CONFIGURE} --enable-type-prefix --enable-float > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     make -j ${nthreads} > my_make.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make.log${MY_DONE_EXT}"
     make install > my_make_install.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_make_install.log${MY_DONE_EXT}"
     do_cleans="$do_cleans `pwd`"
@@ -1559,15 +1816,32 @@ download_toolchain () {
       ln -s python-${PYTHON_VER} Python-${PYTHON_VER} || error
   fi
 
+  # Built in initial_setup before Python (which links them). Fetched here so the
+  # toolchain phase is self-contained.
+  do_wget https://ftp.gnu.org/gnu/ncurses/ncurses-${NCURSES_VER}.tar.gz
+  do_wget https://ftp.gnu.org/gnu/readline/readline-${READLINE_VER}.tar.gz
+  do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
+  do_wget https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz
+
+  # zlib, zstd, brotli — built before Python (zipfile/gzip/pip) and OpenSSL
+  # (compression support). System cmake is used for zstd/brotli.
+  do_wget https://github.com/madler/zlib/releases/download/v${ZLIB_VER}/zlib-${ZLIB_VER}.tar.xz
+  do_wget https://github.com/facebook/zstd/archive/refs/tags/v${ZSTD_VER}.tar.gz zstd-${ZSTD_VER}.tar.gz
+  do_wget https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VER}.tar.gz brotli-${BROTLI_VER}.tar.gz
+  # bzip2 — shared library only; Python's _bz2 needs it
+  do_wget https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VER}.tar.gz
+  # xz/liblzma — Python's _lzma needs it; also a NEEDED of libdw (elfutils) and libtiff
+  do_wget https://github.com/tukaani-project/xz/releases/download/v${XZ_VER}/xz-${XZ_VER}.tar.gz
+
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
   cd $BUILD_DIR/cmakebuild || error
-  do_wget https://github.com/Kitware/CMake/archive/refs/tags/v${CMAKE_VER}.tar.gz
+  do_wget https://github.com/Kitware/CMake/archive/refs/tags/v${CMAKE_VER}.tar.gz cmake-${CMAKE_VER}.tar.gz
 
   # Newer Ninja
   mkdir -p $BUILD_DIR/ninjabuild || error
   cd $BUILD_DIR/ninjabuild || error
-  do_wget https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VER}.tar.gz
+  do_wget https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VER}.tar.gz ninja-${NINJA_VER}.tar.gz
 
   # Rust installer (rustup-init.sh). Only the bootstrap script is fetched here; the
   # actual rustup/cargo-c install stays in initial_setup (it writes to CARGO_HOME).
@@ -1583,6 +1857,11 @@ download_toolchain () {
 }
 
 initial_setup () {
+  # Subshell so this phase's build-flag env (CFLAGS/LDFLAGS from additional_build_env_setup)
+  # can't leak into deps; `|| error` re-raises the subshell's exit, do_cleans is stashed via file.
+  __cleans_file="$BUILD_DIR/.initial_setup_do_cleans"
+  rm -f "$__cleans_file"
+  (
 
   mkdir -p $PREFIX    || error
   mkdir -p $DEPS_DIR  || error
@@ -1593,6 +1872,21 @@ initial_setup () {
   download_toolchain || error
 
   cd $PREFIX || error
+
+  # libffi, ncurses, readline, compression libs and openssl are linked by Python (ctypes /
+  # _curses / readline / zipfile+gzip+bz2+lzma / ssl, plus pip's HTTPS) and must exist before
+  # it — built here, not in the deps phase. additional_build_env_setup puts $PREFIX on
+  # the compiler -I/-L paths so readline finds ncurses.
+  additional_build_env_setup
+  build_ncurses  || error
+  build_readline || error
+  build_libffi   || error
+  build_zlib     || error
+  build_zstd     || error
+  build_brotli   || error
+  build_bzip2    || error
+  build_xz       || error
+  build_openssl  || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
     printf "\n"
@@ -1634,6 +1928,11 @@ initial_setup () {
     cd ${PREFIX} || error
     touch $BUILD_DIR/cmakebuild/.my_done
   fi
+
+  # zlib/zstd/brotli already ran `cmake` (system one) earlier this phase, so the shell
+  # hash-cached that path; without this the ninja build below and every deps-phase
+  # build_with_cmake would keep using the old system cmake instead of the one just built.
+  hash -r 2>/dev/null || true
 
   # Newer Ninja (source fetched + unpacked by download_toolchain)
   if [ ! -f $BUILD_DIR/ninjabuild/.my_done ]; then
@@ -1678,6 +1977,10 @@ initial_setup () {
     $CARGO_HOME/bin/cargo install cargo-c --locked > $DEPS_DIR/rust/my_cargo_c_install.log 2>&1 || error "see $DEPS_DIR/rust/my_cargo_c_install.log"
     echo "done"
   fi
+
+  printf '%s' "$do_cleans" > "$__cleans_file" || error
+  ) || error
+  [ -f "$__cleans_file" ] && { do_cleans=`cat "$__cleans_file"`; rm -f "$__cleans_file"; }
 }
 
 setup_build_env () {
@@ -1690,10 +1993,28 @@ setup_build_env () {
   export CMAKE_PREFIX_PATH="$PREFIX"
   export GI_TYPELIB_PATH="$PREFIX/lib/girepository-1.0:$PREFIX/lib64/girepository-1.0"
   export CMAKE_BUILD_PARALLEL_LEVEL=${nthreads}
-  # Make cargo's crates.io downloads resilient to transient registry/HTTP2 hiccups
-  # (e.g. the "[16] Error in the HTTP2 framing layer" seen in CI). Applies to every
-  # cargo invocation in this run: cargo-c install and librsvg's cargo cbuild.
+  # Resilience for cargo's crates.io downloads. MULTIPLEXING=false drops HTTP/2 (one
+  # request per connection), sidestepping the recurring "[16] HTTP2 framing layer"
+  # error that retries alone can't fix. Hits cargo-c install and librsvg's cargo cbuild.
   export CARGO_NET_RETRY=40
+  export CARGO_HTTP_MULTIPLEXING=false
+
+  # Our from-source OpenSSL shadows the system libssl (via LD_LIBRARY_PATH) but ships no
+  # cert store; point TLS tools (wget, rustup, pip) at the build host's CA bundle so HTTPS
+  # still verifies. coot-env.sh does the same for the shipped tarball at runtime.
+  if [ "X$SSL_CERT_FILE" = "X" ]; then
+    for __ca in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt \
+                /etc/ssl/ca-bundle.pem /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem \
+                /etc/ssl/cert.pem; do
+      [ -f "$__ca" ] && { export SSL_CERT_FILE="$__ca"; break; }
+    done
+  fi
+  [ -d /etc/ssl/certs ] && export SSL_CERT_DIR=/etc/ssl/certs
+  [ "X$SSL_CERT_FILE" != "X" ] && export CURL_CA_BUNDLE="$SSL_CERT_FILE"
+
+  # Our from-source libxml2 defaults its catalog to $PREFIX/etc/xml/catalog (empty); point it
+  # at the host's so xmlto/xmllint resolve DocBook DTDs locally instead of fetching over HTTP.
+  [ "X$XML_CATALOG_FILES" = "X" ] && [ -f /etc/xml/catalog ] && export XML_CATALOG_FILES=/etc/xml/catalog
 
   # GCC_COMMAND_EXT is an optional version suffix set in the distro config (e.g. "-13" → gcc-13).
   # Only set CC/CXX/FC/F77 when the caller hasn't already provided them.
@@ -1737,7 +2058,9 @@ setup_build_env () {
 }
 
 additional_build_env_setup () {
-  export FFLAGS="-std=f2008 -fallow-argument-mismatch"
+  # No FFLAGS here: the legacy crystallographic libs (mmdb2/libccp4/libclipper) that need
+  # "-std=f2008 -fallow-argument-mismatch" set it themselves. Exporting it globally broke
+  # the cmake Fortran checks in eigen/openblas.
   export CFLAGS="-I${PREFIX}/include"
   export CXXFLAGS="-I${PREFIX}/include"
   IFS=":"
@@ -1757,11 +2080,27 @@ additional_build_env_setup () {
 }
 
 
-#TODO:
-# * libbackward
 
 download_dependencies () {
   cd $DEPS_DIR || error
+
+  # util-linux (for libmount). Unpacks to util-linux-${UTIL_LINUX_VER} (used as-is).
+  do_wget https://www.kernel.org/pub/linux/utils/util-linux/v`echo ${UTIL_LINUX_VER} | cut -d. -f1-2`/util-linux-${UTIL_LINUX_VER}.tar.xz
+
+  # ICU (icu4c) — unpacks to icu/; rename so the source dir is icu-${ICU_VER}
+  # (symlink left behind so do_wget doesn't re-unpack on reruns).
+  do_wget https://github.com/unicode-org/icu/releases/download/release-${ICU_VER}/icu4c-${ICU_VER}-sources.tgz icu4c-${ICU_VER}-sources.tgz
+  if [ -d icu ] && [ ! -d icu-${ICU_VER} ]; then
+    mv icu icu-${ICU_VER} && \
+      ln -s icu-${ICU_VER} icu || error
+  fi
+
+  # libxml2 — provides xmllint for shared-mime-info
+  do_wget https://gitlab.gnome.org/GNOME/libxml2/-/archive/v${LIBXML2_VER}/libxml2-v${LIBXML2_VER}.tar.bz2
+  if [ -d libxml2-v${LIBXML2_VER} ] && [ ! -d libxml2-${LIBXML2_VER} ]; then
+    mv libxml2-v${LIBXML2_VER} libxml2-${LIBXML2_VER} && \
+      ln -s libxml2-${LIBXML2_VER} libxml2-v${LIBXML2_VER} || error
+  fi
 
   #Libjpeg
   do_wget https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${LIBJPEG_VER}.tar.gz libjpeg-turbo-${LIBJPEG_VER}.tar.gz
@@ -1937,8 +2276,6 @@ download_dependencies () {
   # Harfbuzz
   do_wget https://github.com/harfbuzz/harfbuzz/archive/refs/tags/${HARFBUZZ_VER}.tar.gz harfbuzz-${HARFBUZZ_VER}.tar.gz
 
-  do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
-
   # # elfutils
   do_wget https://sourceware.org/ftp/elfutils/${ELFUTILS_VER}/elfutils-${ELFUTILS_VER}.tar.bz2
 
@@ -1981,6 +2318,9 @@ download_dependencies () {
 }
 
 build_dependencies () {
+  # Put $PREFIX on the compiler -I/-L paths up front so even the earliest configure deps
+  # (util_linux, elfutils) link OUR zlib/zstd/bzip2/lzma rather than the system copies.
+  additional_build_env_setup
   # order matters - and some have to be done multiple times it seems
   for dep in $BUILD_DEPENDENCIES
   do
@@ -2773,6 +3113,19 @@ GUILE_WARN_DEPRECATED=no; export GUILE_WARN_DEPRECATED
 [ -d "$COOT_PREFIX/etc/fonts" ]            && [ "X${COOT_FONTCONFIG_PATH:-}" = "X" ] && { FONTCONFIG_PATH="$COOT_PREFIX/etc/fonts"; export FONTCONFIG_PATH; }
 [ -f "$COOT_PREFIX/etc/fonts/fonts.conf" ] && [ "X${COOT_FONTCONFIG_FILE:-}" = "X" ] && { FONTCONFIG_FILE="$COOT_PREFIX/etc/fonts/fonts.conf"; export FONTCONFIG_FILE; }
 [ -d "$COOT_PREFIX/var/cache/fontconfig" ] && [ "X${COOT_FC_CACHEDIR:-}" = "X" ]     && { FC_CACHEDIR="$COOT_PREFIX/var/cache/fontconfig"; export FC_CACHEDIR; }
+
+# --- TLS CA certificates: the bundled OpenSSL ships no cert store, so point it at the
+# host's CA bundle (desktop Linux is expected to provide one). All skipped if already set. ---
+if [ "X${SSL_CERT_FILE:-}" = "X" ]; then
+  for _coot_ca in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt \
+                  /etc/ssl/ca-bundle.pem /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem \
+                  /etc/ssl/cert.pem; do
+    [ -f "$_coot_ca" ] && { SSL_CERT_FILE="$_coot_ca"; export SSL_CERT_FILE; break; }
+  done
+  unset _coot_ca
+fi
+[ "X${SSL_CERT_DIR:-}" = "X" ] && [ -d /etc/ssl/certs ] && { SSL_CERT_DIR=/etc/ssl/certs; export SSL_CERT_DIR; }
+[ "X${CURL_CA_BUNDLE:-}" = "X" ] && [ -n "${SSL_CERT_FILE:-}" ] && { CURL_CA_BUNDLE="$SSL_CERT_FILE"; export CURL_CA_BUNDLE; }
 
 # Return success: the trailing conditionals above leave $? non-zero when their dirs are
 # absent, which would abort a caller that sources this file under `set -e`.
