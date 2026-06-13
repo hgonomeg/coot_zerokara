@@ -222,6 +222,8 @@ if [ $do_os -eq 1 ]; then
              libXrender-devel \
              libXext-devel \
              libxkbcommon-devel \
+             Mesa-libGL-devel \
+             Mesa-libEGL-devel \
              gmp-devel \
              libglfw-devel \
              xmlto \
