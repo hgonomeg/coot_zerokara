@@ -1356,7 +1356,7 @@ build_tiff() {
 # Cairo's features are all auto-detected and every dependency is already built
 # before this point — a single pass is sufficient, no circular bootstrap needed.
 build_cairo () {
-  build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled
+  build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled -Dlzo=disabled
 }
 
 build_pango () {
