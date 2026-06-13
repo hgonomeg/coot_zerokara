@@ -1122,7 +1122,8 @@ build_openssl () {
 build_util_linux () {
   build_with_configure util-linux ${UTIL_LINUX_VER} \
     --disable-all-programs --enable-libuuid --enable-libblkid --enable-libmount \
-    --disable-static --disable-nls --disable-bash-completion
+    --disable-static --disable-nls --disable-bash-completion \
+    --without-econf
 }
 
 # Hand-rolled: ICU's configure lives under source/, so build_with_configure can't drive it.
