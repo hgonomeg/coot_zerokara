@@ -224,8 +224,10 @@ if [ $do_os -eq 1 ]; then
              libxkbcommon-devel \
              Mesa-libGL-devel \
              Mesa-libEGL-devel \
+             Mesa-libGLESv2-devel \
              gmp-devel \
              libglfw-devel \
+             gperftools-devel \
              xmlto \
              docbook_4 \
              docbook-xsl-stylesheets \
@@ -235,6 +237,7 @@ if [ $do_os -eq 1 ]; then
              gettext-tools \
              libpsl-devel \
              glibc-locale \
+             glibc-gconv-modules-extra \
              openal-soft-devel \
              libseccomp-devel \
              doxygen \
