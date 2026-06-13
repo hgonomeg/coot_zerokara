@@ -237,7 +237,6 @@ if [ $do_os -eq 1 ]; then
              gettext-tools \
              libpsl-devel \
              glibc-locale \
-             glibc-gconv-modules-extra \
              openal-soft-devel \
              libseccomp-devel \
              doxygen \
