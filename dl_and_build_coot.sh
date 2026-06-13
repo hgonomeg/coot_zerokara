@@ -197,7 +197,7 @@ if [ $do_os -eq 1 ]; then
              wget \
              git \
              vim \
-             gzip bzip2 lzo-devel \
+             gzip bzip2 \
              hostname \
              autoconf \
              automake \
@@ -309,7 +309,6 @@ if [ $do_os -eq 1 ]; then
             expat-devel \
             dbus-devel \
             sqlite-devel \
-            lzo-devel \
             libpng-devel \
             libxcb-devel \
             xcb-util-devel \
@@ -378,7 +377,6 @@ if [ $do_os -eq 1 ]; then
               $__toolsets \
               dbus-devel \
               sqlite-devel \
-              lzo-devel \
               libpng-devel \
               libxcb-devel \
               xcb-util-devel \
@@ -400,7 +398,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake cmake gperf file vim xmlto libtool-bin \
           libdbus-1-dev libexpat1-dev libelf-dev \
-          libsqlite3-dev liblzo2-dev libpng-dev \
+          libsqlite3-dev libpng-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -419,7 +417,7 @@ if [ $do_os -eq 1 ]; then
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
             dbus expat \
-            sqlite lzo xz bzip2 libpng \
+            sqlite xz bzip2 libpng \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
