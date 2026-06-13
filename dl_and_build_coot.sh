@@ -1360,7 +1360,7 @@ build_cairo () {
 }
 
 build_pango () {
-  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled -Dbuild-testsuite=false -Dbuild-examples=false
+  build_with_meson pango ${PANGO_VER} -Dintrospection=enabled -Dbuild-testsuite=false -Dbuild-examples=false -Dlibthai=disabled
 }
 
 build_smi () {
