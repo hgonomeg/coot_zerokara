@@ -1227,8 +1227,19 @@ build_boost () {
     fi
 
     [ "$btype" = "debug" ] && __boost_debug="debug-symbols=on" || __boost_debug=""
+    # b2 only auto-probes system paths: point iostreams at our $PREFIX zlib/bzip2/lzma/
+    # zstd (else filters drop, RDKit won't link); cmake puts zlib/zstd in lib64 on Fedora.
+    __zlibd=${PREFIX}/lib; [ -e ${PREFIX}/lib64/libz.so ]    && __zlibd=${PREFIX}/lib64
+    __bz2d=${PREFIX}/lib;  [ -e ${PREFIX}/lib64/libbz2.so ]  && __bz2d=${PREFIX}/lib64
+    __lzmad=${PREFIX}/lib; [ -e ${PREFIX}/lib64/liblzma.so ] && __lzmad=${PREFIX}/lib64
+    __zstdd=${PREFIX}/lib; [ -e ${PREFIX}/lib64/libzstd.so ] && __zstdd=${PREFIX}/lib64
     printf " ### building boost (see `mypwd`/my_build.log${MY_DONE_EXT}) ... "
-    BOOST_BUILD_PATH=. ./b2 link=shared variant=release threading=multi runtime-link=shared ${__boost_debug} install --prefix=${PREFIX} > my_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_build.log${MY_DONE_EXT}"
+    BOOST_BUILD_PATH=. ./b2 link=shared variant=release threading=multi runtime-link=shared ${__boost_debug} \
+      -sZLIB_INCLUDE=${PREFIX}/include  -sZLIB_LIBPATH=${__zlibd} \
+      -sBZIP2_INCLUDE=${PREFIX}/include -sBZIP2_LIBPATH=${__bz2d} \
+      -sLZMA_INCLUDE=${PREFIX}/include  -sLZMA_LIBPATH=${__lzmad} \
+      -sZSTD_INCLUDE=${PREFIX}/include  -sZSTD_LIBPATH=${__zstdd} \
+      install --prefix=${PREFIX} > my_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_build.log${MY_DONE_EXT}"
     echo "done"
 
     cd $BUILD_DIR || error
