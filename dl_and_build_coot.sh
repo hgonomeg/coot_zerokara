@@ -214,7 +214,6 @@ if [ $do_os -eq 1 ]; then
              libXtst-devel \
              libexpat-devel \
              dbus-1-devel \
-             libpng16-devel \
              libxcb-devel \
              xcb-util-devel \
              xcb-util-renderutil-devel \
@@ -302,7 +301,6 @@ if [ $do_os -eq 1 ]; then
             expat-devel \
             dbus-devel \
             sqlite-devel \
-            libpng-devel \
             libxcb-devel \
             xcb-util-devel \
             gmp-devel \
@@ -369,7 +367,6 @@ if [ $do_os -eq 1 ]; then
               $__toolsets \
               dbus-devel \
               sqlite-devel \
-              libpng-devel \
               libxcb-devel \
               xcb-util-devel \
               gmp-devel \
@@ -390,7 +387,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake cmake gperf file vim xmlto libtool-bin \
           libdbus-1-dev libexpat1-dev \
-          libsqlite3-dev libpng-dev \
+          libsqlite3-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -409,7 +406,7 @@ if [ $do_os -eq 1 ]; then
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
             dbus expat \
-            sqlite xz bzip2 libpng \
+            sqlite xz bzip2 \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
@@ -471,6 +468,7 @@ BUILD_DEPENDENCIES="
     boost
     glib
     graphene
+    libpng
     harfbuzz
     freetype
     fontconfig
@@ -538,6 +536,7 @@ LIBEPOXY_VER=1.5.10
 GRAPHENE_VER=1.10.8
 HARFBUZZ_VER=14.2.1
 FREETYPE_VER=2.14.3
+LIBPNG_VER=1.6.58
 FONTCONFIG_VER=2.18.1
 FONTS_INTER_VER=4.1
 FONTS_JETBRAINS_VER=2.304
@@ -1252,6 +1251,11 @@ build_harfbuzz2 () {
 
 build_graphene () {
   build_with_meson graphene ${GRAPHENE_VER} -Dgtk_doc=false -Dtests=false -Dinstalled_tests=false
+}
+
+build_libpng () {
+  build_with_cmake libpng ${LIBPNG_VER} \
+    -DPNG_SHARED=ON -DPNG_STATIC=OFF -DPNG_TESTS=OFF -DPNG_TOOLS=OFF
 }
 
 build_freetype () {
@@ -2137,6 +2141,9 @@ download_dependencies () {
 
   # Boost
   do_wget https://archives.boost.io/release/${BOOST_VER}/source/boost_${BOOST_VER_}.tar.bz2
+
+  # Libpng
+  do_wget https://github.com/pnggroup/libpng/archive/refs/tags/v${LIBPNG_VER}.tar.gz libpng-${LIBPNG_VER}.tar.gz
 
   # Freetype2
   #   This one is a special snowflake which really likes to fail...

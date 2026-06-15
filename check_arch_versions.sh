@@ -39,6 +39,7 @@ gobject-introspection:GOBJECT_INTROSPECTION_VER:1.86.0
 guile:GUILE_VER:3.0.11
 swig:SWIG_VER:4.4.1
 harfbuzz:HARFBUZZ_VER:14.2.1
+libpng:LIBPNG_VER:1.6.58
 freetype2:FREETYPE_VER:2.14.3
 fontconfig:FONTCONFIG_VER:2.18.1
 pixman:PIXMAN_VER:0.46.4
