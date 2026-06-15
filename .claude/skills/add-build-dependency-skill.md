@@ -114,6 +114,29 @@ CFLAGS="-I/x" ./configure ... && grep -m1 -E '^ *CFLAGS' Makefile   # must show 
 
 ## Step 3: Verify the Download URL
 
+### ALWAYS use the official release tarball, never an auto-generated snapshot
+
+Fetch the project's **official release tarball** — the one upstream publishes and
+signs/checksums on its release page (SourceForge `download.sourceforge.net/...`,
+Savannah, `ftp.gnu.org`, the GitHub *Releases* **assets**, the project's own site).
+
+**Never use a VCS auto-snapshot**: `github.com/<o>/<r>/archive/refs/tags/<tag>.tar.gz`,
+`codeload.github.com/.../tar.gz/...`, GitLab `/-/archive/...`. These are regenerated
+from the tag on the fly — they have no stable checksum, may omit bundled/pre-generated
+files (autotools `configure`, vendored sources), and can change content under the same
+tag. Use them **only** as a genuine last resort when upstream publishes no release
+asset, and say so in your summary.
+
+Check the Arch PKGBUILD `source=` array (below) — it points at the canonical upstream
+tarball and is the quickest way to find the official URL.
+
+```bash
+# Example: libpng's official source is the SourceForge release tarball, NOT the GitHub
+# tag snapshot:
+#   GOOD: https://download.sourceforge.net/libpng/libpng-1.6.58.tar.xz
+#   BAD:  https://github.com/pnggroup/libpng/archive/refs/tags/v1.6.58.tar.gz
+```
+
 ### Use Arch PKGBUILD as a reference for uncertainty
 
 When uncertain about download URLs or how optional dependencies are handled, check the Arch Linux PKGBUILD:
@@ -151,42 +174,99 @@ Result: highway → libjxl → bubblewrap → glycin
 
 Let the user choose. Some sub-dependencies can be disabled via build flags (like libheif in glycin), while others are required (like highway in libjxl).
 
-### Find the correct archive URL format
+### Find the correct (official) archive URL format
 
-**GitHub releases pattern:**
+Prefer, in order: the project's own download host, then a release asset uploaded to the
+forge. These are the published tarballs, not snapshots.
+
 ```bash
-# Source archives (works even if releases page doesn't list them)
-https://github.com/owner/repo/archive/refs/tags/v{VERSION}.tar.gz
-https://github.com/owner/repo/archive/refs/tags/{VERSION}.tar.gz
-
-# Verify with curl (302 redirect is normal):
-curl -s -I https://github.com/google/highway/archive/refs/tags/1.4.0.tar.gz | head -1
-# Should return: HTTP/2 302 (redirect to actual archive)
-```
-
-**Other sources:**
-```bash
-# GitLab releases
-https://gitlab.com/owner/project/-/archive/{VERSION}/project-{VERSION}.tar.gz
-
-# GNU project mirrors
+# Project download sites / mirrors (official release tarballs):
+https://download.sourceforge.net/{project}/{project}-{VERSION}.tar.xz
+https://download.savannah.gnu.org/releases/{project}/{project}-{VERSION}.tar.xz
 https://ftp.gnu.org/gnu/{project}/{project}-{VERSION}.tar.gz
+https://www.cairographics.org/releases/{project}-{VERSION}.tar.xz
 
-# Savannah projects
-https://download.savannah.gnu.org/releases/{project}/{project}-{VERSION}.tar.gz
+# GitHub *Releases* — the uploaded ASSET (a real release tarball), under /releases/download/:
+https://github.com/owner/repo/releases/download/v{VERSION}/{project}-{VERSION}.tar.xz
+# (Check the release page for the exact asset name; it often differs from the repo name.)
 ```
+
+If — and only if — upstream publishes no release asset, fall back to the tag snapshot
+(`.../archive/refs/tags/...`) and note the fallback in your summary.
 
 ### Test the URL before committing
+Follow redirects and confirm you land on a real tarball, not an HTML error page:
 ```bash
-# Quick test - should return 2xx or 3xx status
-curl -s -I "https://github.com/owner/repo/archive/refs/tags/v${VERSION}.tar.gz" | head -1
+curl -sIL "$URL" | grep -iE '^HTTP|^content-type|^content-length'
+# Want a final 'HTTP .. 200', content-type application/octet-stream (or x-xz/gzip),
+# and a content-length in the hundreds-of-KB+ range. text/html = wrong URL.
 ```
 
 **Common issues:**
+- Auto-snapshot instead of the official release tarball (see the rule above)
 - Pre-built binaries instead of source (check release assets)
 - Missing 'v' prefix in tag name
 - Deprecated mirror URLs
 - API URLs that require redirects
+
+---
+
+## Step 3.5: Verify the dependency chain with pacman
+
+Before deciding *where* in `BUILD_DEPENDENCIES` the package goes, find — empirically,
+not by guessing — **which other packages in the build depend on it** and **which
+packages it depends on**. The list is order-sensitive: a dependency must be built before
+every consumer. On an Arch box, `pacman -Si` is the source of truth for these edges.
+
+This protects against two failure modes:
+1. The new lib is placed *after* something that needs it → that consumer builds without
+   it (often silently, with a feature auto-disabled).
+2. The new lib needs an input that isn't ready yet → it fails to build. **Inputs can live
+   in the toolchain phase** (zlib, openssl, ncurses, readline, libffi, Python, cmake are
+   built there, before `BUILD_DEPENDENCIES`), so "not in the deps list" does **not** mean
+   "not available". Check the toolchain phase too.
+
+### Find consumers of the new lib (who must come after it)
+Map every `BUILD_DEPENDENCIES` entry to its Arch package name (they often differ:
+`glib`→`glib2`, `freetype`→`freetype2`, `tiff`→`libtiff`, `gdk_pixbuf`→`gdk-pixbuf2`,
+`gtk`→`gtk4`; chem/niche libs may have no repo pkg — note those as unverifiable). Then
+scan each one's **full** `Depends On` field for your lib:
+
+```bash
+# NB: the Bash tool's shell is zsh, which does NOT word-split unquoted $vars in a for
+# loop — run this under bash, and parse the MULTI-LINE 'Depends On' field (pacman wraps
+# it across lines; matching only the first line silently misses dependencies).
+bash <<'EOF'
+NEWLIB=libpng                       # arch package name of the lib you're adding
+# dep-name:arch-pkg pairs, in BUILD_DEPENDENCIES order:
+maps="util_linux:util-linux glib:glib2 harfbuzz:harfbuzz freetype:freetype2 cairo:cairo \
+      poppler:poppler libjxl:libjxl gtk:gtk4 ..."   # include EVERY entry, even 'no repo pkg' ones
+for m in $maps; do
+  dep=${m%%:*}; arch=${m##*:}
+  info=$(pacman -Si "$arch" 2>/dev/null)
+  [ -z "$info" ] && { printf "%-20s %-16s [no repo pkg]\n" "$dep" "$arch"; continue; }
+  if printf '%s' "$info" | sed -n '/^Depends On/,/^Optional Deps/p' | grep -qiE "$NEWLIB"; then
+    printf "%-20s %-16s REQUIRES %s\n" "$dep" "$arch" "$NEWLIB"
+  fi
+done
+EOF
+```
+
+Every package printed `REQUIRES` must sit **after** the new lib in `BUILD_DEPENDENCIES`.
+Watch for packages that appear **twice** (e.g. `harfbuzz`, `gdk_pixbuf`): the *first*
+pass may legitimately predate your lib if that pass doesn't use it (features are
+auto-detected and the earlier pass runs before the consumer is built) — reason about the
+specific pass, don't just look at the name.
+
+### Sanity-check the reverse edge (inputs that must come before it)
+Confirm the new lib's own hard deps are already built earlier — in `BUILD_DEPENDENCIES`
+*or* the toolchain phase:
+
+```bash
+pacman -Si "$NEWLIB" | sed -n '/^Depends On/,/^Optional Deps/p'
+# e.g. libpng -> zlib: zlib is built in the toolchain phase, so libpng anywhere in the
+# deps list is fine.
+```
 
 ---
 
@@ -313,7 +393,13 @@ Before committing:
 - [ ] **Optimization + debug symbols honor `$btype`** - Generic helpers handle it; for any
       hand-rolled build, inject `-O2`(opt)/`-O2 -g`(debug) and verify `-O` actually lands in
       the generated Makefile (the exported `CFLAGS` suppresses build-system `-O` defaults)
-- [ ] **Download URL tested** - `curl -I <URL>` returns 2xx or 3xx status
+- [ ] **Official source, not a snapshot** - Release tarball (download host / release asset),
+      not a `archive/refs/tags` or `/-/archive` VCS snapshot (fallback noted if unavoidable)
+- [ ] **Download URL tested** - `curl -sIL <URL>` lands on a real tarball (HTTP 200,
+      octet-stream/x-xz, sizeable content-length), not text/html
+- [ ] **Dependency chain verified with pacman** (Step 3.5) - consumers found via
+      `pacman -Si` all sit *after* the new lib; its own inputs (incl. toolchain-phase ones)
+      sit before it
 - [ ] **Dependency order correct** - Dependencies listed before dependents
 - [ ] **All five components added:**
   - [ ] Version declaration (VER variable)

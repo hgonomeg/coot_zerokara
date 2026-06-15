@@ -2143,7 +2143,7 @@ download_dependencies () {
   do_wget https://archives.boost.io/release/${BOOST_VER}/source/boost_${BOOST_VER_}.tar.bz2
 
   # Libpng
-  do_wget https://github.com/pnggroup/libpng/archive/refs/tags/v${LIBPNG_VER}.tar.gz libpng-${LIBPNG_VER}.tar.gz
+  do_wget https://download.sourceforge.net/libpng/libpng-${LIBPNG_VER}.tar.xz libpng-${LIBPNG_VER}.tar.xz
 
   # Freetype2
   #   This one is a special snowflake which really likes to fail...
