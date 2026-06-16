@@ -1154,9 +1154,6 @@ build_libxml2 () {
   build_with_meson libxml2 ${LIBXML2_VER} -Dicu=enabled -Dlegacy=enabled
 }
 
-# build_libdrm () {
-#   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
-# }
 build_wayland () {
   build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false -Ddtd_validation=false
 }
@@ -1176,9 +1173,6 @@ build_elfutils () {
   build_with_configure elfutils ${ELFUTILS_VER} --disable-debuginfod
 }
 
-# build_libvdpau () {
-#   build_with_meson libvdpau ${LIBVDPAU_VER}
-# }
 
 # First pass without introspection: glib's own .gir files need gobject-introspection,
 # which needs glib.  Second pass (after gobject-introspection) enables .gir generation.
@@ -1846,7 +1840,6 @@ download_toolchain () {
 
   # Rust installer (rustup-init.sh). Only the bootstrap script is fetched here; the
   # actual rustup/cargo-c install stays in initial_setup (it writes to CARGO_HOME).
-  # TODO: Clemens, PLEASE DO NOT CACHE rustup-init.sh in the contrib mirror
   mkdir -p $DEPS_DIR/rust || error
   cd $DEPS_DIR/rust || error
   if [ ! -f rustup-init.sh ]; then
@@ -1905,9 +1898,6 @@ initial_setup () {
     echo "done"
     touch $PREFIX/.my_pip_install_done
   fi
-
-  # python3 -m pip install meson numpy
-
   # Newer CMake (source fetched + unpacked by download_toolchain)
   if [ ! -f $BUILD_DIR/cmakebuild/.my_done ]; then
     printf "\n ### building newer CMake\n"
