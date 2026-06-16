@@ -1056,18 +1056,11 @@ build_ncurses () {
   fi
 }
 
-# Static-only (-fPIC so it embeds into Python's/guile's shared modules). A shared libreadline.so.8
-# would shadow the host bash's via LD_LIBRARY_PATH; where that bash links a symbol-versioned system
-# readline (openSUSE Leap 16) it'd warn "no version information available" and break g-ir-scanner.
+# Static-only (-fPIC): a shared libreadline.so.8 would shadow the host bash's via LD_LIBRARY_PATH.
 build_readline () {
   CFLAGS="$CFLAGS -fPIC" build_with_configure readline ${READLINE_VER} --disable-shared --enable-static
-  # Static readline references termcap globals (UP/BC/PC) it doesn't define; the shared lib carried
-  # a NEEDED on ncurses, a .a can't. Promote the dep from Requires.private to public Libs so plain
-  # pkg-config consumers (CPython's readline module) link -ltinfo and resolve UP at load.
-  # grep: skip if already patched (idempotent on reruns; -- so -ltinfo isn't read as a flag).
-  # sed: on the "Libs:" line, append " -ltinfo" right after the existing -lreadline.
-  # if-block (not an && chain): when already patched the chain's last test would be the
-  # function's nonzero return value, so `build_readline || error` aborted every rerun.
+  # A static readline can't NEED ncurses, so promote -ltinfo to public Libs (CPython links it for UP/BC/PC).
+  # grep skips if already patched; sed appends -ltinfo after the existing -lreadline on the Libs: line.
   __rlpc=$PREFIX/lib/pkgconfig/readline.pc
   if [ -f $__rlpc ] && ! grep -q -- "-ltinfo" $__rlpc; then
     sed -i "s/^\(Libs:.*-lreadline\)/\1 -ltinfo/" $__rlpc
