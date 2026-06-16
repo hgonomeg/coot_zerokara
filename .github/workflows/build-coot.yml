@@ -54,7 +54,7 @@ jobs:
             pacman -Sy --noconfirm --needed git tar zstd
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Full from-scratch build (no caching) run as four phases, one step each. Phase 1
       # installs the OS packages; later phases reuse them via -no-use-os-package-manager.
@@ -94,18 +94,18 @@ jobs:
 
       - name: Collect build logs on failure
         if: failure()
-        run: bash -c "cd $GITHUB_WORKSPACE/coot-build && shopt -s nullglob && tar --zstd -cf build-logs.tar.zst *.log* {deps,build}/*/*.log* {build,deps}/*.log* coot*/*.log* coot*/chapi-build/*.log*"
+        run: bash -c "cd $GITHUB_WORKSPACE/coot-build && shopt -s nullglob && tar --zstd -cf build-logs.tar.zst *.log* {deps,build}/*/*.log* {deps,build}/*/*/*.log* {build,deps}/*.log* coot*/*.log* coot*/chapi-build/*.log*"
 
       - name: Upload build logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-logs-${{ matrix.distro }}
           path: ${{ github.workspace }}/coot-build/build-logs.tar.zst
           if-no-files-found: warn
 
       - name: Upload tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coot-${{ matrix.distro }}-x86_64
           path: ${{ github.workspace }}/coot-build/coot-*.tar.zst

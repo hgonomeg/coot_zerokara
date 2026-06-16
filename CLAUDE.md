@@ -53,7 +53,9 @@ part of the build itself.
   `-d <distro>` / `-n <max>` narrow it. The repo is hard-coded as `hgonomeg/coot_zerokara`
   (override with `--repo`). The matrix-job name parsing assumes CI names jobs
   `build (<distro>, …)`. Read `terminal_output.log` first, then drill into the
-  individual `my_*.log` files.
+  individual `my_*.log` files. **Always pull CI logs with this script** (don't hand-roll
+  `gh api … /logs`), and open the fetched files with the editor's read tool — not
+  `cat`/`tail`/`sed`/`grep`.
 
 ## Continuous integration
 
@@ -66,6 +68,11 @@ Two pipelines build the script across distros:
   `coot-<distro>-x86_64` artifact — so users can grab a ready-built Coot from a green run
   without building it themselves (the README points them here).
 - `Jenkinsfile` — a single `buildready-rocky` image; archives the same logs.
+
+**Reproduce CI failures in a fresh, throwaway container of the matrix image** (`docker run
+--rm opensuse/leap:15.6 …`) — never on your host, whose toolchain (newer binutils, no
+system -devel packages) can mask distro-specific breakage. Build the relevant piece there
+to confirm both the bug and the fix.
 
 Both run the build as the script's **four phases, one step/stage each**
 (`-download-only` → `-toolchain-only` → `-deps-only` → `-coot-stage-only`), so a failure
@@ -82,8 +89,9 @@ key would invalidate on nearly every commit anyway). The phase split exists so t
 **Coot's own CI** (a separate repo) can cache the prebuilt dependency stack; that caching
 is not configured here.
 
-**CI failures are usually transient** (crates.io network / runner out-of-disk), not
-script bugs — triage with `fetch_ci_logs.py` before assuming otherwise.
+Triage every CI failure with `fetch_ci_logs.py` and read the actual error before
+concluding anything — some are script bugs, some are infrastructure (crates.io network,
+runner out-of-disk, distro mirror desync); don't assume either way.
 
 ## How to run it
 
@@ -124,12 +132,13 @@ setup_build_env            # always: PKG_CONFIG_*, LD_*, CC/CXX/FC, PYTHONPATH �
 
 # phase 1 — download   (stage = all | download)
 download_all
-  ├─ download_toolchain    # do_wget Python, CMake, Ninja, rustup-init.sh (NO build)
+  ├─ download_toolchain    # do_wget Python, CMake, Ninja, rustup-init.sh, libffi/ncurses/readline (NO build)
   └─ download_dependencies # do_wget every dependency tarball into $DEPS_DIR
                            #   — NB: neither downloads Coot itself
 
 # phase 2 — toolchain  (stage = all | toolchain)
 initial_setup             # calls download_toolchain first (idempotent), then BUILDS:
+                          #   ncurses + readline + libffi (Python links them), then
                           #   fresh Python, pip meson/etc, newer CMake + Ninja,
                           #   install Rust + cargo-c
 
@@ -200,9 +209,9 @@ follow the same log-to-`my_*.log` + sentinel pattern:
 They expect the unpacked source at `$DEPS_DIR/<pkg>-<ver>` and build into
 `$BUILD_DIR/<pkg>`. Packages whose tarball top-dir doesn't match `<pkg>-<ver>` get
 renamed/symlinked in `download_dependencies` (e.g. coordgenlibs→coordgen,
-rdkit-Release_*→rdkit-*, ssm→libssm). A few packages (boost, libtiff, libssm,
-libclipper, fftw) are special-cased with their own hand-written build bodies instead
-of the generic helpers.
+rdkit-Release_*→rdkit-*, ssm→libssm, boost-<ver>-<rev>→boost-<ver>). A few packages
+(libtiff, libssm, libclipper, fftw, icu, ncurses) are special-cased with their own
+hand-written build bodies instead of the generic helpers.
 
 ### Version pinning
 Every dependency version is a `*_VER` variable in one block near the top
@@ -221,7 +230,7 @@ tarballs and logs to `my_get_<pkg>.log`. New dependencies should be fetched thro
 ### Compiler selection
 A loop near the top picks the newest available GCC in `[GCC_VER_MIN, GCC_VER_CEILING]`
 and sets `CC`/`CXX`/`FC` plus `GCC_COMPILER_VERSION` and `GCC_COMMAND_EXT`
-(e.g. `-13`). `GCC_COMMAND_EXT` is threaded into boost's toolset and fftw's `F77`.
+(e.g. `-13`). `GCC_COMMAND_EXT` is threaded into fftw's `F77`.
 
 ### The runtime launcher (env + wrapper + symlinks)
 Three pieces, each emitted via a **single-quoted heredoc** / created at packaging time;
@@ -259,8 +268,10 @@ wrapper heredoc belong to the wrapper, not the main script.
 - Every build step writes its output to a `my_<step>.log${MY_DONE_EXT}` and on failure
   calls `error "see \`mypwd\`/my_<step>.log"`. Keep that pattern — `error` prints the
   OS release and exits 1; `mypwd` prints the path relative to `$PREFIX`.
-- Comments in this script are unusually thorough and explain *why* (workarounds for
-  upstream bugs, packaging quirks, GCC false-positives, etc.). Preserve that density;
-  when you add a workaround, say what it's working around.
+- Comments explain only the non-obvious *why* (a workaround for an upstream bug,
+  packaging quirk, GCC false-positive, etc.) — never restate what the code does. Keep
+  them as short as possible: one line of a few rough words is the default, no fancy
+  linebreaking. Two-to-three lines is the absolute maximum; go beyond it only if the
+  user explicitly asks.
 - A `/tmp/<scriptbasename>.debug` trace is appended to by `do_wget` and the generic
   builders — leave those `echo … >> /tmp/…debug` lines intact.

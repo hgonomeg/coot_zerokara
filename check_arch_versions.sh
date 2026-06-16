@@ -24,6 +24,10 @@ while IFS=: read -r pkg scriptvar scriptver; do
   script_base="${scriptver%%-*}"
   script_base="${script_base#*:}"
 
+  # Normalise underscores to dots (rdkit: 2026_03_3 vs 2026.03.3)
+  arch_base="${arch_base//_/.}"
+  script_base="${script_base//_/.}"
+
   if [[ "$arch_base" == "$script_base" ]]; then
     printf "%-30s  %-35s  %-14s  %-14s  MATCH\n" "$pkg" "$scriptvar" "$scriptver" "$archver"
   else
@@ -35,6 +39,7 @@ gobject-introspection:GOBJECT_INTROSPECTION_VER:1.86.0
 guile:GUILE_VER:3.0.11
 swig:SWIG_VER:4.4.1
 harfbuzz:HARFBUZZ_VER:14.2.1
+libpng:LIBPNG_VER:1.6.58
 freetype2:FREETYPE_VER:2.14.3
 fontconfig:FONTCONFIG_VER:2.18.1
 pixman:PIXMAN_VER:0.46.4
@@ -55,13 +60,13 @@ at-spi2-core:AT_SPI2_CORE_VER:2.60.4
 gtk4:GTK_VER:4.22.4
 adwaita-icon-theme:ADWAITA_ICON_THEME_VER:50.0
 openblas:OPENBLAS_VER:0.3.33
-fftw:FFTW_VER:2.1.5
+fftw2:FFTW_VER:2.1.5
 gsl:GSL_VER:2.8
 eigen:EIGEN_VER:5.0.1
 libogg:LIBOGG_VER:1.3.6
 libvorbis:LIBVORBIS_VER:1.3.7
 wayland:WAYLAND_VER:1.25.0
-wayland-protocols:WAYLANDPROTOCOLS_VER:1.48
+wayland-protocols:WAYLANDPROTOCOLS_VER:1.49
 elfutils:ELFUTILS_VER:0.195
 libjpeg-turbo:LIBJPEG_VER:3.1.4.1
 libunistring:LIBUNISTRING_VER:1.2
@@ -77,4 +82,15 @@ python-gobject:PYGOBJECT_VER:3.56.3
 rdkit:RDKIT_VER:2026_03_3
 libdwarf:LIBDWARF_VER:2.3.1
 backward-cpp:LIBBACKWARD_VER:1.6
+icu:ICU_VER:78.3
+libxml2:LIBXML2_VER:2.15.3
+bzip2:BZIP2_VER:1.0.8
+zlib:ZLIB_VER:1.3.2
+zstd:ZSTD_VER:1.5.7
+brotli:BROTLI_VER:1.2.0
+xz:XZ_VER:5.8.3
+util-linux:UTIL_LINUX_VER:2.42.1
+ncurses:NCURSES_VER:6.6
+readline:READLINE_VER:8.3
+openssl:OPENSSL_VER:3.6.3
 PKGLIST
