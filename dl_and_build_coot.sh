@@ -3060,16 +3060,17 @@ if [ "X${COOT_PREFIX:-}" = "X" ]; then
   elif [ -n "${ZSH_VERSION:-}" ]; then
     _coot_self=${(%):-%x}                # zsh: %x = path of the sourced file
   else
-    _coot_self=$0                        # other shells: best effort
+    _coot_self=$0                        # other shells: best effort, often unreliable
   fi
-  _coot_bindir=$(cd "$(dirname "$_coot_self")" && pwd)
+  _coot_bindir=$(cd "$(dirname "$_coot_self")" 2>/dev/null && pwd)
   COOT_PREFIX=$(dirname "$_coot_bindir") # bin/ -> install root
   unset _coot_self _coot_bindir
 fi
 
-if [ ! -d "$COOT_PREFIX/lib" ]; then
-  echo "coot-env.sh: COOT_PREFIX=\"$COOT_PREFIX\" does not look like a Coot install" >&2
-  echo "  (set COOT_PREFIX to the unpacked tarball root and re-source)" >&2
+if [ ! -f "$COOT_PREFIX/bin/coot-env.sh" ]; then
+  echo "coot-env.sh: could not determine the Coot install prefix (COOT_PREFIX=\"$COOT_PREFIX\")." >&2
+  echo "  This shell cannot self-locate a sourced file; set COOT_PREFIX to the unpacked" >&2
+  echo "  tarball root and re-source, e.g.:  COOT_PREFIX=/path/to/coot . \"\$COOT_PREFIX/bin/coot-env.sh\"" >&2
   return 1 2>/dev/null || exit 1
 fi
 export COOT_PREFIX
