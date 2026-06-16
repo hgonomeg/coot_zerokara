@@ -209,9 +209,9 @@ follow the same log-to-`my_*.log` + sentinel pattern:
 They expect the unpacked source at `$DEPS_DIR/<pkg>-<ver>` and build into
 `$BUILD_DIR/<pkg>`. Packages whose tarball top-dir doesn't match `<pkg>-<ver>` get
 renamed/symlinked in `download_dependencies` (e.g. coordgenlibs→coordgen,
-rdkit-Release_*→rdkit-*, ssm→libssm). A few packages (boost, libtiff, libssm,
-libclipper, fftw, icu, ncurses) are special-cased with their own hand-written build bodies
-instead of the generic helpers.
+rdkit-Release_*→rdkit-*, ssm→libssm, boost-<ver>-<rev>→boost-<ver>). A few packages
+(libtiff, libssm, libclipper, fftw, icu, ncurses) are special-cased with their own
+hand-written build bodies instead of the generic helpers.
 
 ### Version pinning
 Every dependency version is a `*_VER` variable in one block near the top
@@ -230,7 +230,7 @@ tarballs and logs to `my_get_<pkg>.log`. New dependencies should be fetched thro
 ### Compiler selection
 A loop near the top picks the newest available GCC in `[GCC_VER_MIN, GCC_VER_CEILING]`
 and sets `CC`/`CXX`/`FC` plus `GCC_COMPILER_VERSION` and `GCC_COMMAND_EXT`
-(e.g. `-13`). `GCC_COMMAND_EXT` is threaded into boost's toolset and fftw's `F77`.
+(e.g. `-13`). `GCC_COMMAND_EXT` is threaded into fftw's `F77`.
 
 ### The runtime launcher (env + wrapper + symlinks)
 Three pieces, each emitted via a **single-quoted heredoc** / created at packaging time;
