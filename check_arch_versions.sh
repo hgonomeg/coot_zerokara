@@ -70,7 +70,7 @@ wayland:WAYLAND_VER:1.25.0
 wayland-protocols:WAYLANDPROTOCOLS_VER:1.49
 elfutils:ELFUTILS_VER:0.195
 libjpeg-turbo:LIBJPEG_VER:3.1.4.1
-libunistring:LIBUNISTRING_VER:1.2
+libunistring:LIBUNISTRING_VER:1.4.2
 gc:GC_VER:8.2.12
 glm:GLM_VER:1.0.3
 pcre2:PCRE2_VER:10.47
