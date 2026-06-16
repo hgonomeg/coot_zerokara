@@ -89,8 +89,9 @@ key would invalidate on nearly every commit anyway). The phase split exists so t
 **Coot's own CI** (a separate repo) can cache the prebuilt dependency stack; that caching
 is not configured here.
 
-**CI failures are usually transient** (crates.io network / runner out-of-disk), not
-script bugs — triage with `fetch_ci_logs.py` before assuming otherwise.
+Triage every CI failure with `fetch_ci_logs.py` and read the actual error before
+concluding anything — some are script bugs, some are infrastructure (crates.io network,
+runner out-of-disk, distro mirror desync); don't assume either way.
 
 ## How to run it
 

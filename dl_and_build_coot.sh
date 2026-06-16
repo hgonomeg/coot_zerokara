@@ -520,6 +520,8 @@ PYTHON_VER_MINOR=14
 PYTHON_VER_PATCH=5
 
 BOOST_VER=1.91.0
+# Boost's CMake archive has a release revision: boost-<ver>-<rev>-cmake.*
+BOOST_CMAKE_REV=1
 PYGOBJECT_VER=3.56.3
 RDKIT_VER=2026_03_3
 NUMPY_VER=2.4.3
@@ -593,7 +595,6 @@ XZ_VER=5.8.3
 NCURSES_VER=6.6
 READLINE_VER=8.3
 OPENSSL_VER=3.6.3
-BOOST_VER_=`echo $BOOST_VER | tr . _`
 WAYLAND_VER=1.25.0
 WAYLANDPROTOCOLS_VER=1.49
 # EXPAT_VER=2.7.5
@@ -1211,40 +1212,12 @@ build_swig () {
   build_with_configure swig ${SWIG_VER}
 }
 
+# Build all of boost (full header tree for RDKit/poppler header-only use). Python is
+# opt-in (BOOST_ENABLE_PYTHON); layout=system + our python3 -> libboost_python314.so.
 build_boost () {
-  if [ ! -f $BUILD_DIR/boost/.my_done${MY_DONE_EXT} ]; then
-    rm -rf $BUILD_DIR/boost
-    cp -a $DEPS_DIR/boost_${BOOST_VER_} $BUILD_DIR/boost || error
-    cd $BUILD_DIR/boost || error
-
-    printf " ### bootstrapping boost (see `mypwd`/my_bootstrap.log${MY_DONE_EXT}) ... "
-    ./bootstrap.sh --with-toolset=gcc${GCC_COMMAND_EXT} --with-libraries=serialization,regex,chrono,date_time,filesystem,iostreams,program_options,thread,math,random,atomic,container,context,fiber,coroutine,json,python,stacktrace > my_bootstrap.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_bootstrap.log${MY_DONE_EXT}"
-    echo "done"
-
-    if [ "X${GCC_COMMAND_EXT}" != "X" ]; then
-      echo "using gcc : ${GCC_COMPILER_VERSION} : /usr/bin/g++${GCC_COMMAND_EXT} ; " >> user-config.jam || error "see above and `mypwd`/user-config.jam"
-      sed -i "s/gcc${GCC_COMMAND_EXT}/gcc/g" project-config.jam || error
-    fi
-
-    [ "$btype" = "debug" ] && __boost_debug="debug-symbols=on" || __boost_debug=""
-    # b2 only auto-probes system paths: point iostreams at our $PREFIX zlib/bzip2/lzma/
-    # zstd (else filters drop, RDKit won't link); cmake puts zlib/zstd in lib64 on Fedora.
-    __zlibd=${PREFIX}/lib; [ -e ${PREFIX}/lib64/libz.so ]    && __zlibd=${PREFIX}/lib64
-    __bz2d=${PREFIX}/lib;  [ -e ${PREFIX}/lib64/libbz2.so ]  && __bz2d=${PREFIX}/lib64
-    __lzmad=${PREFIX}/lib; [ -e ${PREFIX}/lib64/liblzma.so ] && __lzmad=${PREFIX}/lib64
-    __zstdd=${PREFIX}/lib; [ -e ${PREFIX}/lib64/libzstd.so ] && __zstdd=${PREFIX}/lib64
-    printf " ### building boost (see `mypwd`/my_build.log${MY_DONE_EXT}) ... "
-    BOOST_BUILD_PATH=. ./b2 link=shared variant=release threading=multi runtime-link=shared ${__boost_debug} \
-      -sZLIB_INCLUDE=${PREFIX}/include  -sZLIB_LIBPATH=${__zlibd} \
-      -sBZIP2_INCLUDE=${PREFIX}/include -sBZIP2_LIBPATH=${__bz2d} \
-      -sLZMA_INCLUDE=${PREFIX}/include  -sLZMA_LIBPATH=${__lzmad} \
-      -sZSTD_INCLUDE=${PREFIX}/include  -sZSTD_LIBPATH=${__zstdd} \
-      install --prefix=${PREFIX} > my_build.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_build.log${MY_DONE_EXT}"
-    echo "done"
-
-    cd $BUILD_DIR || error
-    touch $BUILD_DIR/boost/.my_done${MY_DONE_EXT}
-  fi
+  build_with_cmake boost ${BOOST_VER} \
+    -DBUILD_SHARED_LIBS=ON -DBOOST_INSTALL_LAYOUT=system -DBOOST_ENABLE_CMAKE=ON \
+    -DBOOST_ENABLE_PYTHON=ON -DPython_EXECUTABLE=$PREFIX/bin/python3
 }
 
 build_libepoxy () {
@@ -2150,8 +2123,12 @@ download_dependencies () {
   #do_wget https://downloads.sourceforge.net/swig/swig-${SWIG_VER}.tar.gz
   #do_wget https://downloads.sourceforge.net/swig/swig-${SWIG_VER}/swig-${SWIG_VER}.tar.gz
 
-  # Boost
-  do_wget https://archives.boost.io/release/${BOOST_VER}/source/boost_${BOOST_VER_}.tar.bz2
+  # Boost's CMake archive (the b2 release tarball has no CMakeLists.txt); unpacks to
+  # boost-<ver>-<rev>, symlink to boost-<ver> for build_with_cmake's source path.
+  do_wget https://github.com/boostorg/boost/releases/download/boost-${BOOST_VER}-${BOOST_CMAKE_REV}/boost-${BOOST_VER}-${BOOST_CMAKE_REV}-cmake.tar.xz
+  if [ -d boost-${BOOST_VER}-${BOOST_CMAKE_REV} ] && [ ! -e boost-${BOOST_VER} ]; then
+    ln -s boost-${BOOST_VER}-${BOOST_CMAKE_REV} boost-${BOOST_VER} || error
+  fi
 
   # Libpng
   do_wget https://download.sourceforge.net/libpng/libpng-${LIBPNG_VER}.tar.xz libpng-${LIBPNG_VER}.tar.xz
