@@ -47,6 +47,7 @@ libtiff:LIBTIFF_VER:4.7.1
 poppler:POPPLER_VER:26.05.0
 curl:CURL_VER:8.20.0
 cairo:CAIRO_VER:1.18.4
+fribidi:FRIBIDI_VER:1.0.16
 pango:PANGO_VER:1.57.1
 librsvg:LIBRSVG_VER:2.62.3
 highway:HIGHWAY_VER:1.4.0
@@ -93,4 +94,6 @@ util-linux:UTIL_LINUX_VER:2.42.1
 ncurses:NCURSES_VER:6.6
 readline:READLINE_VER:8.3
 openssl:OPENSSL_VER:3.6.3
+expat:EXPAT_VER:2.8.1
+sqlite:SQLITE_VER:3.53.2
 PKGLIST

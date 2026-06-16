@@ -203,7 +203,6 @@ if [ $do_os -eq 1 ]; then
              automake \
              cmake \
              libtool \
-             sqlite3-devel \
              swig \
              libdrm-devel \
              libXrandr-devel \
@@ -212,7 +211,6 @@ if [ $do_os -eq 1 ]; then
              libXinerama-devel \
              libXdamage-devel \
              libXtst-devel \
-             libexpat-devel \
              dbus-1-devel \
              libxcb-devel \
              xcb-util-devel \
@@ -298,9 +296,7 @@ if [ $do_os -eq 1 ]; then
             git \
             flex \
             gperftools-devel \
-            expat-devel \
             dbus-devel \
-            sqlite-devel \
             libxcb-devel \
             xcb-util-devel \
             gmp-devel \
@@ -353,7 +349,6 @@ if [ $do_os -eq 1 ]; then
               libXinerama-devel \
               libXtst-devel \
               libdrm-devel \
-              expat-devel \
               bzip2 \
               autoconf \
               automake \
@@ -366,7 +361,6 @@ if [ $do_os -eq 1 ]; then
               gperftools-devel \
               $__toolsets \
               dbus-devel \
-              sqlite-devel \
               libxcb-devel \
               xcb-util-devel \
               gmp-devel \
@@ -386,8 +380,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get update || error
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake cmake gperf file vim xmlto libtool-bin \
-          libdbus-1-dev libexpat1-dev \
-          libsqlite3-dev \
+          libdbus-1-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -405,8 +398,8 @@ if [ $do_os -eq 1 ]; then
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
-            dbus expat \
-            sqlite xz bzip2 \
+            dbus \
+            xz bzip2 \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
@@ -478,6 +471,7 @@ BUILD_DEPENDENCIES="
     pixman
     cairo
     harfbuzz
+    fribidi
     pango
     smi
     gdk_pixbuf
@@ -548,6 +542,7 @@ LIBTIFF_VER=4.7.1
 POPPLER_VER=26.05.0
 CURL_VER=8.20.0
 CAIRO_VER=1.18.4
+FRIBIDI_VER=1.0.16
 PANGO_VER_MM=1.57
 PANGO_VER=${PANGO_VER_MM}.1
 SMI_VER=2.4
@@ -597,7 +592,10 @@ READLINE_VER=8.3
 OPENSSL_VER=3.6.3
 WAYLAND_VER=1.25.0
 WAYLANDPROTOCOLS_VER=1.49
-# EXPAT_VER=2.7.5
+EXPAT_VER=2.8.1
+SQLITE_VER=3.53.2
+# sqlite's tarball/URL use a zero-padded numeric form (3.53.2 -> 3530200)
+SQLITE_SRCVER=$(printf '%d%02d%02d00' $(echo ${SQLITE_VER} | sed 's/\./ /g'))
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
 EIGEN_VER=5.0.1
@@ -1107,7 +1105,14 @@ build_openssl () {
   fi
 }
 
-# Built only for libmount (glib's gio links it); everything else switched off.
+build_expat () {
+  build_with_configure expat ${EXPAT_VER} --disable-static --without-examples --without-tests --without-docbook
+}
+
+build_sqlite () {
+  build_with_configure sqlite ${SQLITE_VER} --disable-static --enable-readline --all
+}
+
 # Source dir is util-linux-*, so pass that (hyphen) name to the configure helper.
 build_util_linux () {
   build_with_configure util-linux ${UTIL_LINUX_VER} \
@@ -1177,9 +1182,6 @@ build_elfutils () {
 
 # build_libvdpau () {
 #   build_with_meson libvdpau ${LIBVDPAU_VER}
-# }
-# build_expat () {
-#  build_with_configure expat ${EXPAT_VER} --disable-static
 # }
 
 # First pass without introspection: glib's own .gir files need gobject-introspection,
@@ -1335,6 +1337,10 @@ build_tiff() {
 # before this point — a single pass is sufficient, no circular bootstrap needed.
 build_cairo () {
   build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled -Dlzo=disabled
+}
+
+build_fribidi () {
+  build_with_meson fribidi ${FRIBIDI_VER} -Ddocs=false -Dtests=false -Dbin=false
 }
 
 build_pango () {
@@ -1821,6 +1827,16 @@ download_toolchain () {
   # xz/liblzma — Python's _lzma needs it; also a NEEDED of libdw (elfutils) and libtiff
   do_wget https://github.com/tukaani-project/xz/releases/download/v${XZ_VER}/xz-${XZ_VER}.tar.gz
 
+  # expat
+  do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER} | sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.xz
+
+  # sqlite — /2026/ is sqlite's release-year folder
+  do_wget https://www.sqlite.org/2026/sqlite-autoconf-${SQLITE_SRCVER}.tar.gz
+  if [ -d sqlite-autoconf-${SQLITE_SRCVER} ] && [ ! -d sqlite-${SQLITE_VER} ]; then
+    mv sqlite-autoconf-${SQLITE_SRCVER} sqlite-${SQLITE_VER} && \
+      ln -s sqlite-${SQLITE_VER} sqlite-autoconf-${SQLITE_SRCVER} || error
+  fi
+
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
   cd $BUILD_DIR/cmakebuild || error
@@ -1861,10 +1877,10 @@ initial_setup () {
 
   cd $PREFIX || error
 
-  # libffi, ncurses, readline, compression libs and openssl are linked by Python (ctypes /
-  # _curses / readline / zipfile+gzip+bz2+lzma / ssl, plus pip's HTTPS) and must exist before
-  # it — built here, not in the deps phase. additional_build_env_setup puts $PREFIX on
-  # the compiler -I/-L paths so readline finds ncurses.
+  # libffi, ncurses, readline, compression libs, openssl, expat and sqlite are linked by
+  # Python (ctypes / _curses / readline / zipfile+gzip+bz2+lzma / ssl / pyexpat / _sqlite3,
+  # plus pip's HTTPS) and must exist before it — built here, not in the deps phase.
+  # additional_build_env_setup puts $PREFIX on the compiler -I/-L paths so readline finds ncurses.
   additional_build_env_setup
   build_ncurses  || error
   build_readline || error
@@ -1875,6 +1891,8 @@ initial_setup () {
   build_bzip2    || error
   build_xz       || error
   build_openssl  || error
+  build_expat    || error
+  build_sqlite   || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
     printf "\n"
@@ -2165,7 +2183,10 @@ download_dependencies () {
   
   # Cairo
   do_wget https://cairographics.org/releases/cairo-${CAIRO_VER}.tar.xz
-  
+
+  # FriBidi
+  do_wget https://github.com/fribidi/fribidi/releases/download/v${FRIBIDI_VER}/fribidi-${FRIBIDI_VER}.tar.xz
+
   # Pango
   do_wget https://download.gnome.org/sources/pango/${PANGO_VER_MM}/pango-${PANGO_VER}.tar.xz
 
@@ -2251,9 +2272,6 @@ download_dependencies () {
   # hboehm.info only carries tarballs up to 8.2.8; newer releases are on GitHub.
   do_wget https://github.com/bdwgc/bdwgc/releases/download/v${GC_VER}/gc-${GC_VER}.tar.gz gc-${GC_VER}.tar.gz 10
 
-  # expat
-  # do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER}| sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.gz
-  
   #### github
 
   # glm

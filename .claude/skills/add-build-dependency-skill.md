@@ -43,6 +43,24 @@ curl -s https://api.github.com/repos/owner/project/releases/latest | \
 
 ## Step 2: Verify Build System and Flags
 
+### Default feature policy: enable everything, minus tests/examples/docs
+
+Build each library with **as many features enabled as possible** — the bundled libs should
+be at least as capable as the distro packages they replace. This is *especially* true when
+a feature's sub-dependency is **already in our stack**: turn the feature **on**, don't
+disable it (e.g. sqlite finds our readline → `--enable-readline`; a lib that can use our
+zlib / openssl / icu / libxml2 → enable that backend). The only things to switch **off** are
+**tests, examples, fuzzers, benchmarks, and documentation / man pages** — they cost build
+time and pull tooling deps (docbook, sphinx, gtk-doc) without shipping anything users need.
+
+So the default flag shape is "all features on, build-extras off":
+- cmake: `-DXXX_ENABLE_TESTS=OFF -DXXX_ENABLE_EXAMPLES=OFF -DXXX_BUILD_DOCS=OFF` (leave feature toggles at their enabled defaults)
+- meson: `-Dtests=false -Dexamples=false -Ddocs=false` (leave feature options enabled)
+- configure: `--without-tests --without-examples --without-docbook` and keep the `--enable-<feature>` switches
+
+Only disable a genuine feature when it needs a dependency we deliberately don't ship and
+can't easily add — and call that out explicitly in your summary.
+
 ### Check what build system is used
 ```bash
 # For cmake projects
@@ -390,6 +408,8 @@ Before committing:
 - [ ] **Upstream project verified** - Checked meson_options.txt / CMakeLists.txt
 - [ ] **Version is current** - Used GitHub API to confirm latest release
 - [ ] **Build options verified** - Checked actual source for exact option names
+- [ ] **Features maximized** - All upstream features enabled (especially ones satisfied by
+      libs already in our stack); only tests/examples/fuzzers/docs turned off
 - [ ] **Optimization + debug symbols honor `$btype`** - Generic helpers handle it; for any
       hand-rolled build, inject `-O2`(opt)/`-O2 -g`(debug) and verify `-O` actually lands in
       the generated Makefile (the exported `CFLAGS` suppresses build-system `-O` defaults)
