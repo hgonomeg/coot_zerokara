@@ -61,7 +61,7 @@ part of the build itself.
 
 Two pipelines build the script across distros:
 - `.github/workflows/build-coot.yml` — GitHub Actions matrix (`ubuntu:24.04/26.04`,
-  `debian:trixie`, `fedora:43/44`, `archlinux:latest`, `rockylinux:9`,
+  `debian:trixie`, `fedora:43/44`, `archlinux:latest`, `rockylinux/rockylinux:9`,
   `opensuse/leap:15.6`). On failure it tars the `my_*.log` files — the glob now also
   catches root-level logs like `my_git_clone.log` — into a `build-logs-<distro>` artifact.
   On success it uploads the packaged Coot tarball (`coot-build/coot-*.tar.zst`) as a
