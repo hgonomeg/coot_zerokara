@@ -267,8 +267,10 @@ wrapper heredoc belong to the wrapper, not the main script.
 - Every build step writes its output to a `my_<step>.log${MY_DONE_EXT}` and on failure
   calls `error "see \`mypwd\`/my_<step>.log"`. Keep that pattern — `error` prints the
   OS release and exits 1; `mypwd` prints the path relative to `$PREFIX`.
-- Comments in this script are unusually thorough and explain *why* (workarounds for
-  upstream bugs, packaging quirks, GCC false-positives, etc.). Preserve that density;
-  when you add a workaround, say what it's working around.
+- Comments explain only the non-obvious *why* (a workaround for an upstream bug,
+  packaging quirk, GCC false-positive, etc.) — never restate what the code does. Keep
+  them as short as possible: one line of a few rough words is the default, no fancy
+  linebreaking. Two-to-three lines is the absolute maximum; go beyond it only if the
+  user explicitly asks.
 - A `/tmp/<scriptbasename>.debug` trace is appended to by `do_wget` and the generic
   builders — leave those `echo … >> /tmp/…debug` lines intact.
