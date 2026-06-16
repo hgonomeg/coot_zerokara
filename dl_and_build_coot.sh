@@ -234,7 +234,6 @@ if [ $do_os -eq 1 ]; then
              gperf \
              file \
              gettext-tools \
-             libpsl-devel \
              glibc-locale \
              openal-soft-devel \
              libseccomp-devel \
@@ -313,7 +312,6 @@ if [ $do_os -eq 1 ]; then
             xz \
             glibc-langpack-en \
             glibc-gconv-extra \
-            libpsl-devel \
             openal-soft-devel \
             libseccomp-devel \
             doxygen \
@@ -376,7 +374,6 @@ if [ $do_os -eq 1 ]; then
               make \
               xmlto \
               pkgconf-pkg-config \
-              libpsl-devel \
               glibc-gconv-extra \
               openal-soft-devel \
               libseccomp-devel \
@@ -395,7 +392,6 @@ if [ $do_os -eq 1 ]; then
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
           libgmp-dev libdrm-dev \
           libglfw3-dev \
-          libpsl-dev \
           xz-utils \
           libopenal-dev \
           libseccomp-dev \
@@ -414,7 +410,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             gmp libdrm \
             glfw \
-            inetutils libpsl bc openal libseccomp doxygen || error
+            inetutils bc openal libseccomp doxygen || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -1286,6 +1282,7 @@ build_curl () {
       -DCURL_DISABLE_LDAP=ON \
       -DCURL_DISABLE_LDAPS=ON \
       -DCURL_USE_LIBSSH2=OFF \
+      -DCURL_USE_LIBPSL=OFF \
       -DBUILD_TESTING=OFF \
       -DBUILD_LIBCURL_DOCS=OFF \
       -DBUILD_MISC_DOCS=OFF \
