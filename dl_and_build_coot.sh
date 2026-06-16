@@ -1066,9 +1066,12 @@ build_readline () {
   # pkg-config consumers (CPython's readline module) link -ltinfo and resolve UP at load.
   # grep: skip if already patched (idempotent on reruns; -- so -ltinfo isn't read as a flag).
   # sed: on the "Libs:" line, append " -ltinfo" right after the existing -lreadline.
+  # if-block (not an && chain): when already patched the chain's last test would be the
+  # function's nonzero return value, so `build_readline || error` aborted every rerun.
   __rlpc=$PREFIX/lib/pkgconfig/readline.pc
-  [ -f $__rlpc ] && ! grep -q -- "-ltinfo" $__rlpc && \
+  if [ -f $__rlpc ] && ! grep -q -- "-ltinfo" $__rlpc; then
     sed -i "s/^\(Libs:.*-lreadline\)/\1 -ltinfo/" $__rlpc
+  fi
 }
 
 # OpenSSL (Configure is perl, so hand-rolled). Built in the toolchain phase before Python
