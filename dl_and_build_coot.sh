@@ -2816,7 +2816,7 @@ collect_package_dirs () {
   if [ -f bin/fc-match ]; then
     printf "  including FontConfig binaries, fonts and cache:\n"
     [ -d var/cache/fontconfig ] && package_dirs="$package_dirs var/cache/fontconfig"
-    package_dirs="$package_dirs etc `ls bin/fc-* 2>/dev/null`"
+    package_dirs="$package_dirs etc"
     make_font_dirs_and_files
     (
       FONTCONFIG_PATH="$PREFIX/etc/fonts"
@@ -2833,6 +2833,16 @@ collect_package_dirs () {
   fi
 }
 
+# bin/ tools we deliberately drop from the tarball: build-time only (toolchain + codegen/
+# introspection). Everything else in bin/ ships — blocklist, not whitelist, so runtime
+# helpers Coot/glycin exec (e.g. bwrap) are never silently lost.
+bin_exclude="cmake ctest cpack ccmake cmake-gui ninja meson swig ccache pkg-config pkgconf
+glib-compile-resources glib-compile-schemas glib-genmarshal glib-gettextize glib-mkenums gtester gtester-report gdbus-codegen
+g-ir-scanner g-ir-compiler g-ir-generate g-ir-inspect g-ir-doc-tool
+gdk-pixbuf-csource gdk-pixbuf-pixdata gdk-pixbuf-query-loaders
+gtk4-builder-tool gtk4-encode-symbolic-svg gtk4-path-tool gtk4-rendernode-tool gtk4-image-tool
+wayland-scanner update-mime-database eu-*"
+
 package_coot () {
   cd $PREFIX || error
   os=`detect_os_tag` || return
@@ -2844,8 +2854,9 @@ package_coot () {
   collect_package_dirs
   create_readme
   printf "\n packaging Coot as $tarball_name ... "
-  # zstd -19 (-T0 = all cores) for a much smaller tarball than gzip; needs the zstd CLI.
-  tar -I 'zstd -T0 -19' -cf $tarball_name bin/coot* bin/layla bin/pyrogen bin/python3* $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
+  # ship all of bin/ minus $bin_exclude (build tools). zstd -19 (-T0 = all cores).
+  __bin_excl=""; for __x in $bin_exclude; do __bin_excl="$__bin_excl --exclude=bin/$__x"; done
+  tar -I 'zstd -T0 -19' -cf $tarball_name $__bin_excl bin $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
   echo "done"
   printf "\n   "
   ls -l $tarball_name
@@ -2869,11 +2880,10 @@ package_coot_minimal () {
   # Copy via tar (not cp) to preserve nested paths: $package_dirs can contain
   # "var/cache/fontconfig", which `cp -ar dest/.` would flatten to dest/fontconfig.
   ( tar -cf - $package_dirs | ( cd $staging_dir && tar -xf - ) ) || error "copy-1 (see above)"
+  # ship all of bin/, then drop the build-time tools ($bin_exclude) — blocklist, not whitelist
   mkdir -p $staging_dir/bin
-  cp -a bin/coot* bin/layla bin/pyrogen bin/python3* $staging_dir/bin/. || error "copy-2 (see above)"
-  if [ -x bin/fc-match ]; then
-    cp -a bin/fc-* $staging_dir/bin/. || error "copy-3 (see above)"
-  fi
+  cp -a bin/. $staging_dir/bin/ || error "copy-2 (see above)"
+  for __x in $bin_exclude; do rm -f $staging_dir/bin/$__x; done
   (
     cd $staging_dir || error
 
