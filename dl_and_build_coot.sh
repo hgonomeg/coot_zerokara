@@ -121,6 +121,7 @@ do_os=1   # default: install OS packages via the system package manager (-no-use
 tag=""
 branch=""
 COOT_TAG="main"
+outtag="$COOT_TAG"
 COOT_BRANCH=""
 patch_file=""
 no_chapi=0
@@ -2882,7 +2883,7 @@ package_coot () {
     debug) build_label=debug;;
     *) build_label=release;;
   esac
-  tarball_name=coot_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`.tar.zst
+  tarball_name=coot-${outtag}_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`.tar.zst
   collect_package_dirs
   create_readme
   printf "\n packaging Coot as $tarball_name ... "
