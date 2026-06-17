@@ -121,6 +121,7 @@ do_os=1   # default: install OS packages via the system package manager (-no-use
 tag=""
 branch=""
 COOT_TAG="main"
+outtag="$COOT_TAG"
 COOT_BRANCH=""
 patch_file=""
 no_chapi=0
@@ -203,7 +204,6 @@ if [ $do_os -eq 1 ]; then
              automake \
              cmake \
              libtool \
-             sqlite3-devel \
              swig \
              libdrm-devel \
              libXrandr-devel \
@@ -212,7 +212,6 @@ if [ $do_os -eq 1 ]; then
              libXinerama-devel \
              libXdamage-devel \
              libXtst-devel \
-             libexpat-devel \
              dbus-1-devel \
              libxcb-devel \
              xcb-util-devel \
@@ -234,7 +233,6 @@ if [ $do_os -eq 1 ]; then
              gperf \
              file \
              gettext-tools \
-             libpsl-devel \
              glibc-locale \
              openal-soft-devel \
              libseccomp-devel \
@@ -298,9 +296,7 @@ if [ $do_os -eq 1 ]; then
             git \
             flex \
             gperftools-devel \
-            expat-devel \
             dbus-devel \
-            sqlite-devel \
             libxcb-devel \
             xcb-util-devel \
             gmp-devel \
@@ -313,7 +309,6 @@ if [ $do_os -eq 1 ]; then
             xz \
             glibc-langpack-en \
             glibc-gconv-extra \
-            libpsl-devel \
             openal-soft-devel \
             libseccomp-devel \
             doxygen \
@@ -353,7 +348,6 @@ if [ $do_os -eq 1 ]; then
               libXinerama-devel \
               libXtst-devel \
               libdrm-devel \
-              expat-devel \
               bzip2 \
               autoconf \
               automake \
@@ -366,7 +360,6 @@ if [ $do_os -eq 1 ]; then
               gperftools-devel \
               $__toolsets \
               dbus-devel \
-              sqlite-devel \
               libxcb-devel \
               xcb-util-devel \
               gmp-devel \
@@ -376,7 +369,6 @@ if [ $do_os -eq 1 ]; then
               make \
               xmlto \
               pkgconf-pkg-config \
-              libpsl-devel \
               glibc-gconv-extra \
               openal-soft-devel \
               libseccomp-devel \
@@ -386,8 +378,7 @@ if [ $do_os -eq 1 ]; then
         $sudo apt-get update || error
         $sudo apt-get -y install \
           git wget build-essential gfortran gettext pkg-config bison flex make automake cmake gperf file vim xmlto libtool-bin \
-          libdbus-1-dev libexpat1-dev \
-          libsqlite3-dev \
+          libdbus-1-dev \
           libxcb-glx0-dev \
           libegl1-mesa-dev \
           libxrender-dev libxcb-render0-dev libxcb-render-util0-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
@@ -395,7 +386,6 @@ if [ $do_os -eq 1 ]; then
           libxkbcommon-x11-dev libxcb-shm0-dev libxcb-util-dev libxcb1-dev libx11-dev libxcb-dri3-dev libx11-xcb-dev \
           libgmp-dev libdrm-dev \
           libglfw3-dev \
-          libpsl-dev \
           xz-utils \
           libopenal-dev \
           libseccomp-dev \
@@ -405,8 +395,8 @@ if [ $do_os -eq 1 ]; then
     arch*)
       $sudo pacman -Syu --needed --noconfirm \
             base-devel git wget gcc-fortran gperf vim xmlto docbook-xml docbook-xsl cmake \
-            dbus expat \
-            sqlite xz bzip2 \
+            dbus \
+            xz bzip2 \
             libxcb \
             mesa \
             libxrender xcb-util-renderutil libxext libxrandr libxi libxcursor \
@@ -414,7 +404,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             gmp libdrm \
             glfw \
-            inetutils libpsl bc openal libseccomp doxygen || error
+            inetutils bc openal libseccomp doxygen || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -450,7 +440,6 @@ export COOT_DIR
 # must be built more than once (see the numbered build_<name> variants).
 BUILD_DEPENDENCIES="
     util_linux
-    icu
     libxml2
     elfutils
     libdwarf
@@ -478,15 +467,19 @@ BUILD_DEPENDENCIES="
     pixman
     cairo
     harfbuzz
+    fribidi
     pango
     smi
     gdk_pixbuf
     librsvg
     tiff
+    nghttp2
+    nghttp3
+    ngtcp2
     curl
+    lcms2
     poppler
     highway
-    lcms2
     libjxl
     libcap
     bubblewrap
@@ -503,7 +496,6 @@ BUILD_DEPENDENCIES="
     coordgen
     rdkit
     mmdb2
-    openblas
     gsl
     gemmi
     libccp4
@@ -545,9 +537,13 @@ FONTS_JETBRAINS_VER=2.304
 FONTS_DEJAVU_VER=2.37
 PIXMAN_VER=0.46.4
 LIBTIFF_VER=4.7.1
-POPPLER_VER=26.05.0
+POPPLER_VER=26.06.0
 CURL_VER=8.20.0
+NGHTTP2_VER=1.69.0
+NGHTTP3_VER=1.16.0
+NGTCP2_VER=1.23.0
 CAIRO_VER=1.18.4
+FRIBIDI_VER=1.0.16
 PANGO_VER_MM=1.57
 PANGO_VER=${PANGO_VER_MM}.1
 SMI_VER=2.4
@@ -569,7 +565,7 @@ GTK_VER=${GTK_VER_Major}.${GTK_VER_Minor}.${GTK_VER_Patch}
 ADWAITA_ICON_THEME_VER_MAJOR=50
 ADWAITA_ICON_THEME_VER=${ADWAITA_ICON_THEME_VER_MAJOR}.0
 MMDB_VER=2.0.22
-OPENBLAS_VER=0.3.33
+# OPENBLAS_VER=0.3.33  (disabled: no consumer in the stack yet)
 GSL_VER=2.8
 GEMMI_VER=0.7.5
 LIBCCP4_VER=8.0.0
@@ -578,8 +574,7 @@ LIBCLIPPER_VER_PRE=2.1
 LIBCLIPPER_VER_PATCH=20201109
 LIBCLIPPER_VER=${LIBCLIPPER_VER_PRE}.${LIBCLIPPER_VER_PATCH}
 FFTW_VER=2.1.5
-# LIBUNISTRING_VER=1.4
-LIBUNISTRING_VER=1.2
+LIBUNISTRING_VER=1.4.2
 GC_VER=8.2.12
 GLM_VER=1.0.3
 PCRE2_VER=10.47
@@ -597,7 +592,10 @@ READLINE_VER=8.3
 OPENSSL_VER=3.6.3
 WAYLAND_VER=1.25.0
 WAYLANDPROTOCOLS_VER=1.49
-# EXPAT_VER=2.7.5
+EXPAT_VER=2.8.1
+SQLITE_VER=3.53.2
+# sqlite's tarball/URL use a zero-padded numeric form (3.53.2 -> 3530200)
+SQLITE_SRCVER=$(printf '%d%02d%02d00' $(echo ${SQLITE_VER} | sed 's/\./ /g'))
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
 EIGEN_VER=5.0.1
@@ -810,7 +808,7 @@ build_with_configure () {
     [ "$btype" = "debug" ] && __cfg_opt="-O2 -g" || __cfg_opt="-O2"
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     CFLAGS="${CFLAGS} ${__cfg_opt}" CXXFLAGS="${CXXFLAGS} ${__cfg_opt}" \
-      $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+      $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX "$@" > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
     # Belt-and-braces: strip a leftover bare "-g" from the Makefile in opt builds, in case a
@@ -1062,19 +1060,15 @@ build_ncurses () {
   fi
 }
 
-# Static-only (-fPIC so it embeds into Python's/guile's shared modules). A shared libreadline.so.8
-# would shadow the host bash's via LD_LIBRARY_PATH; where that bash links a symbol-versioned system
-# readline (openSUSE Leap 16) it'd warn "no version information available" and break g-ir-scanner.
+# Static-only (-fPIC): a shared libreadline.so.8 would shadow the host bash's via LD_LIBRARY_PATH.
 build_readline () {
   CFLAGS="$CFLAGS -fPIC" build_with_configure readline ${READLINE_VER} --disable-shared --enable-static
-  # Static readline references termcap globals (UP/BC/PC) it doesn't define; the shared lib carried
-  # a NEEDED on ncurses, a .a can't. Promote the dep from Requires.private to public Libs so plain
-  # pkg-config consumers (CPython's readline module) link -ltinfo and resolve UP at load.
-  # grep: skip if already patched (idempotent on reruns; -- so -ltinfo isn't read as a flag).
-  # sed: on the "Libs:" line, append " -ltinfo" right after the existing -lreadline.
+  # A static readline can't NEED ncurses, so promote -ltinfo to public Libs (CPython links it for UP/BC/PC).
+  # grep skips if already patched; sed appends -ltinfo after the existing -lreadline on the Libs: line.
   __rlpc=$PREFIX/lib/pkgconfig/readline.pc
-  [ -f $__rlpc ] && ! grep -q -- "-ltinfo" $__rlpc && \
+  if [ -f $__rlpc ] && ! grep -q -- "-ltinfo" $__rlpc; then
     sed -i "s/^\(Libs:.*-lreadline\)/\1 -ltinfo/" $__rlpc
+  fi
 }
 
 # OpenSSL (Configure is perl, so hand-rolled). Built in the toolchain phase before Python
@@ -1107,7 +1101,17 @@ build_openssl () {
   fi
 }
 
-# Built only for libmount (glib's gio links it); everything else switched off.
+build_expat () {
+  build_with_configure expat ${EXPAT_VER} --disable-static --without-examples --without-tests --without-docbook
+}
+
+build_sqlite () {
+  build_with_configure sqlite ${SQLITE_VER} --disable-static --enable-readline --all \
+    --with-icu-cflags=-I$PREFIX/include \
+    "--with-icu-ldflags=-L$PREFIX/lib -licui18n -licuuc -licudata" \
+    --icu-collations
+}
+
 # Source dir is util-linux-*, so pass that (hyphen) name to the configure helper.
 build_util_linux () {
   build_with_configure util-linux ${UTIL_LINUX_VER} \
@@ -1147,15 +1151,11 @@ build_icu () {
     touch $BUILD_DIR/icu/.my_done${MY_DONE_EXT}
   fi
 }
-# Built with ICU (ours, built right before); Python bindings + compression not needed.
-# Provides xmllint for shared-mime-info. 2.15.x dropped autotools — meson only.
+
 build_libxml2 () {
   build_with_meson libxml2 ${LIBXML2_VER} -Dicu=enabled -Dlegacy=enabled
 }
 
-# build_libdrm () {
-#   build_with_meson libdrm ${LIBDRM_VER} -Dudev=true -Dvalgrind=disabled
-# }
 build_wayland () {
   build_with_meson wayland ${WAYLAND_VER} -Dtests=false -Ddocumentation=false -Ddtd_validation=false
 }
@@ -1175,12 +1175,6 @@ build_elfutils () {
   build_with_configure elfutils ${ELFUTILS_VER} --disable-debuginfod
 }
 
-# build_libvdpau () {
-#   build_with_meson libvdpau ${LIBVDPAU_VER}
-# }
-# build_expat () {
-#  build_with_configure expat ${EXPAT_VER} --disable-static
-# }
 
 # First pass without introspection: glib's own .gir files need gobject-introspection,
 # which needs glib.  Second pass (after gobject-introspection) enables .gir generation.
@@ -1204,8 +1198,11 @@ build_gobject_introspection () {
 }
 
 build_guile () {
+  # Force off guile's (crypt) Scheme proc so libguile doesn't link system libxcrypt (relocatability).
+  ac_cv_search_crypt=no; export ac_cv_search_crypt
   build_with_configure guile ${GUILE_VER} --enable-shared --disable-static --disable-error-on-warning --enable-mini-gmp \
     --with-libreadline-prefix=$PREFIX
+  unset ac_cv_search_crypt
 }
 
 build_swig () {
@@ -1277,15 +1274,30 @@ build_poppler () {
   -DENABLE_GPGME=OFF -DBUILD_GTK_TESTS=OFF -DBUILD_QT5_TESTS=OFF \
   -DBUILD_QT6_TESTS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_MANUAL_TESTS=OFF \
   -DENABLE_BOOST=ON -DENABLE_QT5=OFF -DENABLE_QT6=OFF \
-  -DENABLE_LIBOPENJPEG=none -DENABLE_LCMS=OFF -DENABLE_LIBCURL=ON -DENABLE_DCTDECODER=libjpeg
+  -DENABLE_LIBOPENJPEG=none -DENABLE_LCMS=ON -DENABLE_LIBCURL=ON -DENABLE_DCTDECODER=libjpeg
+}
+
+build_nghttp2 () {
+  build_with_cmake nghttp2 ${NGHTTP2_VER} -DENABLE_LIB_ONLY=ON -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=OFF
+}
+
+build_nghttp3 () {
+  build_with_cmake nghttp3 ${NGHTTP3_VER} -DENABLE_LIB_ONLY=ON -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=OFF
+}
+
+build_ngtcp2 () {
+  build_with_cmake ngtcp2 ${NGTCP2_VER} -DENABLE_LIB_ONLY=ON -DENABLE_OPENSSL=ON -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=OFF
 }
 
 build_curl () {
     build_with_cmake curl ${CURL_VER} \
       -DCURL_USE_OPENSSL=ON \
+      -DUSE_NGHTTP2=ON \
+      -DUSE_NGTCP2=ON \
       -DCURL_DISABLE_LDAP=ON \
       -DCURL_DISABLE_LDAPS=ON \
       -DCURL_USE_LIBSSH2=OFF \
+      -DCURL_USE_LIBPSL=OFF \
       -DBUILD_TESTING=OFF \
       -DBUILD_LIBCURL_DOCS=OFF \
       -DBUILD_MISC_DOCS=OFF \
@@ -1335,6 +1347,10 @@ build_tiff() {
 # before this point — a single pass is sufficient, no circular bootstrap needed.
 build_cairo () {
   build_with_meson cairo ${CAIRO_VER} --wrap-mode=nodownload -Dtests=disabled -Dxlib-xcb=enabled -Dlzo=disabled
+}
+
+build_fribidi () {
+  build_with_meson fribidi ${FRIBIDI_VER} -Ddocs=false -Dtests=false -Dbin=false
 }
 
 build_pango () {
@@ -1499,6 +1515,9 @@ build_libvorbis () {
 
  
 build_rdkit () {
+  # Drop RDKit's stale FindEigen3 so config-mode finds our Eigen 5.x (rdkit#8896).
+  rm -f $DEPS_DIR/rdkit-${RDKIT_VER}/Code/cmake/Modules/FindEigen3.cmake
+  sed -i 's|if(NOT EIGEN3_FOUND)|if(NOT TARGET Eigen3::Eigen)|' $DEPS_DIR/rdkit-${RDKIT_VER}/CMakeLists.txt
   build_with_cmake rdkit ${RDKIT_VER} -DRDK_BUILD_CAIRO_SUPPORT=ON \
   -DRDK_BUILD_INCHI_SUPPORT=ON \
   -DRDK_INSTALL_COMIC_FONTS=OFF \
@@ -1514,14 +1533,12 @@ build_mmdb2 () {
   build_with_configure mmdb2 ${MMDB_VER} --enable-shared
 }
 
-build_openblas () {
-  # DYNAMIC_ARCH builds kernels for multiple CPU micro-architectures and selects
-  # the best at runtime — works for both distributable and locally-tuned builds.
-  build_with_cmake openblas ${OPENBLAS_VER} \
-    -DBUILD_SHARED_LIBS=ON \
-    -DDYNAMIC_ARCH=ON \
-    -DBUILD_TESTING=OFF
-}
+# build_openblas () {
+#   build_with_cmake openblas ${OPENBLAS_VER} \
+#     -DBUILD_SHARED_LIBS=ON \
+#     -DDYNAMIC_ARCH=ON \
+#     -DBUILD_TESTING=OFF
+# }
 
 build_gsl () {
   build_with_configure gsl ${GSL_VER}
@@ -1804,22 +1821,45 @@ download_toolchain () {
       ln -s python-${PYTHON_VER} Python-${PYTHON_VER} || error
   fi
 
-  # Built in initial_setup before Python (which links them). Fetched here so the
-  # toolchain phase is self-contained.
+  # ncurses
   do_wget https://ftp.gnu.org/gnu/ncurses/ncurses-${NCURSES_VER}.tar.gz
+
+  # readline
   do_wget https://ftp.gnu.org/gnu/readline/readline-${READLINE_VER}.tar.gz
+
+  # libffi
   do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
+
+  # openssl
   do_wget https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz
 
-  # zlib, zstd, brotli — built before Python (zipfile/gzip/pip) and OpenSSL
-  # (compression support). System cmake is used for zstd/brotli.
+  # zlib, zstd, brotli
   do_wget https://github.com/madler/zlib/releases/download/v${ZLIB_VER}/zlib-${ZLIB_VER}.tar.xz
   do_wget https://github.com/facebook/zstd/archive/refs/tags/v${ZSTD_VER}.tar.gz zstd-${ZSTD_VER}.tar.gz
   do_wget https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VER}.tar.gz brotli-${BROTLI_VER}.tar.gz
+
   # bzip2 — shared library only; Python's _bz2 needs it
   do_wget https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VER}.tar.gz
+
   # xz/liblzma — Python's _lzma needs it; also a NEEDED of libdw (elfutils) and libtiff
   do_wget https://github.com/tukaani-project/xz/releases/download/v${XZ_VER}/xz-${XZ_VER}.tar.gz
+
+  # expat
+  do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER} | sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.xz
+
+  # icu
+  do_wget https://github.com/unicode-org/icu/releases/download/release-${ICU_VER}/icu4c-${ICU_VER}-sources.tgz icu4c-${ICU_VER}-sources.tgz
+  if [ -d icu ] && [ ! -d icu-${ICU_VER} ]; then
+    mv icu icu-${ICU_VER} && \
+      ln -s icu-${ICU_VER} icu || error
+  fi
+
+  # sqlite — /2026/ is sqlite's release-year folder
+  do_wget https://www.sqlite.org/2026/sqlite-autoconf-${SQLITE_SRCVER}.tar.gz
+  if [ -d sqlite-autoconf-${SQLITE_SRCVER} ] && [ ! -d sqlite-${SQLITE_VER} ]; then
+    mv sqlite-autoconf-${SQLITE_SRCVER} sqlite-${SQLITE_VER} && \
+      ln -s sqlite-${SQLITE_VER} sqlite-autoconf-${SQLITE_SRCVER} || error
+  fi
 
   # Newer CMake — unpacked under its build dir, where initial_setup bootstraps it.
   mkdir -p $BUILD_DIR/cmakebuild || error
@@ -1833,7 +1873,6 @@ download_toolchain () {
 
   # Rust installer (rustup-init.sh). Only the bootstrap script is fetched here; the
   # actual rustup/cargo-c install stays in initial_setup (it writes to CARGO_HOME).
-  # TODO: Clemens, PLEASE DO NOT CACHE rustup-init.sh in the contrib mirror
   mkdir -p $DEPS_DIR/rust || error
   cd $DEPS_DIR/rust || error
   if [ ! -f rustup-init.sh ]; then
@@ -1861,10 +1900,10 @@ initial_setup () {
 
   cd $PREFIX || error
 
-  # libffi, ncurses, readline, compression libs and openssl are linked by Python (ctypes /
-  # _curses / readline / zipfile+gzip+bz2+lzma / ssl, plus pip's HTTPS) and must exist before
-  # it — built here, not in the deps phase. additional_build_env_setup puts $PREFIX on
-  # the compiler -I/-L paths so readline finds ncurses.
+  # libffi, ncurses, readline, compression libs, openssl, expat and sqlite are linked by
+  # Python (ctypes / _curses / readline / zipfile+gzip+bz2+lzma / ssl / pyexpat / _sqlite3,
+  # plus pip's HTTPS) and must exist before it — built here, not in the deps phase.
+  # additional_build_env_setup puts $PREFIX on the compiler -I/-L paths so readline finds ncurses.
   additional_build_env_setup
   build_ncurses  || error
   build_readline || error
@@ -1875,6 +1914,9 @@ initial_setup () {
   build_bzip2    || error
   build_xz       || error
   build_openssl  || error
+  build_expat    || error
+  build_icu      || error
+  build_sqlite   || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
     printf "\n"
@@ -1890,9 +1932,6 @@ initial_setup () {
     echo "done"
     touch $PREFIX/.my_pip_install_done
   fi
-
-  # python3 -m pip install meson numpy
-
   # Newer CMake (source fetched + unpacked by download_toolchain)
   if [ ! -f $BUILD_DIR/cmakebuild/.my_done ]; then
     printf "\n ### building newer CMake\n"
@@ -2075,14 +2114,6 @@ download_dependencies () {
   # util-linux (for libmount). Unpacks to util-linux-${UTIL_LINUX_VER} (used as-is).
   do_wget https://www.kernel.org/pub/linux/utils/util-linux/v`echo ${UTIL_LINUX_VER} | cut -d. -f1-2`/util-linux-${UTIL_LINUX_VER}.tar.xz
 
-  # ICU (icu4c) — unpacks to icu/; rename so the source dir is icu-${ICU_VER}
-  # (symlink left behind so do_wget doesn't re-unpack on reruns).
-  do_wget https://github.com/unicode-org/icu/releases/download/release-${ICU_VER}/icu4c-${ICU_VER}-sources.tgz icu4c-${ICU_VER}-sources.tgz
-  if [ -d icu ] && [ ! -d icu-${ICU_VER} ]; then
-    mv icu icu-${ICU_VER} && \
-      ln -s icu-${ICU_VER} icu || error
-  fi
-
   # libxml2 — provides xmllint for shared-mime-info
   do_wget https://gitlab.gnome.org/GNOME/libxml2/-/archive/v${LIBXML2_VER}/libxml2-v${LIBXML2_VER}.tar.bz2
   if [ -d libxml2-v${LIBXML2_VER} ] && [ ! -d libxml2-${LIBXML2_VER} ]; then
@@ -2162,10 +2193,22 @@ download_dependencies () {
 
   # Curl
   do_wget https://github.com/curl/curl/releases/download/curl-`echo ${CURL_VER} | sed "s%\.%_%g"`/curl-${CURL_VER}.tar.gz
-  
+
+  # nghttp2
+  do_wget https://github.com/nghttp2/nghttp2/releases/download/v${NGHTTP2_VER}/nghttp2-${NGHTTP2_VER}.tar.xz
+
+  # nghttp3
+  do_wget https://github.com/ngtcp2/nghttp3/releases/download/v${NGHTTP3_VER}/nghttp3-${NGHTTP3_VER}.tar.xz
+
+  # ngtcp2
+  do_wget https://github.com/ngtcp2/ngtcp2/releases/download/v${NGTCP2_VER}/ngtcp2-${NGTCP2_VER}.tar.xz
+
   # Cairo
   do_wget https://cairographics.org/releases/cairo-${CAIRO_VER}.tar.xz
-  
+
+  # FriBidi
+  do_wget https://github.com/fribidi/fribidi/releases/download/v${FRIBIDI_VER}/fribidi-${FRIBIDI_VER}.tar.xz
+
   # Pango
   do_wget https://download.gnome.org/sources/pango/${PANGO_VER_MM}/pango-${PANGO_VER}.tar.xz
 
@@ -2237,12 +2280,12 @@ download_dependencies () {
   do_wget https://deb.debian.org/debian/pool/main/c/clipper/clipper_${LIBCLIPPER_VER}.orig.tar.gz libclipper-${LIBCLIPPER_VER}.tar.gz
   #do_wget https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/dependencies/clipper-${LIBCLIPPER_VER}.tar.gz libclipper-${LIBCLIPPER_VER}.tar.gz
 
-  # OpenBLAS (BLAS + LAPACK, built from source for relocatability)
-  do_wget https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VER}/OpenBLAS-${OPENBLAS_VER}.tar.gz
-  if [ -d OpenBLAS-${OPENBLAS_VER} ] && [ ! -d openblas-${OPENBLAS_VER} ]; then
-    mv OpenBLAS-${OPENBLAS_VER} openblas-${OPENBLAS_VER} && \
-      ln -s openblas-${OPENBLAS_VER} OpenBLAS-${OPENBLAS_VER} || error
-  fi
+  # OpenBLAS (disabled: no consumer in the stack yet)
+  # do_wget https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VER}/OpenBLAS-${OPENBLAS_VER}.tar.gz
+  # if [ -d OpenBLAS-${OPENBLAS_VER} ] && [ ! -d openblas-${OPENBLAS_VER} ]; then
+  #   mv OpenBLAS-${OPENBLAS_VER} openblas-${OPENBLAS_VER} && \
+  #     ln -s openblas-${OPENBLAS_VER} OpenBLAS-${OPENBLAS_VER} || error
+  # fi
 
   # FFTW
   do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz
@@ -2251,9 +2294,6 @@ download_dependencies () {
   # hboehm.info only carries tarballs up to 8.2.8; newer releases are on GitHub.
   do_wget https://github.com/bdwgc/bdwgc/releases/download/v${GC_VER}/gc-${GC_VER}.tar.gz gc-${GC_VER}.tar.gz 10
 
-  # expat
-  # do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER}| sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.gz
-  
   #### github
 
   # glm
@@ -2816,7 +2856,7 @@ collect_package_dirs () {
   if [ -f bin/fc-match ]; then
     printf "  including FontConfig binaries, fonts and cache:\n"
     [ -d var/cache/fontconfig ] && package_dirs="$package_dirs var/cache/fontconfig"
-    package_dirs="$package_dirs etc `ls bin/fc-* 2>/dev/null`"
+    package_dirs="$package_dirs etc"
     make_font_dirs_and_files
     (
       FONTCONFIG_PATH="$PREFIX/etc/fonts"
@@ -2833,6 +2873,16 @@ collect_package_dirs () {
   fi
 }
 
+# bin/ tools we deliberately drop from the tarball: build-time only (toolchain + codegen/
+# introspection). Everything else in bin/ ships — blocklist, not whitelist, so runtime
+# helpers Coot/glycin exec (e.g. bwrap) are never silently lost.
+bin_exclude="cmake ctest cpack ccmake cmake-gui ninja meson swig ccache pkg-config pkgconf
+glib-compile-resources glib-compile-schemas glib-genmarshal glib-gettextize glib-mkenums gtester gtester-report gdbus-codegen
+g-ir-scanner g-ir-compiler g-ir-generate g-ir-inspect g-ir-doc-tool
+gdk-pixbuf-csource gdk-pixbuf-pixdata gdk-pixbuf-query-loaders
+gtk4-builder-tool gtk4-encode-symbolic-svg gtk4-path-tool gtk4-rendernode-tool gtk4-image-tool
+wayland-scanner update-mime-database eu-*"
+
 package_coot () {
   cd $PREFIX || error
   os=`detect_os_tag` || return
@@ -2840,12 +2890,13 @@ package_coot () {
     debug) build_label=debug;;
     *) build_label=release;;
   esac
-  tarball_name=coot_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`.tar.zst
+  tarball_name=coot-${outtag}_${os}_`uname -m`_${build_label}_`date +%Y%m%d_%H%M%S`.tar.zst
   collect_package_dirs
   create_readme
   printf "\n packaging Coot as $tarball_name ... "
-  # zstd -19 (-T0 = all cores) for a much smaller tarball than gzip; needs the zstd CLI.
-  tar -I 'zstd -T0 -19' -cf $tarball_name bin/coot* bin/layla bin/pyrogen bin/python3* $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
+  # ship all of bin/ minus $bin_exclude (build tools). zstd -19 (-T0 = all cores).
+  __bin_excl=""; for __x in $bin_exclude; do __bin_excl="$__bin_excl --exclude=bin/$__x"; done
+  tar -I 'zstd -T0 -19' -cf $tarball_name $__bin_excl bin $package_dirs > my_tar.log 2>&1 || error "see `mypwd`/my_tar.log"
   echo "done"
   printf "\n   "
   ls -l $tarball_name
@@ -2869,11 +2920,10 @@ package_coot_minimal () {
   # Copy via tar (not cp) to preserve nested paths: $package_dirs can contain
   # "var/cache/fontconfig", which `cp -ar dest/.` would flatten to dest/fontconfig.
   ( tar -cf - $package_dirs | ( cd $staging_dir && tar -xf - ) ) || error "copy-1 (see above)"
+  # ship all of bin/, then drop the build-time tools ($bin_exclude) — blocklist, not whitelist
   mkdir -p $staging_dir/bin
-  cp -a bin/coot* bin/layla bin/pyrogen bin/python3* $staging_dir/bin/. || error "copy-2 (see above)"
-  if [ -x bin/fc-match ]; then
-    cp -a bin/fc-* $staging_dir/bin/. || error "copy-3 (see above)"
-  fi
+  cp -a bin/. $staging_dir/bin/ || error "copy-2 (see above)"
+  for __x in $bin_exclude; do rm -f $staging_dir/bin/$__x; done
   (
     cd $staging_dir || error
 
@@ -3049,16 +3099,17 @@ if [ "X${COOT_PREFIX:-}" = "X" ]; then
   elif [ -n "${ZSH_VERSION:-}" ]; then
     _coot_self=${(%):-%x}                # zsh: %x = path of the sourced file
   else
-    _coot_self=$0                        # other shells: best effort
+    _coot_self=$0                        # other shells: best effort, often unreliable
   fi
-  _coot_bindir=$(cd "$(dirname "$_coot_self")" && pwd)
+  _coot_bindir=$(cd "$(dirname "$_coot_self")" 2>/dev/null && pwd)
   COOT_PREFIX=$(dirname "$_coot_bindir") # bin/ -> install root
   unset _coot_self _coot_bindir
 fi
 
-if [ ! -d "$COOT_PREFIX/lib" ]; then
-  echo "coot-env.sh: COOT_PREFIX=\"$COOT_PREFIX\" does not look like a Coot install" >&2
-  echo "  (set COOT_PREFIX to the unpacked tarball root and re-source)" >&2
+if [ ! -f "$COOT_PREFIX/bin/coot-env.sh" ]; then
+  echo "coot-env.sh: could not determine the Coot install prefix (COOT_PREFIX=\"$COOT_PREFIX\")." >&2
+  echo "  This shell cannot self-locate a sourced file; set COOT_PREFIX to the unpacked" >&2
+  echo "  tarball root and re-source, e.g.:  COOT_PREFIX=/path/to/coot . \"\$COOT_PREFIX/bin/coot-env.sh\"" >&2
   return 1 2>/dev/null || exit 1
 fi
 export COOT_PREFIX

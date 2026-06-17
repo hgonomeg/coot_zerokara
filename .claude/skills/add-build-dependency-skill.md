@@ -14,6 +14,11 @@ Adding a build dependency requires five coordinated components:
 
 Each must be verified against the upstream project before merging.
 
+**This skill also applies when you enable an optional feature on an *existing* package**
+that makes it consume another lib we build (e.g. turning on sqlite's ICU or poppler's
+lcms2). You won't be adding the five components, but you *are* adding a new build-time edge
+— run Step 3.5's ordering check anyway.
+
 ---
 
 ## Step 1: Identify and Verify the Dependency
@@ -42,6 +47,24 @@ curl -s https://api.github.com/repos/owner/project/releases/latest | \
 ---
 
 ## Step 2: Verify Build System and Flags
+
+### Default feature policy: enable everything, minus tests/examples/docs
+
+Build each library with **as many features enabled as possible** — the bundled libs should
+be at least as capable as the distro packages they replace. This is *especially* true when
+a feature's sub-dependency is **already in our stack**: turn the feature **on**, don't
+disable it (e.g. sqlite finds our readline → `--enable-readline`; a lib that can use our
+zlib / openssl / icu / libxml2 → enable that backend). The only things to switch **off** are
+**tests, examples, fuzzers, benchmarks, and documentation / man pages** — they cost build
+time and pull tooling deps (docbook, sphinx, gtk-doc) without shipping anything users need.
+
+So the default flag shape is "all features on, build-extras off":
+- cmake: `-DXXX_ENABLE_TESTS=OFF -DXXX_ENABLE_EXAMPLES=OFF -DXXX_BUILD_DOCS=OFF` (leave feature toggles at their enabled defaults)
+- meson: `-Dtests=false -Dexamples=false -Ddocs=false` (leave feature options enabled)
+- configure: `--without-tests --without-examples --without-docbook` and keep the `--enable-<feature>` switches
+
+Only disable a genuine feature when it needs a dependency we deliberately don't ship and
+can't easily add — and call that out explicitly in your summary.
 
 ### Check what build system is used
 ```bash
@@ -226,6 +249,18 @@ This protects against two failure modes:
    built there, before `BUILD_DEPENDENCIES`), so "not in the deps list" does **not** mean
    "not available". Check the toolchain phase too.
 
+**Check which phase the *consumer* is in, too.** Some packages are built in the toolchain
+phase (`initial_setup`: sqlite, python, openssl, ncurses, readline, libffi, …), which runs
+**before the entire deps phase**. A `BUILD_DEPENDENCIES` lib is therefore *not yet built*
+when a toolchain-phase consumer runs — so enabling ICU on sqlite breaks unless ICU is also
+built in the toolchain phase (or the consumer is moved into deps). Confirm the consumer's
+input is built in the **same or an earlier** phase, not merely earlier in the deps list.
+
+**Verification caveat:** building the single package against an already-populated prefix
+will **not** reveal a missing-input ordering bug — the input is already sitting there. To
+catch ordering, reason about the two phases explicitly, or test against a clean / staged
+prefix where the input has not been built yet.
+
 ### Find consumers of the new lib (who must come after it)
 Map every `BUILD_DEPENDENCIES` entry to its Arch package name (they often differ:
 `glib`→`glib2`, `freetype`→`freetype2`, `tiff`→`libtiff`, `gdk_pixbuf`→`gdk-pixbuf2`,
@@ -390,6 +425,8 @@ Before committing:
 - [ ] **Upstream project verified** - Checked meson_options.txt / CMakeLists.txt
 - [ ] **Version is current** - Used GitHub API to confirm latest release
 - [ ] **Build options verified** - Checked actual source for exact option names
+- [ ] **Features maximized** - All upstream features enabled (especially ones satisfied by
+      libs already in our stack); only tests/examples/fuzzers/docs turned off
 - [ ] **Optimization + debug symbols honor `$btype`** - Generic helpers handle it; for any
       hand-rolled build, inject `-O2`(opt)/`-O2 -g`(debug) and verify `-O` actually lands in
       the generated Makefile (the exported `CFLAGS` suppresses build-system `-O` defaults)
@@ -410,7 +447,6 @@ Before committing:
 - [ ] **Follows script conventions:**
   - [ ] Naming matches existing packages
   - [ ] Indentation consistent
-  - [ ] Comments added
 - [ ] **System packages added** - If needed for distros that don't bundle headers
 
 ---

@@ -46,7 +46,11 @@ pixman:PIXMAN_VER:0.46.4
 libtiff:LIBTIFF_VER:4.7.1
 poppler:POPPLER_VER:26.05.0
 curl:CURL_VER:8.20.0
+libnghttp2:NGHTTP2_VER:1.69.0
+libnghttp3:NGHTTP3_VER:1.16.0
+libngtcp2:NGTCP2_VER:1.23.0
 cairo:CAIRO_VER:1.18.4
+fribidi:FRIBIDI_VER:1.0.16
 pango:PANGO_VER:1.57.1
 librsvg:LIBRSVG_VER:2.62.3
 highway:HIGHWAY_VER:1.4.0
@@ -59,7 +63,7 @@ gdk-pixbuf2:GDK_PIXBUF_VER:2.44.6
 at-spi2-core:AT_SPI2_CORE_VER:2.60.4
 gtk4:GTK_VER:4.22.4
 adwaita-icon-theme:ADWAITA_ICON_THEME_VER:50.0
-openblas:OPENBLAS_VER:0.3.33
+#openblas:OPENBLAS_VER:0.3.33
 fftw2:FFTW_VER:2.1.5
 gsl:GSL_VER:2.8
 eigen:EIGEN_VER:5.0.1
@@ -69,7 +73,7 @@ wayland:WAYLAND_VER:1.25.0
 wayland-protocols:WAYLANDPROTOCOLS_VER:1.49
 elfutils:ELFUTILS_VER:0.195
 libjpeg-turbo:LIBJPEG_VER:3.1.4.1
-libunistring:LIBUNISTRING_VER:1.2
+libunistring:LIBUNISTRING_VER:1.4.2
 gc:GC_VER:8.2.12
 glm:GLM_VER:1.0.3
 pcre2:PCRE2_VER:10.47
@@ -93,4 +97,6 @@ util-linux:UTIL_LINUX_VER:2.42.1
 ncurses:NCURSES_VER:6.6
 readline:READLINE_VER:8.3
 openssl:OPENSSL_VER:3.6.3
+expat:EXPAT_VER:2.8.1
+sqlite:SQLITE_VER:3.53.2
 PKGLIST
