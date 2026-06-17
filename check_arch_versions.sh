@@ -46,6 +46,9 @@ pixman:PIXMAN_VER:0.46.4
 libtiff:LIBTIFF_VER:4.7.1
 poppler:POPPLER_VER:26.05.0
 curl:CURL_VER:8.20.0
+libnghttp2:NGHTTP2_VER:1.69.0
+libnghttp3:NGHTTP3_VER:1.16.0
+libngtcp2:NGTCP2_VER:1.23.0
 cairo:CAIRO_VER:1.18.4
 fribidi:FRIBIDI_VER:1.0.16
 pango:PANGO_VER:1.57.1
@@ -60,7 +63,7 @@ gdk-pixbuf2:GDK_PIXBUF_VER:2.44.6
 at-spi2-core:AT_SPI2_CORE_VER:2.60.4
 gtk4:GTK_VER:4.22.4
 adwaita-icon-theme:ADWAITA_ICON_THEME_VER:50.0
-openblas:OPENBLAS_VER:0.3.33
+#openblas:OPENBLAS_VER:0.3.33
 fftw2:FFTW_VER:2.1.5
 gsl:GSL_VER:2.8
 eigen:EIGEN_VER:5.0.1

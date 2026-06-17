@@ -430,7 +430,6 @@ Before committing:
 - [ ] **Follows script conventions:**
   - [ ] Naming matches existing packages
   - [ ] Indentation consistent
-  - [ ] Comments added
 - [ ] **System packages added** - If needed for distros that don't bundle headers
 
 ---

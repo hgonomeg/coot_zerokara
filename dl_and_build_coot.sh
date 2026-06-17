@@ -473,10 +473,13 @@ BUILD_DEPENDENCIES="
     gdk_pixbuf
     librsvg
     tiff
+    nghttp2
+    nghttp3
+    ngtcp2
     curl
+    lcms2
     poppler
     highway
-    lcms2
     libjxl
     libcap
     bubblewrap
@@ -493,7 +496,6 @@ BUILD_DEPENDENCIES="
     coordgen
     rdkit
     mmdb2
-    openblas
     gsl
     gemmi
     libccp4
@@ -537,6 +539,9 @@ PIXMAN_VER=0.46.4
 LIBTIFF_VER=4.7.1
 POPPLER_VER=26.05.0
 CURL_VER=8.20.0
+NGHTTP2_VER=1.69.0
+NGHTTP3_VER=1.16.0
+NGTCP2_VER=1.23.0
 CAIRO_VER=1.18.4
 FRIBIDI_VER=1.0.16
 PANGO_VER_MM=1.57
@@ -560,7 +565,7 @@ GTK_VER=${GTK_VER_Major}.${GTK_VER_Minor}.${GTK_VER_Patch}
 ADWAITA_ICON_THEME_VER_MAJOR=50
 ADWAITA_ICON_THEME_VER=${ADWAITA_ICON_THEME_VER_MAJOR}.0
 MMDB_VER=2.0.22
-OPENBLAS_VER=0.3.33
+# OPENBLAS_VER=0.3.33  (disabled: no consumer in the stack yet)
 GSL_VER=2.8
 GEMMI_VER=0.7.5
 LIBCCP4_VER=8.0.0
@@ -804,7 +809,7 @@ build_with_configure () {
     [ "$btype" = "debug" ] && __cfg_opt="-O2 -g" || __cfg_opt="-O2"
     printf "  configure (see `mypwd`/my_configure.log${MY_DONE_EXT}) ... "
     CFLAGS="${CFLAGS} ${__cfg_opt}" CXXFLAGS="${CXXFLAGS} ${__cfg_opt}" \
-      $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX $@ > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
+      $DEPS_DIR/${__p}-${__v}/configure --prefix=$PREFIX "$@" > my_configure.log${MY_DONE_EXT} 2>&1 || error "see `mypwd`/my_configure.log${MY_DONE_EXT}"
     echo "done"
 
     # Belt-and-braces: strip a leftover bare "-g" from the Makefile in opt builds, in case a
@@ -1102,7 +1107,10 @@ build_expat () {
 }
 
 build_sqlite () {
-  build_with_configure sqlite ${SQLITE_VER} --disable-static --enable-readline --all
+  build_with_configure sqlite ${SQLITE_VER} --disable-static --enable-readline --all \
+    --with-icu-cflags=-I$PREFIX/include \
+    "--with-icu-ldflags=-L$PREFIX/lib -licui18n -licuuc -licudata" \
+    --icu-collations
 }
 
 # Source dir is util-linux-*, so pass that (hyphen) name to the configure helper.
@@ -1192,8 +1200,11 @@ build_gobject_introspection () {
 }
 
 build_guile () {
+  # Force off guile's (crypt) Scheme proc so libguile doesn't link system libxcrypt (relocatability).
+  ac_cv_search_crypt=no; export ac_cv_search_crypt
   build_with_configure guile ${GUILE_VER} --enable-shared --disable-static --disable-error-on-warning --enable-mini-gmp \
     --with-libreadline-prefix=$PREFIX
+  unset ac_cv_search_crypt
 }
 
 build_swig () {
@@ -1265,12 +1276,26 @@ build_poppler () {
   -DENABLE_GPGME=OFF -DBUILD_GTK_TESTS=OFF -DBUILD_QT5_TESTS=OFF \
   -DBUILD_QT6_TESTS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_MANUAL_TESTS=OFF \
   -DENABLE_BOOST=ON -DENABLE_QT5=OFF -DENABLE_QT6=OFF \
-  -DENABLE_LIBOPENJPEG=none -DENABLE_LCMS=OFF -DENABLE_LIBCURL=ON -DENABLE_DCTDECODER=libjpeg
+  -DENABLE_LIBOPENJPEG=none -DENABLE_LCMS=ON -DENABLE_LIBCURL=ON -DENABLE_DCTDECODER=libjpeg
+}
+
+build_nghttp2 () {
+  build_with_cmake nghttp2 ${NGHTTP2_VER} -DENABLE_LIB_ONLY=ON -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=OFF
+}
+
+build_nghttp3 () {
+  build_with_cmake nghttp3 ${NGHTTP3_VER} -DENABLE_LIB_ONLY=ON -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=OFF
+}
+
+build_ngtcp2 () {
+  build_with_cmake ngtcp2 ${NGTCP2_VER} -DENABLE_LIB_ONLY=ON -DENABLE_OPENSSL=ON -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=OFF
 }
 
 build_curl () {
     build_with_cmake curl ${CURL_VER} \
       -DCURL_USE_OPENSSL=ON \
+      -DUSE_NGHTTP2=ON \
+      -DUSE_NGTCP2=ON \
       -DCURL_DISABLE_LDAP=ON \
       -DCURL_DISABLE_LDAPS=ON \
       -DCURL_USE_LIBSSH2=OFF \
@@ -1507,14 +1532,12 @@ build_mmdb2 () {
   build_with_configure mmdb2 ${MMDB_VER} --enable-shared
 }
 
-build_openblas () {
-  # DYNAMIC_ARCH builds kernels for multiple CPU micro-architectures and selects
-  # the best at runtime — works for both distributable and locally-tuned builds.
-  build_with_cmake openblas ${OPENBLAS_VER} \
-    -DBUILD_SHARED_LIBS=ON \
-    -DDYNAMIC_ARCH=ON \
-    -DBUILD_TESTING=OFF
-}
+# build_openblas () {
+#   build_with_cmake openblas ${OPENBLAS_VER} \
+#     -DBUILD_SHARED_LIBS=ON \
+#     -DDYNAMIC_ARCH=ON \
+#     -DBUILD_TESTING=OFF
+# }
 
 build_gsl () {
   build_with_configure gsl ${GSL_VER}
@@ -2163,7 +2186,16 @@ download_dependencies () {
 
   # Curl
   do_wget https://github.com/curl/curl/releases/download/curl-`echo ${CURL_VER} | sed "s%\.%_%g"`/curl-${CURL_VER}.tar.gz
-  
+
+  # nghttp2
+  do_wget https://github.com/nghttp2/nghttp2/releases/download/v${NGHTTP2_VER}/nghttp2-${NGHTTP2_VER}.tar.xz
+
+  # nghttp3
+  do_wget https://github.com/ngtcp2/nghttp3/releases/download/v${NGHTTP3_VER}/nghttp3-${NGHTTP3_VER}.tar.xz
+
+  # ngtcp2
+  do_wget https://github.com/ngtcp2/ngtcp2/releases/download/v${NGTCP2_VER}/ngtcp2-${NGTCP2_VER}.tar.xz
+
   # Cairo
   do_wget https://cairographics.org/releases/cairo-${CAIRO_VER}.tar.xz
 
@@ -2241,12 +2273,12 @@ download_dependencies () {
   do_wget https://deb.debian.org/debian/pool/main/c/clipper/clipper_${LIBCLIPPER_VER}.orig.tar.gz libclipper-${LIBCLIPPER_VER}.tar.gz
   #do_wget https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/dependencies/clipper-${LIBCLIPPER_VER}.tar.gz libclipper-${LIBCLIPPER_VER}.tar.gz
 
-  # OpenBLAS (BLAS + LAPACK, built from source for relocatability)
-  do_wget https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VER}/OpenBLAS-${OPENBLAS_VER}.tar.gz
-  if [ -d OpenBLAS-${OPENBLAS_VER} ] && [ ! -d openblas-${OPENBLAS_VER} ]; then
-    mv OpenBLAS-${OPENBLAS_VER} openblas-${OPENBLAS_VER} && \
-      ln -s openblas-${OPENBLAS_VER} OpenBLAS-${OPENBLAS_VER} || error
-  fi
+  # OpenBLAS (disabled: no consumer in the stack yet)
+  # do_wget https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VER}/OpenBLAS-${OPENBLAS_VER}.tar.gz
+  # if [ -d OpenBLAS-${OPENBLAS_VER} ] && [ ! -d openblas-${OPENBLAS_VER} ]; then
+  #   mv OpenBLAS-${OPENBLAS_VER} openblas-${OPENBLAS_VER} && \
+  #     ln -s openblas-${OPENBLAS_VER} OpenBLAS-${OPENBLAS_VER} || error
+  # fi
 
   # FFTW
   do_wget http://www.fftw.org/fftw-${FFTW_VER}.tar.gz
