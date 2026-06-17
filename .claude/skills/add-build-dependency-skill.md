@@ -14,6 +14,11 @@ Adding a build dependency requires five coordinated components:
 
 Each must be verified against the upstream project before merging.
 
+**This skill also applies when you enable an optional feature on an *existing* package**
+that makes it consume another lib we build (e.g. turning on sqlite's ICU or poppler's
+lcms2). You won't be adding the five components, but you *are* adding a new build-time edge
+— run Step 3.5's ordering check anyway.
+
 ---
 
 ## Step 1: Identify and Verify the Dependency
@@ -243,6 +248,18 @@ This protects against two failure modes:
    in the toolchain phase** (zlib, openssl, ncurses, readline, libffi, Python, cmake are
    built there, before `BUILD_DEPENDENCIES`), so "not in the deps list" does **not** mean
    "not available". Check the toolchain phase too.
+
+**Check which phase the *consumer* is in, too.** Some packages are built in the toolchain
+phase (`initial_setup`: sqlite, python, openssl, ncurses, readline, libffi, …), which runs
+**before the entire deps phase**. A `BUILD_DEPENDENCIES` lib is therefore *not yet built*
+when a toolchain-phase consumer runs — so enabling ICU on sqlite breaks unless ICU is also
+built in the toolchain phase (or the consumer is moved into deps). Confirm the consumer's
+input is built in the **same or an earlier** phase, not merely earlier in the deps list.
+
+**Verification caveat:** building the single package against an already-populated prefix
+will **not** reveal a missing-input ordering bug — the input is already sitting there. To
+catch ordering, reason about the two phases explicitly, or test against a clean / staged
+prefix where the input has not been built yet.
 
 ### Find consumers of the new lib (who must come after it)
 Map every `BUILD_DEPENDENCIES` entry to its Arch package name (they often differ:

@@ -1515,6 +1515,9 @@ build_libvorbis () {
 
  
 build_rdkit () {
+  # Drop RDKit's stale FindEigen3 so config-mode finds our Eigen 5.x (rdkit#8896).
+  rm -f $DEPS_DIR/rdkit-${RDKIT_VER}/Code/cmake/Modules/FindEigen3.cmake
+  sed -i 's|if(NOT EIGEN3_FOUND)|if(NOT TARGET Eigen3::Eigen)|' $DEPS_DIR/rdkit-${RDKIT_VER}/CMakeLists.txt
   build_with_cmake rdkit ${RDKIT_VER} -DRDK_BUILD_CAIRO_SUPPORT=ON \
   -DRDK_BUILD_INCHI_SUPPORT=ON \
   -DRDK_INSTALL_COMIC_FONTS=OFF \
