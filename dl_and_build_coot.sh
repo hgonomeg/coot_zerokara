@@ -440,7 +440,6 @@ export COOT_DIR
 # must be built more than once (see the numbered build_<name> variants).
 BUILD_DEPENDENCIES="
     util_linux
-    icu
     libxml2
     elfutils
     libdwarf
@@ -1152,8 +1151,7 @@ build_icu () {
     touch $BUILD_DIR/icu/.my_done${MY_DONE_EXT}
   fi
 }
-# Built with ICU (ours, built right before); Python bindings + compression not needed.
-# Provides xmllint for shared-mime-info. 2.15.x dropped autotools — meson only.
+
 build_libxml2 () {
   build_with_meson libxml2 ${LIBXML2_VER} -Dicu=enabled -Dlegacy=enabled
 }
@@ -1820,25 +1818,38 @@ download_toolchain () {
       ln -s python-${PYTHON_VER} Python-${PYTHON_VER} || error
   fi
 
-  # Built in initial_setup before Python (which links them). Fetched here so the
-  # toolchain phase is self-contained.
+  # ncurses
   do_wget https://ftp.gnu.org/gnu/ncurses/ncurses-${NCURSES_VER}.tar.gz
+
+  # readline
   do_wget https://ftp.gnu.org/gnu/readline/readline-${READLINE_VER}.tar.gz
+
+  # libffi
   do_wget https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz
+
+  # openssl
   do_wget https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz
 
-  # zlib, zstd, brotli — built before Python (zipfile/gzip/pip) and OpenSSL
-  # (compression support). System cmake is used for zstd/brotli.
+  # zlib, zstd, brotli
   do_wget https://github.com/madler/zlib/releases/download/v${ZLIB_VER}/zlib-${ZLIB_VER}.tar.xz
   do_wget https://github.com/facebook/zstd/archive/refs/tags/v${ZSTD_VER}.tar.gz zstd-${ZSTD_VER}.tar.gz
   do_wget https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VER}.tar.gz brotli-${BROTLI_VER}.tar.gz
+
   # bzip2 — shared library only; Python's _bz2 needs it
   do_wget https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VER}.tar.gz
+
   # xz/liblzma — Python's _lzma needs it; also a NEEDED of libdw (elfutils) and libtiff
   do_wget https://github.com/tukaani-project/xz/releases/download/v${XZ_VER}/xz-${XZ_VER}.tar.gz
 
   # expat
   do_wget https://github.com/libexpat/libexpat/releases/download/R_`echo ${EXPAT_VER} | sed "s/\./_/g"`/expat-${EXPAT_VER}.tar.xz
+
+  # icu
+  do_wget https://github.com/unicode-org/icu/releases/download/release-${ICU_VER}/icu4c-${ICU_VER}-sources.tgz icu4c-${ICU_VER}-sources.tgz
+  if [ -d icu ] && [ ! -d icu-${ICU_VER} ]; then
+    mv icu icu-${ICU_VER} && \
+      ln -s icu-${ICU_VER} icu || error
+  fi
 
   # sqlite — /2026/ is sqlite's release-year folder
   do_wget https://www.sqlite.org/2026/sqlite-autoconf-${SQLITE_SRCVER}.tar.gz
@@ -1901,6 +1912,7 @@ initial_setup () {
   build_xz       || error
   build_openssl  || error
   build_expat    || error
+  build_icu      || error
   build_sqlite   || error
 
   if [ ! -x $PREFIX/bin/python3 ]; then
@@ -2098,14 +2110,6 @@ download_dependencies () {
 
   # util-linux (for libmount). Unpacks to util-linux-${UTIL_LINUX_VER} (used as-is).
   do_wget https://www.kernel.org/pub/linux/utils/util-linux/v`echo ${UTIL_LINUX_VER} | cut -d. -f1-2`/util-linux-${UTIL_LINUX_VER}.tar.xz
-
-  # ICU (icu4c) — unpacks to icu/; rename so the source dir is icu-${ICU_VER}
-  # (symlink left behind so do_wget doesn't re-unpack on reruns).
-  do_wget https://github.com/unicode-org/icu/releases/download/release-${ICU_VER}/icu4c-${ICU_VER}-sources.tgz icu4c-${ICU_VER}-sources.tgz
-  if [ -d icu ] && [ ! -d icu-${ICU_VER} ]; then
-    mv icu icu-${ICU_VER} && \
-      ln -s icu-${ICU_VER} icu || error
-  fi
 
   # libxml2 — provides xmllint for shared-mime-info
   do_wget https://gitlab.gnome.org/GNOME/libxml2/-/archive/v${LIBXML2_VER}/libxml2-v${LIBXML2_VER}.tar.bz2
