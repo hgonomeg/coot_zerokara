@@ -67,6 +67,11 @@ adwaita-icon-theme:ADWAITA_ICON_THEME_VER:50.0
 fftw2:FFTW_VER:2.1.5
 gsl:GSL_VER:2.8
 eigen:EIGEN_VER:5.0.1
+gemmi:GEMMI_VER:0.7.5
+mmdb2:MMDB_VER:2.0.22
+libccp4:LIBCCP4_VER:8.0.0
+libssm:LIBSSM_VER:1.4
+libclipper:LIBCLIPPER_VER:2.1.20201109
 libogg:LIBOGG_VER:1.3.6
 libvorbis:LIBVORBIS_VER:1.3.7
 wayland:WAYLAND_VER:1.25.0
@@ -84,6 +89,8 @@ shared-mime-info:SMI_VER:2.4
 libffi:LIBFFI_VER:3.5.2
 python-gobject:PYGOBJECT_VER:3.56.3
 rdkit:RDKIT_VER:2026_03_3
+maeparser:MAEPARSER_VER:1.3.3
+coordgen:COORDGEN_VER:3.0.2
 libdwarf:LIBDWARF_VER:2.3.1
 backward-cpp:LIBBACKWARD_VER:1.6
 icu:ICU_VER:78.3
@@ -93,7 +100,11 @@ zlib:ZLIB_VER:1.3.2
 zstd:ZSTD_VER:1.5.7
 brotli:BROTLI_VER:1.2.0
 xz:XZ_VER:5.8.3
-util-linux:UTIL_LINUX_VER:2.42.1
+util-linux:UTIL_LINUX_VER:2.42.2
+python:PYTHON_VER:3.14.5
+python-numpy:NUMPY_VER:2.4.6
+cmake:CMAKE_VER:4.3.4
+ninja:NINJA_VER:1.13.2
 ncurses:NCURSES_VER:6.6
 readline:READLINE_VER:8.3
 openssl:OPENSSL_VER:3.6.3
