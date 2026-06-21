@@ -2,6 +2,9 @@ name: Build Coot
 
 on:
   workflow_dispatch:
+  # 1st and 15th of each month at 05:17 UTC
+  schedule:
+  - cron: "17 5 1,15 * *"
   push:
     paths:
       - 'dl_and_build_coot.sh'
