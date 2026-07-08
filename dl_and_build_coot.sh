@@ -872,7 +872,8 @@ build_libjpeg () {
     -DCMAKE_INSTALL_LIBDIR=$PREFIX/lib \
     -DENABLE_STATIC=OFF \
     -DWITH_JAVA=OFF \
-    -DWITH_TESTS=OFF
+    -DWITH_TESTS=OFF \
+    -DWITH_SYSTEM_ZLIB=ON
 }
 
 build_libunistring () {
