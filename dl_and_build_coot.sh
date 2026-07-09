@@ -870,6 +870,7 @@ build_python () {
 build_libjpeg () {
   build_with_cmake libjpeg-turbo ${LIBJPEG_VER} \
     -DCMAKE_INSTALL_LIBDIR=$PREFIX/lib \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DENABLE_STATIC=OFF \
     -DWITH_JAVA=OFF \
     -DWITH_TESTS=OFF \
