@@ -1709,24 +1709,26 @@ build_fftw () {
 
 # OSPRay ray-tracing stack for chapi. Order: tbb -> rkcommon -> embree -> ospray.
 # ISPC (found on PATH, added in setup_build_env) is a build-time-only compiler.
+# CFLAGS/CXXFLAGS cleared: the global -I$PREFIX/include gets treated as implicit, so cmake
+# drops the config-target -isystem and embree/ospray then overwrite it -- tbb/tbb.h unfound.
 build_tbb () {
-  build_with_cmake tbb ${TBB_VER} -DBUILD_SHARED_LIBS=ON -DTBB_TEST=OFF -DTBB_EXAMPLES=OFF
+  CFLAGS="" CXXFLAGS="" build_with_cmake tbb ${TBB_VER} -DBUILD_SHARED_LIBS=ON -DTBB_TEST=OFF -DTBB_EXAMPLES=OFF
 }
 
 build_rkcommon () {
-  build_with_cmake rkcommon ${RKCOMMON_VER} -DBUILD_SHARED_LIBS=ON -DINSTALL_DEPS=OFF -DBUILD_TESTING=OFF
+  CFLAGS="" CXXFLAGS="" build_with_cmake rkcommon ${RKCOMMON_VER} -DBUILD_SHARED_LIBS=ON -DINSTALL_DEPS=OFF -DBUILD_TESTING=OFF
 }
 
 # ospray rejects embree unless it exposes the ISPC interface, so EMBREE_ISPC_SUPPORT=ON.
 build_embree () {
-  build_with_cmake embree ${EMBREE_VER} -DBUILD_SHARED_LIBS=ON -DEMBREE_ISPC_SUPPORT=ON \
+  CFLAGS="" CXXFLAGS="" build_with_cmake embree ${EMBREE_VER} -DBUILD_SHARED_LIBS=ON -DEMBREE_ISPC_SUPPORT=ON \
     -DEMBREE_TUTORIALS=OFF -DEMBREE_TASKING_SYSTEM=TBB -DEMBREE_TESTING_INTENSITY=0
 }
 
 # Volumes off drops the OpenVKL dependency (Coot's ray tracer is geometry-only); apps and
 # the OIDN denoiser off. Coot enables this via -DOSPRAY_PREFIX in build_chapi.
 build_ospray () {
-  build_with_cmake ospray ${OSPRAY_VER} -DBUILD_SHARED_LIBS=ON -DOSPRAY_ENABLE_APPS=OFF \
+  CFLAGS="" CXXFLAGS="" build_with_cmake ospray ${OSPRAY_VER} -DBUILD_SHARED_LIBS=ON -DOSPRAY_ENABLE_APPS=OFF \
     -DOSPRAY_ENABLE_VOLUMES=OFF -DOSPRAY_MODULE_DENOISER=OFF -DISPC_EXECUTABLE=$ISPC_EXE
 }
 
