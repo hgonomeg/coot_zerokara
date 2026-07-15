@@ -500,7 +500,11 @@ BUILD_DEPENDENCIES="
     gemmi
     libccp4
     libssm
-    libclipper"
+    libclipper
+    tbb
+    rkcommon
+    embree
+    ospray"
 # -------------------------------------------------------------------------------------
 
 # versions of all external packages/dependencies:
@@ -604,6 +608,13 @@ LIBVORBIS_VER=1.3.7
 ELFUTILS_VER=0.195
 LIBDWARF_VER=2.3.2
 LIBBACKWARD_VER=1.6
+# OSPRay ray-tracing stack for chapi (Coot's headless API). ISPC is a build-time-only
+# SPMD compiler (prebuilt binary, not shipped); the rest build from source and ship.
+ISPC_VER=1.24.0
+TBB_VER=2021.13.0
+RKCOMMON_VER=1.14.0
+EMBREE_VER=4.3.3
+OSPRAY_VER=3.2.0
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -616,6 +627,8 @@ export CARGO_HOME=${PREFIX}/.cargo
 # RUSTUP_HOME holds the actual toolchains (rustc, std, components); without this it
 # defaults to $HOME/.rustup, i.e. outside $PREFIX. Keep all of Rust under $PREFIX.
 export RUSTUP_HOME=${PREFIX}/.rustup
+# Prebuilt ISPC compiler (used to build embree's ISPC interface + ospray's CPU kernels).
+export ISPC_EXE=${DEPS_DIR}/ispc-v${ISPC_VER}-linux/bin/ispc
 
 cat <<e
 
@@ -1694,6 +1707,29 @@ build_fftw () {
   fi
 }
 
+# OSPRay ray-tracing stack for chapi. Order: tbb -> rkcommon -> embree -> ospray.
+# ISPC (found on PATH, added in setup_build_env) is a build-time-only compiler.
+build_tbb () {
+  build_with_cmake tbb ${TBB_VER} -DBUILD_SHARED_LIBS=ON -DTBB_TEST=OFF -DTBB_EXAMPLES=OFF
+}
+
+build_rkcommon () {
+  build_with_cmake rkcommon ${RKCOMMON_VER} -DBUILD_SHARED_LIBS=ON -DINSTALL_DEPS=OFF -DBUILD_TESTING=OFF
+}
+
+# ospray rejects embree unless it exposes the ISPC interface, so EMBREE_ISPC_SUPPORT=ON.
+build_embree () {
+  build_with_cmake embree ${EMBREE_VER} -DBUILD_SHARED_LIBS=ON -DEMBREE_ISPC_SUPPORT=ON \
+    -DEMBREE_TUTORIALS=OFF -DEMBREE_TASKING_SYSTEM=TBB -DEMBREE_TESTING_INTENSITY=0
+}
+
+# Volumes off drops the OpenVKL dependency (Coot's ray tracer is geometry-only); apps and
+# the OIDN denoiser off. Coot enables this via -DOSPRAY_PREFIX in build_chapi.
+build_ospray () {
+  build_with_cmake ospray ${OSPRAY_VER} -DBUILD_SHARED_LIBS=ON -DOSPRAY_ENABLE_APPS=OFF \
+    -DOSPRAY_ENABLE_VOLUMES=OFF -DOSPRAY_MODULE_DENOISER=OFF -DISPC_EXECUTABLE=$ISPC_EXE
+}
+
 # -------------------------------------------------------------------------------------
 # other functions
 do_wget () {
@@ -2015,7 +2051,8 @@ initial_setup () {
 setup_build_env () {
   export PKG_CONFIG_LIBDIR=$PREFIX/lib/x86_64-linux-gnu:$PREFIX/lib64:$PREFIX/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib
   export PKG_CONFIG_PATH=$PREFIX/lib/x86_64-linux-gnu/pkgconfig:$PREFIX/lib64/pkgconfig:$PREFIX/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:$PREFIX/share/pkgconfig:/usr/lib64/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
-  export PATH="$CARGO_HOME/bin:$PREFIX/bin:$PATH"
+  # ISPC dir added for embree/ospray; harmless before the download phase creates it.
+  export PATH="$CARGO_HOME/bin:$PREFIX/bin:${DEPS_DIR}/ispc-v${ISPC_VER}-linux/bin:$PATH"
   export LD_LIBRARY_PATH="$PREFIX/lib/x86_64-linux-gnu:$PREFIX/lib64:$PREFIX/lib"
   export LD_PATH="$PREFIX/lib/x86_64-linux-gnu:$PREFIX/lib64:$PREFIX/lib"
   export ACLOCAL_PATH="$PREFIX/share/aclocal"
@@ -2352,6 +2389,25 @@ download_dependencies () {
 
   # libvorbis
   do_wget https://downloads.xiph.org/releases/vorbis/libvorbis-${LIBVORBIS_VER}.tar.xz
+
+  # ISPC (prebuilt compiler binary)
+  do_wget https://github.com/ispc/ispc/releases/download/v${ISPC_VER}/ispc-v${ISPC_VER}-linux.tar.gz ispc-v${ISPC_VER}-linux.tar.gz
+
+  # oneTBB
+  do_wget https://github.com/uxlfoundation/oneTBB/archive/refs/tags/v${TBB_VER}.tar.gz tbb-${TBB_VER}.tar.gz
+  if [ -d oneTBB-${TBB_VER} ] && [ ! -d tbb-${TBB_VER} ]; then
+    mv oneTBB-${TBB_VER} tbb-${TBB_VER} && \
+      ln -s tbb-${TBB_VER} oneTBB-${TBB_VER} || error
+  fi
+
+  # rkcommon
+  do_wget https://github.com/RenderKit/rkcommon/archive/refs/tags/v${RKCOMMON_VER}.tar.gz rkcommon-${RKCOMMON_VER}.tar.gz
+
+  # embree
+  do_wget https://github.com/RenderKit/embree/archive/refs/tags/v${EMBREE_VER}.tar.gz embree-${EMBREE_VER}.tar.gz
+
+  # ospray
+  do_wget https://github.com/RenderKit/ospray/archive/refs/tags/v${OSPRAY_VER}.tar.gz ospray-${OSPRAY_VER}.tar.gz
 }
 
 build_dependencies () {
@@ -2532,7 +2588,8 @@ EOF
   # Todo: make sure we do it in a way consistent with how we build Coot (e.g. build type, build flags, etc.)
   if [ ! -f .my_cmake_done ]; then
     printf " ### Chapi: cmake (see `mypwd`/my_chapi_cmake.log) ... "
-    cmake -S .. -DCMAKE_INSTALL_PREFIX=$PREFIX > my_chapi_cmake.log 2>&1 \
+    # -DOSPRAY_PREFIX enables chapi's OSPRay ray-tracing renderer (ospray + its stack in $PREFIX).
+    cmake -S .. -DCMAKE_INSTALL_PREFIX=$PREFIX -DOSPRAY_PREFIX=$PREFIX > my_chapi_cmake.log 2>&1 \
     || error "see `mypwd`/my_chapi_cmake.log"
     echo "done"
     touch .my_cmake_done

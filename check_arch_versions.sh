@@ -110,4 +110,9 @@ readline:READLINE_VER:8.3
 openssl:OPENSSL_VER:3.6.3
 expat:EXPAT_VER:2.8.2
 sqlite:SQLITE_VER:3.53.3
+ispc:ISPC_VER:1.24.0
+onetbb:TBB_VER:2021.13.0
+rkcommon:RKCOMMON_VER:1.14.0
+embree:EMBREE_VER:4.3.3
+ospray:OSPRAY_VER:3.2.0
 PKGLIST
