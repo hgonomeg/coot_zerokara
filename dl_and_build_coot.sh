@@ -3064,7 +3064,17 @@ warning () {
   [ "X$@" != "X" ] && printf "\n WARNING: $@\n\n" || printf "\n WARNING: see above\n\n"
 }
 usage () {
-  printf "\n USAGE: $invoked_name [-h] [-v] [--ldd|--debug|--strace] ...\n\n"
+  printf "\n USAGE: $invoked_name [launcher options] [$invoked_name options ...]\n\n"
+  printf " Two separate sets of options are understood:\n\n"
+  printf "  1. Launcher options, consumed here and NOT passed on. They are recognised\n"
+  printf "     only before the first other argument:\n"
+  printf "       -v         more verbose launcher output (repeatable)\n"
+  printf "       --ldd      list the target binary's shared libraries, then exit\n"
+  printf "       --debug    report the resolved font files, then run\n"
+  printf "       --strace   run the target binary under strace\n\n"
+  printf "  2. Everything else, passed through to $invoked_name untouched. Its own\n"
+  printf "     options are listed below.\n\n"
+  printf " -h and --help belong to both: they print this text and are passed on.\n\n"
 }
 
 # --- environment: single source of truth, shared with interactive `. coot-env.sh` use.
@@ -3081,11 +3091,18 @@ fi
 LANG=C LC_ALL=C LC_NUMERIC=C
 export LANG LC_ALL LC_NUMERIC
 
+# --- help: print our own usage but do NOT consume the flag, so the real binary lists
+#     its options too. Scanned over every argument, as it may follow a filename. ---
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) usage; break;;
+  esac
+done
+
 # --- parse wrapper-only flags; everything else passes through to the real binary ---
 do_ldd=0; do_debug=0; do_strace=0; iverb=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h) usage; exit 0;;
     --ldd) do_ldd=1; shift;;
     --debug) do_debug=1; shift;;
     --strace) do_strace=1; shift;;
@@ -3117,16 +3134,16 @@ if [ $do_ldd -eq 1 ]; then
   ldd "$target_exe"
 elif [ $do_strace -eq 1 ]; then
   type strace >/dev/null 2>&1 || error "no \"strace\" command found"
-  strace "$target_exe" "$@"
+  exec strace "$target_exe" "$@"
 elif [ $do_debug -eq 1 ]; then
   printf "\n ### Running: \"%s\" %s\n\n" "$target_exe" "$*"
   fc-match -v monospace 2>/dev/null | grep file
   fc-match -v serif 2>/dev/null | grep file
   fc-match -v sans 2>/dev/null | grep file
-  "$target_exe" "$@" || error
+  exec "$target_exe" "$@"
 else
-  # rewrite the program's own "Usage: <prog>" line to show the name actually invoked
-  "$target_exe" "$@" 2>&1 | sed "s%Usage:[ ]*[^ ]*%Usage: $invoked_name%g" || error
+  # exec: the real exit status, the tty and signal delivery all reach the user
+  exec "$target_exe" "$@"
 fi
 exit 0
 EOF

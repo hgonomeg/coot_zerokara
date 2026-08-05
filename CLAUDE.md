@@ -246,9 +246,14 @@ location).
 - **`bin/coot-wrapper.sh`** (`create_coot_wrapper`) — self-locates, sources
   `coot-env.sh`, sets launch-only `LANG=C`, then **resolves the target by lookup**:
   `libexec/$invoked_name` → `libexec/$invoked_name-bin` → the one alias `coot`→`coot-1`,
-  and execs it. Validation is **warnings-only** (never hard-fails). Keeps `--ldd`,
-  `--strace`, `--debug`, `-v`. (The old `eval` name-map, the Darwin/DYLD branch, and the
-  `--ccp4` stub were all removed.)
+  and `exec`s it — a real `exec`, so the target's exit status, controlling tty and
+  signals all reach the caller. Validation is **warnings-only** (never hard-fails).
+  Keeps the launcher-only flags `--ldd`, `--strace`, `--debug`, `-v` (consumed, leading
+  position only); **every other argument is passed through untouched**. `-h`/`--help`
+  are deliberately *both*: the wrapper prints its own usage — which explains that the
+  two flag sets exist — and still forwards the flag so the target lists its options too.
+  (The old `eval` name-map, the Darwin/DYLD branch, the `--ccp4` stub, and the `sed`
+  rewrite of the target's `Usage:` line were all removed.)
 - **`package_coot_prep`** — makes every Coot launcher in `bin/` a plain symlink to
   `coot-wrapper.sh` (name = libexec binary minus a trailing `-bin`); also moves any
   Coot-named ELF binary that landed in `bin/` (e.g. `coot-bfactan`, `coot-mmrrcc`) into
