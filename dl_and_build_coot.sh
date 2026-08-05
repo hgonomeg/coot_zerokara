@@ -234,7 +234,6 @@ if [ $do_os -eq 1 ]; then
              file \
              gettext-tools \
              glibc-locale \
-             openal-soft-devel \
              libseccomp-devel \
              doxygen \
              || error
@@ -309,7 +308,6 @@ if [ $do_os -eq 1 ]; then
             xz \
             glibc-langpack-en \
             glibc-gconv-extra \
-            openal-soft-devel \
             libseccomp-devel \
             doxygen \
             || error
@@ -370,7 +368,6 @@ if [ $do_os -eq 1 ]; then
               xmlto \
               pkgconf-pkg-config \
               glibc-gconv-extra \
-              openal-soft-devel \
               libseccomp-devel \
               doxygen
       ;;
@@ -387,7 +384,6 @@ if [ $do_os -eq 1 ]; then
           libgmp-dev libdrm-dev \
           libglfw3-dev \
           xz-utils \
-          libopenal-dev \
           libseccomp-dev \
           doxygen \
           bc || error
@@ -404,7 +400,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             gmp libdrm \
             glfw \
-            inetutils bc openal libseccomp doxygen || error
+            inetutils bc libseccomp doxygen || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -461,8 +457,6 @@ BUILD_DEPENDENCIES="
     harfbuzz
     freetype
     fontconfig
-    libogg
-    libvorbis
     libjpeg
     pixman
     cairo
@@ -603,8 +597,6 @@ SQLITE_SRCVER=$(printf '%d%02d%02d00' $(echo ${SQLITE_VER} | sed 's/\./ /g'))
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
 EIGEN_VER=5.0.1
-LIBOGG_VER=1.3.6
-LIBVORBIS_VER=1.3.7
 ELFUTILS_VER=0.195
 LIBDWARF_VER=2.3.2
 LIBBACKWARD_VER=1.6
@@ -1520,15 +1512,6 @@ build_eigen () {
           -DEIGEN_BUILD_DEMOS=OFF
 }
 
-build_libogg () {
-  build_with_cmake libogg ${LIBOGG_VER} -DBUILD_SHARED_LIBS=ON
-}
-
-build_libvorbis () {
-  build_with_configure libvorbis ${LIBVORBIS_VER} --enable-shared --disable-static
-}
-
- 
 build_rdkit () {
   # Drop RDKit's stale FindEigen3 so config-mode finds our Eigen 5.x (rdkit#8896).
   rm -f $DEPS_DIR/rdkit-${RDKIT_VER}/Code/cmake/Modules/FindEigen3.cmake
@@ -2386,12 +2369,6 @@ download_dependencies () {
   # Eigen
   do_wget https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VER}/eigen-${EIGEN_VER}.tar.gz
 
-  # libogg
-  do_wget https://downloads.xiph.org/releases/ogg/libogg-${LIBOGG_VER}.tar.xz
-
-  # libvorbis
-  do_wget https://downloads.xiph.org/releases/vorbis/libvorbis-${LIBVORBIS_VER}.tar.xz
-
   # ISPC (prebuilt compiler binary)
   do_wget https://github.com/ispc/ispc/releases/download/v${ISPC_VER}/ispc-v${ISPC_VER}-linux.tar.gz ispc-v${ISPC_VER}-linux.tar.gz
 
@@ -2502,7 +2479,6 @@ CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequ
 ./configure --prefix=\$PREFIX \\
             --libexecdir=\$PREFIX/libexec \\
             --disable-static \\
-            --with-sound \\
             --with-enhanced-ligand-tools \\
             --with-rdkit-prefix=\$PREFIX \\
             --with-boost=\$PREFIX \\

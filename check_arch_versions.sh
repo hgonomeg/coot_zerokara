@@ -72,8 +72,6 @@ mmdb2:MMDB_VER:2.0.22
 libccp4:LIBCCP4_VER:8.0.0
 libssm:LIBSSM_VER:1.4
 libclipper:LIBCLIPPER_VER:2.1.20201109
-libogg:LIBOGG_VER:1.3.6
-libvorbis:LIBVORBIS_VER:1.3.7
 wayland:WAYLAND_VER:1.25.0
 wayland-protocols:WAYLANDPROTOCOLS_VER:1.49
 elfutils:ELFUTILS_VER:0.195
