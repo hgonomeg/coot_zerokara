@@ -34,14 +34,14 @@ while IFS=: read -r pkg scriptvar scriptver; do
     printf "%-30s  %-35s  %-14s  %-14s  NEWER\n" "$pkg" "$scriptvar" "$scriptver" "$archver"
   fi
 done <<'PKGLIST'
-glib2:GLIB_VER:2.88.2
+glib2:GLIB_VER:2.88.3
 gobject-introspection:GOBJECT_INTROSPECTION_VER:1.86.0
 guile:GUILE_VER:3.0.11
-swig:SWIG_VER:4.4.1
-harfbuzz:HARFBUZZ_VER:14.2.1
+swig:SWIG_VER:4.5.0
+harfbuzz:HARFBUZZ_VER:14.3.1
 libpng:LIBPNG_VER:1.6.58
 freetype2:FREETYPE_VER:2.14.3
-fontconfig:FONTCONFIG_VER:2.18.1
+fontconfig:FONTCONFIG_VER:2.18.3
 pixman:PIXMAN_VER:0.46.4
 libtiff:LIBTIFF_VER:4.7.2
 poppler:POPPLER_VER:26.06.0
@@ -51,7 +51,7 @@ libnghttp3:NGHTTP3_VER:1.17.0
 libngtcp2:NGTCP2_VER:1.24.0
 cairo:CAIRO_VER:1.18.4
 fribidi:FRIBIDI_VER:1.0.16
-pango:PANGO_VER:1.58.0
+pango:PANGO_VER:1.58.2
 librsvg:LIBRSVG_VER:2.62.3
 highway:HIGHWAY_VER:1.4.0
 lcms2:LCMS2_VER:2.19.1
@@ -84,7 +84,7 @@ boost:BOOST_VER:1.91.0
 libepoxy:LIBEPOXY_VER:1.5.10
 graphene:GRAPHENE_VER:1.10.8
 shared-mime-info:SMI_VER:2.5.1
-libffi:LIBFFI_VER:3.6.0
+libffi:LIBFFI_VER:3.8.0
 python-gobject:PYGOBJECT_VER:3.56.3
 rdkit:RDKIT_VER:2026_03_3
 maeparser:MAEPARSER_VER:1.3.3
@@ -99,15 +99,15 @@ zstd:ZSTD_VER:1.5.7
 brotli:BROTLI_VER:1.2.0
 xz:XZ_VER:5.8.3
 util-linux:UTIL_LINUX_VER:2.42.2
-python:PYTHON_VER:3.14.6
-python-numpy:NUMPY_VER:2.5.1
-cmake:CMAKE_VER:4.3.4
+python:PYTHON_VER:3.14.7
+python-numpy:NUMPY_VER:2.5.2
+cmake:CMAKE_VER:4.4.2
 ninja:NINJA_VER:1.13.2
 ncurses:NCURSES_VER:6.6
 readline:READLINE_VER:8.3
 openssl:OPENSSL_VER:3.6.3
-expat:EXPAT_VER:2.8.2
-sqlite:SQLITE_VER:3.53.3
+expat:EXPAT_VER:2.8.3
+sqlite:SQLITE_VER:3.53.4
 ispc:ISPC_VER:1.24.0
 onetbb:TBB_VER:2021.13.0
 rkcommon:RKCOMMON_VER:1.14.0
