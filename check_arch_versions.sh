@@ -43,7 +43,7 @@ libpng:LIBPNG_VER:1.6.58
 freetype2:FREETYPE_VER:2.14.3
 fontconfig:FONTCONFIG_VER:2.18.3
 pixman:PIXMAN_VER:0.46.4
-libtiff:LIBTIFF_VER:4.7.2
+libtiff:LIBTIFF_VER:4.7.1
 poppler:POPPLER_VER:26.06.0
 curl:CURL_VER:8.21.0
 libnghttp2:NGHTTP2_VER:1.70.0
