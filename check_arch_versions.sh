@@ -86,7 +86,7 @@ graphene:GRAPHENE_VER:1.10.8
 shared-mime-info:SMI_VER:2.5.1
 libffi:LIBFFI_VER:3.8.0
 python-gobject:PYGOBJECT_VER:3.56.3
-rdkit:RDKIT_VER:2026_03_3
+rdkit:RDKIT_VER:2026_03_5
 maeparser:MAEPARSER_VER:1.3.3
 coordgen:COORDGEN_VER:3.0.2
 libdwarf:LIBDWARF_VER:2.3.2
