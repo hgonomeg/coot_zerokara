@@ -234,7 +234,6 @@ if [ $do_os -eq 1 ]; then
              file \
              gettext-tools \
              glibc-locale \
-             openal-soft-devel \
              libseccomp-devel \
              doxygen \
              || error
@@ -309,7 +308,6 @@ if [ $do_os -eq 1 ]; then
             xz \
             glibc-langpack-en \
             glibc-gconv-extra \
-            openal-soft-devel \
             libseccomp-devel \
             doxygen \
             || error
@@ -370,7 +368,6 @@ if [ $do_os -eq 1 ]; then
               xmlto \
               pkgconf-pkg-config \
               glibc-gconv-extra \
-              openal-soft-devel \
               libseccomp-devel \
               doxygen
       ;;
@@ -387,7 +384,6 @@ if [ $do_os -eq 1 ]; then
           libgmp-dev libdrm-dev \
           libglfw3-dev \
           xz-utils \
-          libopenal-dev \
           libseccomp-dev \
           doxygen \
           bc || error
@@ -404,7 +400,7 @@ if [ $do_os -eq 1 ]; then
             libxkbcommon xcb-util libx11 \
             gmp libdrm \
             glfw \
-            inetutils bc openal libseccomp doxygen || error
+            inetutils bc libseccomp doxygen || error
       ;;
     *) error "unsupported OS!";;
   esac
@@ -461,8 +457,6 @@ BUILD_DEPENDENCIES="
     harfbuzz
     freetype
     fontconfig
-    libogg
-    libvorbis
     libjpeg
     pixman
     cairo
@@ -500,7 +494,11 @@ BUILD_DEPENDENCIES="
     gemmi
     libccp4
     libssm
-    libclipper"
+    libclipper
+    tbb
+    rkcommon
+    embree
+    ospray"
 # -------------------------------------------------------------------------------------
 
 # versions of all external packages/dependencies:
@@ -599,11 +597,16 @@ SQLITE_SRCVER=$(printf '%d%02d%02d00' $(echo ${SQLITE_VER} | sed 's/\./ /g'))
 MAEPARSER_VER=1.3.3
 COORDGEN_VER=3.0.2
 EIGEN_VER=5.0.1
-LIBOGG_VER=1.3.6
-LIBVORBIS_VER=1.3.7
 ELFUTILS_VER=0.195
 LIBDWARF_VER=2.3.2
 LIBBACKWARD_VER=1.6
+# OSPRay ray-tracing stack for chapi (Coot's headless API). ISPC is a build-time-only
+# SPMD compiler (prebuilt binary, not shipped); the rest build from source and ship.
+ISPC_VER=1.24.0
+TBB_VER=2021.13.0
+RKCOMMON_VER=1.14.0
+EMBREE_VER=4.3.3
+OSPRAY_VER=3.2.0
 
 # -------------------------------------------------------------------------------------
 # As mentioned above, everything happens inside the current directory:
@@ -616,6 +619,8 @@ export CARGO_HOME=${PREFIX}/.cargo
 # RUSTUP_HOME holds the actual toolchains (rustc, std, components); without this it
 # defaults to $HOME/.rustup, i.e. outside $PREFIX. Keep all of Rust under $PREFIX.
 export RUSTUP_HOME=${PREFIX}/.rustup
+# Prebuilt ISPC compiler (used to build embree's ISPC interface + ospray's CPU kernels).
+export ISPC_EXE=${DEPS_DIR}/ispc-v${ISPC_VER}-linux/bin/ispc
 
 cat <<e
 
@@ -1507,15 +1512,6 @@ build_eigen () {
           -DEIGEN_BUILD_DEMOS=OFF
 }
 
-build_libogg () {
-  build_with_cmake libogg ${LIBOGG_VER} -DBUILD_SHARED_LIBS=ON
-}
-
-build_libvorbis () {
-  build_with_configure libvorbis ${LIBVORBIS_VER} --enable-shared --disable-static
-}
-
- 
 build_rdkit () {
   # Drop RDKit's stale FindEigen3 so config-mode finds our Eigen 5.x (rdkit#8896).
   rm -f $DEPS_DIR/rdkit-${RDKIT_VER}/Code/cmake/Modules/FindEigen3.cmake
@@ -1692,6 +1688,31 @@ build_fftw () {
     touch $BUILD_DIR/sfftw/.my_done${MY_DONE_EXT}
     echo "done"
   fi
+}
+
+# OSPRay ray-tracing stack for chapi. Order: tbb -> rkcommon -> embree -> ospray.
+# ISPC (found on PATH, added in setup_build_env) is a build-time-only compiler.
+# CFLAGS/CXXFLAGS cleared: the global -I$PREFIX/include gets treated as implicit, so cmake
+# drops the config-target -isystem and embree/ospray then overwrite it -- tbb/tbb.h unfound.
+build_tbb () {
+  CFLAGS="" CXXFLAGS="" build_with_cmake tbb ${TBB_VER} -DBUILD_SHARED_LIBS=ON -DTBB_TEST=OFF -DTBB_EXAMPLES=OFF
+}
+
+build_rkcommon () {
+  CFLAGS="" CXXFLAGS="" build_with_cmake rkcommon ${RKCOMMON_VER} -DBUILD_SHARED_LIBS=ON -DINSTALL_DEPS=OFF -DBUILD_TESTING=OFF
+}
+
+# ospray rejects embree unless it exposes the ISPC interface, so EMBREE_ISPC_SUPPORT=ON.
+build_embree () {
+  CFLAGS="" CXXFLAGS="" build_with_cmake embree ${EMBREE_VER} -DBUILD_SHARED_LIBS=ON -DEMBREE_ISPC_SUPPORT=ON \
+    -DEMBREE_TUTORIALS=OFF -DEMBREE_TASKING_SYSTEM=TBB -DEMBREE_TESTING_INTENSITY=0
+}
+
+# Volumes off drops the OpenVKL dependency (Coot's ray tracer is geometry-only); apps and
+# the OIDN denoiser off. Coot enables this via -DOSPRAY_PREFIX in build_chapi.
+build_ospray () {
+  CFLAGS="" CXXFLAGS="" build_with_cmake ospray ${OSPRAY_VER} -DBUILD_SHARED_LIBS=ON -DOSPRAY_ENABLE_APPS=OFF \
+    -DOSPRAY_ENABLE_VOLUMES=OFF -DOSPRAY_MODULE_DENOISER=OFF -DISPC_EXECUTABLE=$ISPC_EXE
 }
 
 # -------------------------------------------------------------------------------------
@@ -2015,7 +2036,8 @@ initial_setup () {
 setup_build_env () {
   export PKG_CONFIG_LIBDIR=$PREFIX/lib/x86_64-linux-gnu:$PREFIX/lib64:$PREFIX/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib
   export PKG_CONFIG_PATH=$PREFIX/lib/x86_64-linux-gnu/pkgconfig:$PREFIX/lib64/pkgconfig:$PREFIX/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:$PREFIX/share/pkgconfig:/usr/lib64/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
-  export PATH="$CARGO_HOME/bin:$PREFIX/bin:$PATH"
+  # ISPC dir added for embree/ospray; harmless before the download phase creates it.
+  export PATH="$CARGO_HOME/bin:$PREFIX/bin:${DEPS_DIR}/ispc-v${ISPC_VER}-linux/bin:$PATH"
   export LD_LIBRARY_PATH="$PREFIX/lib/x86_64-linux-gnu:$PREFIX/lib64:$PREFIX/lib"
   export LD_PATH="$PREFIX/lib/x86_64-linux-gnu:$PREFIX/lib64:$PREFIX/lib"
   export ACLOCAL_PATH="$PREFIX/share/aclocal"
@@ -2347,11 +2369,24 @@ download_dependencies () {
   # Eigen
   do_wget https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VER}/eigen-${EIGEN_VER}.tar.gz
 
-  # libogg
-  do_wget https://downloads.xiph.org/releases/ogg/libogg-${LIBOGG_VER}.tar.xz
+  # ISPC (prebuilt compiler binary)
+  do_wget https://github.com/ispc/ispc/releases/download/v${ISPC_VER}/ispc-v${ISPC_VER}-linux.tar.gz ispc-v${ISPC_VER}-linux.tar.gz
 
-  # libvorbis
-  do_wget https://downloads.xiph.org/releases/vorbis/libvorbis-${LIBVORBIS_VER}.tar.xz
+  # oneTBB
+  do_wget https://github.com/uxlfoundation/oneTBB/archive/refs/tags/v${TBB_VER}.tar.gz tbb-${TBB_VER}.tar.gz
+  if [ -d oneTBB-${TBB_VER} ] && [ ! -d tbb-${TBB_VER} ]; then
+    mv oneTBB-${TBB_VER} tbb-${TBB_VER} && \
+      ln -s tbb-${TBB_VER} oneTBB-${TBB_VER} || error
+  fi
+
+  # rkcommon
+  do_wget https://github.com/RenderKit/rkcommon/archive/refs/tags/v${RKCOMMON_VER}.tar.gz rkcommon-${RKCOMMON_VER}.tar.gz
+
+  # embree
+  do_wget https://github.com/RenderKit/embree/archive/refs/tags/v${EMBREE_VER}.tar.gz embree-${EMBREE_VER}.tar.gz
+
+  # ospray
+  do_wget https://github.com/RenderKit/ospray/archive/refs/tags/v${OSPRAY_VER}.tar.gz ospray-${OSPRAY_VER}.tar.gz
 }
 
 build_dependencies () {
@@ -2444,7 +2479,6 @@ CXXFLAGS="${CXXFLAGS} ${__opt} ${__arch} -Wreturn-type -Wl,--as-needed -Wno-sequ
 ./configure --prefix=\$PREFIX \\
             --libexecdir=\$PREFIX/libexec \\
             --disable-static \\
-            --with-sound \\
             --with-enhanced-ligand-tools \\
             --with-rdkit-prefix=\$PREFIX \\
             --with-boost=\$PREFIX \\
@@ -2532,7 +2566,8 @@ EOF
   # Todo: make sure we do it in a way consistent with how we build Coot (e.g. build type, build flags, etc.)
   if [ ! -f .my_cmake_done ]; then
     printf " ### Chapi: cmake (see `mypwd`/my_chapi_cmake.log) ... "
-    cmake -S .. -DCMAKE_INSTALL_PREFIX=$PREFIX > my_chapi_cmake.log 2>&1 \
+    # -DOSPRAY_PREFIX enables chapi's OSPRay ray-tracing renderer (ospray + its stack in $PREFIX).
+    cmake -S .. -DCMAKE_INSTALL_PREFIX=$PREFIX -DOSPRAY_PREFIX=$PREFIX > my_chapi_cmake.log 2>&1 \
     || error "see `mypwd`/my_chapi_cmake.log"
     echo "done"
     touch .my_cmake_done
@@ -3005,7 +3040,17 @@ warning () {
   [ "X$@" != "X" ] && printf "\n WARNING: $@\n\n" || printf "\n WARNING: see above\n\n"
 }
 usage () {
-  printf "\n USAGE: $invoked_name [-h] [-v] [--ldd|--debug|--strace] ...\n\n"
+  printf "\n USAGE: $invoked_name [launcher options] [$invoked_name options ...]\n\n"
+  printf " Two separate sets of options are understood:\n\n"
+  printf "  1. Launcher options, consumed here and NOT passed on. They are recognised\n"
+  printf "     only before the first other argument:\n"
+  printf "       -v         more verbose launcher output (repeatable)\n"
+  printf "       --ldd      list the target binary's shared libraries, then exit\n"
+  printf "       --debug    report the resolved font files, then run\n"
+  printf "       --strace   run the target binary under strace\n\n"
+  printf "  2. Everything else, passed through to $invoked_name untouched. Its own\n"
+  printf "     options are listed below.\n\n"
+  printf " -h and --help belong to both: they print this text and are passed on.\n\n"
 }
 
 # --- environment: single source of truth, shared with interactive `. coot-env.sh` use.
@@ -3022,11 +3067,18 @@ fi
 LANG=C LC_ALL=C LC_NUMERIC=C
 export LANG LC_ALL LC_NUMERIC
 
+# --- help: print our own usage but do NOT consume the flag, so the real binary lists
+#     its options too. Scanned over every argument, as it may follow a filename. ---
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) usage; break;;
+  esac
+done
+
 # --- parse wrapper-only flags; everything else passes through to the real binary ---
 do_ldd=0; do_debug=0; do_strace=0; iverb=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h) usage; exit 0;;
     --ldd) do_ldd=1; shift;;
     --debug) do_debug=1; shift;;
     --strace) do_strace=1; shift;;
@@ -3058,16 +3110,16 @@ if [ $do_ldd -eq 1 ]; then
   ldd "$target_exe"
 elif [ $do_strace -eq 1 ]; then
   type strace >/dev/null 2>&1 || error "no \"strace\" command found"
-  strace "$target_exe" "$@"
+  exec strace "$target_exe" "$@"
 elif [ $do_debug -eq 1 ]; then
   printf "\n ### Running: \"%s\" %s\n\n" "$target_exe" "$*"
   fc-match -v monospace 2>/dev/null | grep file
   fc-match -v serif 2>/dev/null | grep file
   fc-match -v sans 2>/dev/null | grep file
-  "$target_exe" "$@" || error
+  exec "$target_exe" "$@"
 else
-  # rewrite the program's own "Usage: <prog>" line to show the name actually invoked
-  "$target_exe" "$@" 2>&1 | sed "s%Usage:[ ]*[^ ]*%Usage: $invoked_name%g" || error
+  # exec: the real exit status, the tty and signal delivery all reach the user
+  exec "$target_exe" "$@"
 fi
 exit 0
 EOF
