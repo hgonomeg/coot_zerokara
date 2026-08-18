@@ -24,7 +24,7 @@ while IFS=: read -r pkg scriptvar scriptver; do
   script_base="${scriptver%%-*}"
   script_base="${script_base#*:}"
 
-  # Normalise underscores to dots (rdkit: 2026_03_3 vs 2026.03.3)
+  # Normalise underscores to dots (rdkit: 2026_03_5 vs 2026.03.5)
   arch_base="${arch_base//_/.}"
   script_base="${script_base//_/.}"
 
